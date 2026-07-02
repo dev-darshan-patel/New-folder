@@ -48,3 +48,6 @@ next-env.d.ts
 # Local tool/session artifacts
 /.remember/
 /graphify-out/
+
+.vercel
+.env*
