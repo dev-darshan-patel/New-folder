@@ -1,0 +1,28 @@
+name: Cron Reminders
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping reminders endpoint
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          CRON_URL: ${{ secrets.CRON_URL }}
+        run: |
+          if [ -z "$CRON_URL" ]; then
+            echo "CRON_URL secret is not set"; exit 1
+          fi
+          echo "Calling $CRON_URL"
+          # Use GET and include Authorization header. Fails the job on non-2xx.
+          response=$(curl -sS -w "%{http_code}" -o /tmp/resp -H "Authorization: Bearer $CRON_SECRET" "$CRON_URL") || true
+          body=$(cat /tmp/resp || true)
+          echo "Status: $response";
+          echo "Body: $body";
+          if [ "$response" -lt 200 ] || [ "$response" -ge 300 ]; then
+            echo "Non-success response: $response"; exit 1
+          fi
