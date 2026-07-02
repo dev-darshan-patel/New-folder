@@ -1,0 +1,246 @@
+"use server";
+
+import { redirect } from "next/navigation";
+import bcrypt from "bcryptjs";
+import { prisma } from "@/lib/prisma";
+import {
+  createSession,
+  destroySession,
+  createPending2faToken,
+  readPending2fa,
+  clearPending2fa,
+} from "@/lib/auth";
+import { uniqueUserSlug } from "@/lib/slug";
+import { sendEmail } from "@/lib/email";
+import { verifyTotp, consumeBackupCode } from "@/lib/totp";
+import { rateLimit, clientIp } from "@/lib/rate-limit";
+
+import { getPlatformConfig } from "@/lib/platform-config";
+
+export type AuthState = { error: string } | null;
+export type ResetRequestState = { ok: true } | { error: string } | null;
+
+export async function signupAction(
+  _prev: AuthState,
+  formData: FormData,
+): Promise<AuthState> {
+  if (!rateLimit(`signup:${await clientIp()}`, 5, 3_600_000)) {
+    return { error: "Too many attempts. Try again in a few minutes." };
+  }
+  const { signupsEnabled } = await getPlatformConfig();
+  if (!signupsEnabled) {
+    return { error: "New signups are temporarily disabled." };
+  }
+  const name = String(formData.get("name") || "").trim();
+  const businessName = String(formData.get("businessName") || "").trim();
+  const email = String(formData.get("email") || "")
+    .trim()
+    .toLowerCase();
+  const password = String(formData.get("password") || "");
+  const timezone = String(formData.get("timezone") || "UTC") || "UTC";
+
+  if (!name || !businessName || !email || !password) {
+    return { error: "All fields are required." };
+  }
+  if (password.length < 8) {
+    return { error: "Password must be at least 8 characters." };
+  }
+
+  const existing = await prisma.user.findUnique({ where: { email } });
+  if (existing) {
+    return { error: "An account with that email already exists." };
+  }
+
+  const passwordHash = await bcrypt.hash(password, 10);
+  const slug = await uniqueUserSlug(businessName);
+  const verifyToken = crypto.randomUUID();
+
+  const user = await prisma.user.create({
+    data: {
+      name,
+      businessName,
+      email,
+      passwordHash,
+      slug,
+      timezone,
+      emailVerifiedAt: null,
+      emailVerifyToken: verifyToken,
+      emailVerifyExpiresAt: new Date(Date.now() + 86_400_000),
+      // Sensible defaults so the booking page works right away.
+      eventTypes: {
+        create: {
+          title: "30 Minute Meeting",
+          slug: "30-min",
+          durationMinutes: 30,
+          description: "A quick 30 minute call.",
+        },
+      },
+      availability: {
+        create: [1, 2, 3, 4, 5].map((weekday) => ({
+          weekday,
+          startMinutes: 9 * 60,
+          endMinutes: 17 * 60,
+        })),
+      },
+    },
+  });
+
+  const base = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  try {
+    await sendEmail({
+      to: email,
+      subject: "Verify your email address",
+      text: `Hi ${name},\n\nWelcome! Please confirm your email address by clicking the link below (valid for 24 hours):\n\n${base}/verify-email/${verifyToken}\n\nIf you didn't create this account, you can ignore this email.`,
+    });
+  } catch (err) {
+    console.error("Failed to send verification email", err);
+  }
+
+  await createSession(user.id);
+  redirect("/dashboard");
+}
+
+export async function loginAction(
+  _prev: AuthState,
+  formData: FormData,
+): Promise<AuthState> {
+  if (!rateLimit(`login:${await clientIp()}`, 10, 300_000)) {
+    return { error: "Too many attempts. Try again in a few minutes." };
+  }
+  const email = String(formData.get("email") || "")
+    .trim()
+    .toLowerCase();
+  const password = String(formData.get("password") || "");
+
+  if (!email || !password) {
+    return { error: "Email and password are required." };
+  }
+  if (!rateLimit(`login:${email}`, 5, 300_000)) {
+    return { error: "Too many attempts. Try again in a few minutes." };
+  }
+
+  const user = await prisma.user.findUnique({ where: { email } });
+  if (!user || !user.passwordHash) {
+    return {
+      error: user
+        ? "This account signs in with Google or Microsoft — use one of those buttons instead."
+        : "Invalid email or password.",
+    };
+  }
+  if (!(await bcrypt.compare(password, user.passwordHash))) {
+    return { error: "Invalid email or password." };
+  }
+  if (user.deletedAt) {
+    return { error: "This account no longer exists." };
+  }
+  if (user.suspended) {
+    return { error: "This account has been suspended. Contact support." };
+  }
+
+  if (user.totpEnabled) {
+    await createPending2faToken(user.id);
+    redirect("/login/2fa");
+  }
+
+  await createSession(user.id);
+  redirect(user.adminRole ? "/admin" : "/dashboard");
+}
+
+export async function verifyTwoFactorAction(
+  _prev: AuthState,
+  formData: FormData,
+): Promise<AuthState> {
+  if (!rateLimit(`2fa:${await clientIp()}`, 10, 300_000)) {
+    return { error: "Too many attempts. Try again in a few minutes." };
+  }
+  const pending = await readPending2fa();
+  if (!pending) return { error: "Your login session expired. Sign in again." };
+
+  const submitted = String(formData.get("code") || "").trim();
+  if (!submitted) return { error: "Enter your 6-digit code." };
+
+  const user = await prisma.user.findUnique({ where: { id: pending.userId } });
+  if (!user || !user.totpEnabled || !user.totpSecret) {
+    await clearPending2fa();
+    return { error: "This account isn't set up for 2FA. Sign in again." };
+  }
+  if (user.deletedAt || user.suspended) {
+    await clearPending2fa();
+    return { error: "This account is not available." };
+  }
+
+  // Try TOTP first.
+  if (verifyTotp(user.totpSecret, submitted)) {
+    await clearPending2fa();
+    await createSession(user.id);
+    redirect(user.adminRole ? "/admin" : "/dashboard");
+  }
+
+  // Fall back to backup code.
+  if (user.totpBackupCodes) {
+    try {
+      const codes: string[] = JSON.parse(user.totpBackupCodes);
+      const remaining = await consumeBackupCode(submitted, codes);
+      if (remaining) {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { totpBackupCodes: JSON.stringify(remaining) },
+        });
+        await clearPending2fa();
+        await createSession(user.id);
+        redirect(user.adminRole ? "/admin" : "/dashboard");
+      }
+    } catch {
+      // fall through to error below
+    }
+  }
+
+  return { error: "That code was not accepted. Try again." };
+}
+
+export async function requestPasswordResetAction(
+  _prev: ResetRequestState,
+  formData: FormData,
+): Promise<ResetRequestState> {
+  // Return the success shape when limited so this can't be used to probe.
+  if (!rateLimit(`pwreset:${await clientIp()}`, 5, 900_000)) {
+    return { ok: true };
+  }
+  const email = String(formData.get("email") || "")
+    .trim()
+    .toLowerCase();
+  if (!email) return { error: "Enter your email address." };
+
+  const user = await prisma.user.findUnique({ where: { email } });
+
+  // Only send to real, active, password-based accounts — but always return the
+  // same response so we don't reveal which emails exist.
+  if (user && user.passwordHash && !user.deletedAt && !user.suspended) {
+    const token = crypto.randomUUID();
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        passwordResetToken: token,
+        passwordResetExpiresAt: new Date(Date.now() + 3_600_000),
+      },
+    });
+    const base = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    const resetUrl = `${base}/reset-password/${token}`;
+    try {
+      await sendEmail({
+        to: user.email,
+        subject: "Reset your password",
+        text: `Hi ${user.name},\n\nSomeone requested a password reset for your account. Click the link below to set a new password. It expires in 1 hour.\n\n${resetUrl}\n\nIf you didn't request this, you can safely ignore this email.`,
+      });
+    } catch (err) {
+      console.error("Failed to send password reset email", err);
+    }
+  }
+
+  return { ok: true };
+}
+
+export async function logoutAction() {
+  await destroySession();
+  redirect("/login");
+}

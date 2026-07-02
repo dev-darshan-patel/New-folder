@@ -1,0 +1,370 @@
+// Prisma schema for the booking SaaS.
+// Production datasource: Postgres (Neon / Vercel Postgres). directUrl is the
+// unpooled connection Prisma needs to run migrations against a PgBouncer-
+// fronted connection string — Neon and Vercel Postgres both provide one.
+// See docs/deploy.md for local setup now that SQLite has been retired.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// A business owner account. Each user is a tenant with their own booking page.
+model User {
+  id           String         @id @default(cuid())
+  email        String         @unique
+  // Nullable: accounts created via Google/Microsoft sign-in have no password
+  // unless they later set one. Password login is rejected when this is null.
+  passwordHash String?
+  // Provider account ids for "Sign in with Google/Microsoft". An OAuth login
+  // links to an existing account by verified email if these aren't set yet.
+  googleId     String?        @unique
+  microsoftId  String?        @unique
+  name         String
+  businessName String
+  // Public URL handle, e.g. yoursaas.com/{slug}
+  slug         String         @unique
+  // IANA timezone, e.g. "America/New_York". Slots are generated in this zone.
+  timezone     String         @default("UTC")
+  // Legacy platform-admin flag. Superseded by `adminRole` (any non-null role
+  // grants /admin access); kept only so existing rows aren't dropped.
+  isAdmin      Boolean        @default(false)
+  // Authoritative admin gate + permission level. null = not an admin.
+  adminRole    AdminRole?
+  // Blocks login + hides the public booking page. Distinct from soft-delete.
+  suspended    Boolean        @default(false)
+  // Soft-delete marker. Non-null = hidden from default lists, login blocked.
+  deletedAt    DateTime?
+  // One-time token + expiry for an admin-triggered password reset.
+  passwordResetToken     String?   @unique
+  passwordResetExpiresAt DateTime?
+  // Optional mobile phone number for user contact/notifications.
+  // Stored as free-form E.164-ish text — no automated verification yet.
+  mobile                 String?
+
+  // TOTP two-factor auth. Enabled only after the user confirms a code
+  // during setup. Secret is the base32-encoded TOTP shared secret.
+  totpSecret             String?
+  totpEnabled            Boolean   @default(false)
+  // JSON array of bcrypt-hashed one-time backup codes. Each is single-use;
+  // remove from the array when consumed. Empty array or null = no codes issued.
+  totpBackupCodes        String?
+
+  // Email-address verification. Null = unverified (blocked from login for
+  // password signups after this feature shipped; pre-existing accounts are
+  // backfilled as verified). OAuth signups verify via the provider claim.
+  emailVerifiedAt        DateTime?
+  emailVerifyToken       String?   @unique
+  emailVerifyExpiresAt   DateTime?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  // Billing / subscription. plan is the source of truth for feature gating and
+  // is kept in sync with Stripe via webhooks.
+  plan               Plan      @default(FREE)
+  stripeCustomerId   String?   @unique
+  stripeSubscriptionId String? @unique
+  // Stripe subscription status, e.g. "active", "past_due", "canceled".
+  subscriptionStatus String?
+  // End of the current paid period; the plan stays active until this passes.
+  planRenewsAt       DateTime?
+
+  // Branding (applied to the public booking page + embed). Custom values only
+  // take effect on plans where customBranding is enabled; otherwise defaults.
+  brandColor      String   @default("#4f46e5")
+  brandFont       String   @default("Geist")
+  logoUrl         String?
+  welcomeMessage  String?
+
+  eventTypes   EventType[]
+  availability Availability[]
+  bookings     Booking[]
+  adminNotes        AdminNote[]
+  couponRedemptions CouponRedemption[]
+  teamMembers  TeamMember[]
+}
+
+enum AssignmentMode {
+  SOLO
+  ROUND_ROBIN
+  COLLECTIVE
+}
+
+model TeamMember {
+  id             String    @id @default(cuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name           String
+  email          String?
+  isOwner        Boolean   @default(false)
+  active         Boolean   @default(true)
+  lastAssignedAt DateTime?
+  createdAt      DateTime  @default(now())
+
+  availability   Availability[]
+  eventTypes     EventTypeMember[]
+  bookings       Booking[]
+
+  @@index([userId])
+}
+
+model EventTypeMember {
+  eventTypeId  String
+  eventType    EventType  @relation(fields: [eventTypeId], references: [id], onDelete: Cascade)
+  teamMemberId String
+  teamMember   TeamMember @relation(fields: [teamMemberId], references: [id], onDelete: Cascade)
+
+  @@id([eventTypeId, teamMemberId])
+}
+
+enum AdminRole {
+  SUPER_ADMIN
+  SUPPORT
+  READ_ONLY
+}
+
+// Append-only record of every admin mutation, for accountability.
+model AdminAuditLog {
+  id           String   @id @default(cuid())
+  actorId      String
+  actorEmail   String
+  action       String
+  targetUserId String?
+  // Snapshot of the target's business name at the time, in case it's later deleted.
+  targetLabel  String?
+  // JSON string of action-specific details (old/new values, reason, etc.).
+  metadata     String?
+  createdAt    DateTime @default(now())
+
+  @@index([targetUserId])
+  @@index([createdAt])
+}
+
+// An internal note left by a platform admin on a user's account.
+// Visible only in /admin — never surfaced to the tenant.
+model AdminNote {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  authorEmail String
+  body      String
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+enum Plan {
+  FREE
+  PRO
+  BUSINESS
+}
+
+// A bookable meeting type, e.g. "30 Minute Intro Call".
+model EventType {
+  id              String    @id @default(cuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title           String
+  // URL handle scoped to the user, e.g. /{userSlug}/{slug}
+  slug            String
+  description     String?
+  durationMinutes Int       @default(30)
+  // Minimum notice in minutes before a slot can be booked.
+  bufferMinutes   Int       @default(0)
+  // Max bookings allowed per calendar day for this event type. null = unlimited.
+  maxPerDay       Int?
+  // JSON array of custom intake questions: [{ label, required }].
+  intakeQuestions String?
+  active          Boolean        @default(true)
+  assignmentMode  AssignmentMode @default(SOLO)
+  createdAt       DateTime  @default(now())
+
+  bookings        Booking[]
+  members         EventTypeMember[]
+
+  @@unique([userId, slug])
+}
+
+// A weekly-recurring availability window for a user.
+// Stored as a weekday plus minutes-from-midnight in the user's timezone.
+model Availability {
+  id           String      @id @default(cuid())
+  userId       String
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  teamMemberId String?
+  teamMember   TeamMember? @relation(fields: [teamMemberId], references: [id], onDelete: Cascade)
+  // 0 = Sunday ... 6 = Saturday
+  weekday      Int
+  // Minutes from midnight. e.g. 540 = 09:00, 1020 = 17:00
+  startMinutes Int
+  endMinutes   Int
+}
+
+// A confirmed booking made by an invitee on a user's booking page.
+model Booking {
+  id           String        @id @default(cuid())
+  userId       String
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  eventTypeId  String
+  eventType    EventType     @relation(fields: [eventTypeId], references: [id], onDelete: Cascade)
+  teamMemberId String?
+  teamMember   TeamMember?   @relation(fields: [teamMemberId], references: [id], onDelete: SetNull)
+  inviteeName  String
+  inviteeEmail String
+  notes        String?
+  // JSON array of answers to the event type's intake questions: [{ label, value }].
+  answers      String?
+  // Stored in UTC.
+  startTime    DateTime
+  endTime      DateTime
+  status       BookingStatus @default(CONFIRMED)
+  // Random secret in the self-service manage URL (/booking/{manageToken}).
+  // Nullable so pre-existing rows migrate cleanly; always set on new bookings.
+  manageToken  String?       @unique
+  // iCalendar SEQUENCE; incremented on each reschedule/cancel so calendar
+  // clients update the existing event instead of creating a duplicate.
+  sequence     Int           @default(0)
+  // Number of times this booking has been rescheduled. Distinct from
+  // `sequence` (which also increments on cancel) so admin analytics can
+  // report an accurate reschedule rate.
+  rescheduleCount Int        @default(0)
+  // Timestamps marking which reminder emails have been sent (idempotency).
+  remind24hSentAt DateTime?
+  remind1hSentAt  DateTime?
+  createdAt    DateTime      @default(now())
+
+  @@index([userId, startTime])
+}
+
+enum BookingStatus {
+  CONFIRMED
+  CANCELLED
+}
+
+enum StripeMode {
+  TEST
+  LIVE
+}
+
+// Singleton row (id is always "singleton") holding platform-wide Stripe
+// configuration. Both test and live credentials can be stored at once, but
+// only one mode is ever active — the app never falls back from one to the
+// other. Secret-ish fields (secret keys, webhook secrets) are never echoed
+// back to the admin UI in full; only a masked "ends in ####" hint is shown.
+model PlatformSettings {
+  id String @id @default("singleton")
+
+  stripeMode StripeMode @default(TEST)
+
+  stripeTestPublishableKey String?
+  stripeTestSecretKey      String?
+  stripeTestWebhookSecret  String?
+  stripeTestPricePro       String?
+  stripeTestPriceBusiness  String?
+
+  stripeLivePublishableKey String?
+  stripeLiveSecretKey      String?
+  stripeLiveWebhookSecret  String?
+  stripeLivePricePro       String?
+  stripeLivePriceBusiness  String?
+
+  // "Sign in with Google" OAuth app credentials.
+  googleClientId     String?
+  googleClientSecret String?
+
+  // "Sign in with Microsoft" (Outlook/work-or-school) OAuth app credentials.
+  microsoftClientId     String?
+  microsoftClientSecret String?
+  // Azure AD tenant to authorize against. "common" (the default) accepts both
+  // personal Microsoft/Outlook accounts and work-or-school accounts.
+  microsoftTenant       String  @default("common")
+
+  // Platform-wide operational config (Phase 7).
+  maintenanceMode    Boolean @default(false)
+  maintenanceMessage String?
+  signupsEnabled     Boolean @default(true)
+  supportEmail       String?
+
+  // Email delivery provider. Only one is active at a time. Falls back to
+  // SMTP_* env vars when set to "NONE".
+  emailProvider      String  @default("NONE")
+  // Gmail SMTP (app password)
+  gmailSmtpUser      String?
+  gmailSmtpPass      String?
+  gmailSmtpFrom      String?
+  // Amazon SES SMTP credentials (generated at IAM → Security credentials → SMTP credentials)
+  sesSmtpUser        String?
+  sesSmtpPass        String?  // sensitive
+  sesRegion          String?
+  sesFromAddress     String?
+
+  updatedAt DateTime @updatedAt
+}
+
+// Toggleable product capabilities. Keys are stable identifiers checked in code.
+model FeatureFlag {
+  key         String   @id
+  label       String
+  description String?
+  enabled     Boolean  @default(false)
+  updatedAt   DateTime @updatedAt
+}
+
+enum CouponType {
+  // Grants a paid plan for N days without Stripe checkout.
+  TRIAL
+  // Applies a Stripe promotion code at Checkout (requires stripePromotionCodeId).
+  STRIPE_PROMO
+}
+
+// Admin-managed promo codes for billing.
+model Coupon {
+  id                    String     @id @default(cuid())
+  code                  String     @unique
+  description           String?
+  type                  CouponType
+  // TRIAL: number of days. STRIPE_PROMO: unused (0).
+  value                 Int        @default(0)
+  // TRIAL: plan to grant. STRIPE_PROMO: optional checkout plan filter.
+  grantPlan             Plan?
+  stripePromotionCodeId String?
+  maxRedemptions        Int?
+  redemptionCount       Int        @default(0)
+  expiresAt             DateTime?
+  active                Boolean    @default(true)
+  createdAt             DateTime   @default(now())
+  updatedAt             DateTime   @updatedAt
+
+  redemptions CouponRedemption[]
+}
+
+model CouponRedemption {
+  id         String   @id @default(cuid())
+  couponId   String
+  coupon     Coupon   @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  redeemedAt DateTime @default(now())
+
+  @@unique([couponId, userId])
+  @@index([userId])
+}
+
+// Platform-wide announcement banner shown to tenants in the dashboard.
+// Written by admins at /admin/announcements. Only `active` rows render.
+model Announcement {
+  id        String   @id @default(cuid())
+  message   String
+  // Visual tone of the banner: INFO | WARNING | CRITICAL.
+  level     String   @default("INFO")
+  active    Boolean  @default(true)
+  // Optional auto-expiry; null = shown until deactivated.
+  expiresAt DateTime?
+  createdBy String
+  createdAt DateTime @default(now())
+}
