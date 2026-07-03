@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
-import { logoutAction } from "@/app/(auth)/actions";
-import { Button } from "@/components/ui/button";
+import LogoutButton from "@/components/LogoutButton";
 
 const navItems = [
   { href: "/admin", label: "Overview" },
@@ -92,15 +91,9 @@ export default async function AdminLayout({
         >
           ← Back to app
         </Link>
-        <form action={logoutAction} className="mt-1">
-          <Button
-            type="submit"
-            variant="ghost"
-            className="w-full justify-start text-slate-500 hover:bg-slate-800 hover:text-white"
-          >
-            Log out
-          </Button>
-        </form>
+        <div className="mt-1">
+          <LogoutButton className="w-full justify-start text-slate-500 hover:bg-slate-800 hover:text-white" />
+        </div>
       </aside>
 
       <main className="flex-1 px-6 py-8 sm:px-10">{children}</main>

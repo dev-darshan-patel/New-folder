@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useRef, useState, useTransition } from "react";
-import { interpolate, wrapHtml } from "@/lib/email-render";
+import { interpolate, wrapHtml, type EmailBrand } from "@/lib/email-render";
 import {
   updateEmailTemplateAction,
   sendTemplateTestAction,
@@ -14,9 +14,10 @@ type Props = {
   templateKey: string;
   vars: Var[];
   initial: { subject: string; html: string; text: string };
+  brand: EmailBrand;
 };
 
-export default function TemplateEditor({ templateKey, vars, initial }: Props) {
+export default function TemplateEditor({ templateKey, vars, initial, brand }: Props) {
   const [state, formAction, pending] = useActionState<TemplateFormState, FormData>(
     updateEmailTemplateAction,
     null,
@@ -37,7 +38,7 @@ export default function TemplateEditor({ templateKey, vars, initial }: Props) {
   const ctx: Record<string, string> = {};
   for (const v of vars) ctx[v.name] = v.sample;
   const previewSubject = interpolate(subject, ctx);
-  const previewHtml = wrapHtml(interpolate(html, ctx));
+  const previewHtml = wrapHtml(interpolate(html, ctx), brand);
 
   function insertVar(token: string) {
     const snippet = `{{${token}}}`;

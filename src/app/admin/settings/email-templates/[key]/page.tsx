@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getTemplateDef, CATEGORY_LABELS } from "@/lib/email-templates";
+import { getTemplateDef, getEmailBrand, CATEGORY_LABELS } from "@/lib/email-templates";
 import { Badge } from "@/components/ui/badge";
 import { resetEmailTemplateAction, toggleEmailTemplateAction } from "../actions";
 import TemplateEditor from "./TemplateEditor";
@@ -26,7 +26,10 @@ export default async function EditEmailTemplatePage({
   const def = getTemplateDef(key);
   if (!def) notFound();
 
-  const row = await prisma.emailTemplate.findUnique({ where: { key } });
+  const [row, brand] = await Promise.all([
+    prisma.emailTemplate.findUnique({ where: { key } }),
+    getEmailBrand(),
+  ]);
   const enabled = row?.enabled ?? true;
   const initial = {
     subject: row?.subject ?? def.subject,
@@ -91,6 +94,7 @@ export default async function EditEmailTemplatePage({
           templateKey={def.key}
           vars={def.vars}
           initial={initial}
+          brand={brand}
         />
       </div>
     </div>

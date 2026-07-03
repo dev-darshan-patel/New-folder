@@ -303,6 +303,14 @@ model PlatformSettings {
   sesRegion          String?
   sesFromAddress     String?
 
+  // Global branding applied to the shared HTML email shell (header/footer) that
+  // wraps every transactional email. Null fields fall back to built-in defaults.
+  emailBrandName    String?
+  emailLogoUrl      String?
+  emailAccentColor  String?
+  emailFooterText   String?
+  emailSupportUrl   String?
+
   updatedAt DateTime @updatedAt
 }
 

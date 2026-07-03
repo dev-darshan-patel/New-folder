@@ -1,8 +1,9 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
-import { interpolate, wrapHtml, button, pre } from "@/lib/email-render";
+import { interpolate, wrapHtml, button, pre, type EmailBrand } from "@/lib/email-render";
 
 export { interpolate, wrapHtml } from "@/lib/email-render";
+export type { EmailBrand } from "@/lib/email-render";
 
 // -----------------------------------------------------------------------------
 // Admin-editable transactional email templates.
@@ -303,26 +304,39 @@ export async function renderTemplate(
   const htmlTpl = useRow?.html ?? def?.html ?? "";
   const textTpl = useRow?.text ?? def?.text ?? "";
 
+  const brand = await getEmailBrand();
+
   return {
     subject: interpolate(subjectTpl, ctx),
-    html: wrapHtml(interpolate(htmlTpl, ctx)),
+    html: wrapHtml(interpolate(htmlTpl, ctx), brand),
     text: interpolate(textTpl, ctx),
   };
 }
 
-// Build a preview using each variable's sample value. Used by the admin editor.
-export function renderPreview(def: TemplateDef, overrides?: {
-  subject?: string;
-  html?: string;
-  text?: string;
-}): RenderedEmail {
-  const ctx: Record<string, string> = {};
-  for (const v of def.vars) ctx[v.name] = v.sample;
-  return {
-    subject: interpolate(overrides?.subject ?? def.subject, ctx),
-    html: wrapHtml(interpolate(overrides?.html ?? def.html, ctx)),
-    text: interpolate(overrides?.text ?? def.text, ctx),
-  };
+// Resolve the active email branding from platform settings. Returns undefined
+// fields where unset so wrapHtml applies its built-in defaults.
+export async function getEmailBrand(): Promise<EmailBrand> {
+  try {
+    const s = await prisma.platformSettings.findUnique({
+      where: { id: "singleton" },
+      select: {
+        emailBrandName: true,
+        emailLogoUrl: true,
+        emailAccentColor: true,
+        emailFooterText: true,
+        emailSupportUrl: true,
+      },
+    });
+    return {
+      name: s?.emailBrandName,
+      logoUrl: s?.emailLogoUrl,
+      accentColor: s?.emailAccentColor,
+      footerText: s?.emailFooterText,
+      supportUrl: s?.emailSupportUrl,
+    };
+  } catch {
+    return {};
+  }
 }
 
 // Seed any missing template rows (create-only; never clobbers admin edits).

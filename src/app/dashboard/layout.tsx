@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
-import { logoutAction } from "../(auth)/actions";
+import LogoutButton from "@/components/LogoutButton";
 import ImpersonationBanner from "@/components/ImpersonationBanner";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
 import VerifyEmailBanner from "./VerifyEmailBanner";
@@ -59,15 +59,7 @@ export default async function DashboardLayout({
             )}
           </nav>
 
-          <form action={logoutAction}>
-            <Button
-              type="submit"
-              variant="ghost"
-              className="w-full justify-start text-slate-500"
-            >
-              Log out
-            </Button>
-          </form>
+          <LogoutButton className="w-full justify-start text-slate-500" />
         </aside>
 
         <main className="flex-1 px-6 py-8 sm:px-10">

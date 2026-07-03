@@ -10,6 +10,8 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toggleEmailTemplateAction } from "./actions";
+import BrandingEditor from "./BrandingEditor";
+import ImportButton from "./ImportButton";
 
 export default async function EmailTemplatesPage({
   searchParams,
@@ -30,7 +32,19 @@ export default async function EmailTemplatesPage({
   const { q } = await searchParams;
   const query = (q ?? "").trim().toLowerCase();
 
-  const rows = await prisma.emailTemplate.findMany();
+  const [rows, settings] = await Promise.all([
+    prisma.emailTemplate.findMany(),
+    prisma.platformSettings.findUnique({
+      where: { id: "singleton" },
+      select: {
+        emailBrandName: true,
+        emailLogoUrl: true,
+        emailAccentColor: true,
+        emailFooterText: true,
+        emailSupportUrl: true,
+      },
+    }),
+  ]);
   const enabledByKey = new Map(rows.map((r) => [r.key, r.enabled]));
 
   const filtered = TEMPLATE_DEFS.filter(
@@ -51,7 +65,43 @@ export default async function EmailTemplatesPage({
         built-in default, so delivery never breaks.
       </p>
 
-      <form className="mt-6">
+      {/* Global branding shell */}
+      <Card className="mt-6">
+        <CardContent className="p-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-sm font-semibold text-slate-900">Global branding</h2>
+              <p className="mt-0.5 text-sm text-slate-600">
+                The header, accent color, and footer wrapping every email.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              {/* Route handler returns a file download — must be a plain <a>, not next/link. */}
+              {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+              <a
+                href="/admin/settings/email-templates/export"
+                className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              >
+                Export JSON
+              </a>
+              <ImportButton />
+            </div>
+          </div>
+          <div className="mt-5">
+            <BrandingEditor
+              initial={{
+                emailBrandName: settings?.emailBrandName ?? "",
+                emailLogoUrl: settings?.emailLogoUrl ?? "",
+                emailAccentColor: settings?.emailAccentColor ?? "",
+                emailFooterText: settings?.emailFooterText ?? "",
+                emailSupportUrl: settings?.emailSupportUrl ?? "",
+              }}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      <form className="mt-8">
         <input
           type="search"
           name="q"
