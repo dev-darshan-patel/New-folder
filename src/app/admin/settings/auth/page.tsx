@@ -1,6 +1,7 @@
+import { headers } from "next/headers";
 import { getCurrentUser } from "@/lib/auth";
 import { getPlatformSettings } from "@/lib/settings";
-import { isProviderConfigured, redirectUri } from "@/lib/oauth";
+import { isProviderConfigured } from "@/lib/oauth";
 import { updateAuthSettingsAction, clearAuthSecretAction } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,6 +35,12 @@ export default async function AdminAuthSettingsPage() {
     isProviderConfigured("microsoft"),
   ]);
 
+  const hdrs = await headers();
+  const host = hdrs.get("host") ?? "localhost:3000";
+  const proto = host.startsWith("localhost") ? "http" : "https";
+  const baseUrl = `${proto}://${host}`;
+  const callbackUrl = (provider: string) => `${baseUrl}/api/auth/${provider}/callback`;
+
   return (
     <div className="mx-auto max-w-3xl">
       <h1 className="text-2xl font-bold tracking-tight text-slate-900">Sign-in providers</h1>
@@ -46,7 +53,7 @@ export default async function AdminAuthSettingsPage() {
         <ProviderPanel
           title="Google"
           ready={googleReady}
-          redirectUriValue={redirectUri("google")}
+          redirectUriValue={callbackUrl("google")}
           setupHref="https://console.cloud.google.com/apis/credentials"
           fields={
             <>
@@ -69,7 +76,7 @@ export default async function AdminAuthSettingsPage() {
         <ProviderPanel
           title="Microsoft (Outlook)"
           ready={microsoftReady}
-          redirectUriValue={redirectUri("microsoft")}
+          redirectUriValue={callbackUrl("microsoft")}
           setupHref="https://portal.azure.com/#blade/Microsoft_AAD_RegisteredApps/ApplicationsListBlade"
           fields={
             <>
