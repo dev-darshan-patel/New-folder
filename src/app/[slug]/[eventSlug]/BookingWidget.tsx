@@ -34,9 +34,9 @@ export default function BookingWidget({
   accent?: string;
   questions?: IntakeQuestion[];
 }) {
-  // Day options derive purely from the business timezone (stable).
-  const days = useMemo(() => buildDays(timezone, 14), [timezone]);
-  const [selectedDay, setSelectedDay] = useState<string>(days[0]?.iso ?? "");
+  // Build extra days so filtering past dates (per viewer tz) still leaves 14.
+  const allDays = useMemo(() => buildDays(timezone, 21), [timezone]);
+
   // null = not yet loaded (show loading), [] = loaded but no availability.
   const [slots, setSlots] = useState<Slot[] | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
@@ -77,6 +77,14 @@ export default function BookingWidget({
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (detected) setViewerTz(detected);
   }, []);
+
+  // Filter out dates already past in the viewer's timezone, then cap at 14.
+  const days = useMemo(() => {
+    const todayInViewer = new Intl.DateTimeFormat("en-CA", { timeZone: viewerTz }).format(new Date());
+    return allDays.filter((d) => d.iso >= todayInViewer).slice(0, 14);
+  }, [allDays, viewerTz]);
+
+  const [selectedDay, setSelectedDay] = useState<string>(days[0]?.iso ?? "");
 
   // Load slots whenever the selected day changes. State is only set from the
   // async callback to avoid synchronous setState within the effect.
