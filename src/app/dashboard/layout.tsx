@@ -5,6 +5,7 @@ import { logoutAction } from "../(auth)/actions";
 import ImpersonationBanner from "@/components/ImpersonationBanner";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
 import VerifyEmailBanner from "./VerifyEmailBanner";
+import MobileNav from "./MobileNav";
 import { Button } from "@/components/ui/button";
 
 const navItems = [
@@ -31,6 +32,7 @@ export default async function DashboardLayout({
     <div className="flex min-h-screen flex-col bg-slate-50">
       <ImpersonationBanner />
       {!user.emailVerifiedAt && <VerifyEmailBanner />}
+      <MobileNav businessName={user.businessName} isAdmin={!!user.adminRole} />
       <div className="flex flex-1">
         <aside className="hidden w-60 flex-col border-r border-slate-200 bg-white p-5 md:flex">
           <Link href="/dashboard" className="text-lg font-bold text-slate-900">
