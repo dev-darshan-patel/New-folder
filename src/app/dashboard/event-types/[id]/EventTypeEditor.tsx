@@ -50,6 +50,8 @@ export default function EventTypeEditor({ initial }: { initial: Initial }) {
           name="title"
           defaultValue={initial.title}
           required
+          title="Event type title"
+          placeholder="e.g. 30 Minute Meeting"
           className={input}
         />
       </Field>
@@ -59,6 +61,8 @@ export default function EventTypeEditor({ initial }: { initial: Initial }) {
           name="description"
           defaultValue={initial.description}
           rows={2}
+          title="Event type description"
+          placeholder="A short description shown to customers"
           className={input}
         />
       </Field>
@@ -68,6 +72,7 @@ export default function EventTypeEditor({ initial }: { initial: Initial }) {
           <select
             name="durationMinutes"
             defaultValue={String(initial.durationMinutes)}
+            title="Meeting duration in minutes"
             className={input}
           >
             {[15, 30, 45, 60, 90, 120].map((d) => (
@@ -82,6 +87,7 @@ export default function EventTypeEditor({ initial }: { initial: Initial }) {
           <select
             name="bufferMinutes"
             defaultValue={String(initial.bufferMinutes)}
+            title="Minimum notice required before a booking"
             className={input}
           >
             <option value="0">None</option>
@@ -100,6 +106,7 @@ export default function EventTypeEditor({ initial }: { initial: Initial }) {
             min={1}
             defaultValue={initial.maxPerDay ?? ""}
             placeholder="Unlimited"
+            title="Maximum number of bookings allowed per day"
             className={input}
           />
         </Field>
@@ -117,6 +124,7 @@ export default function EventTypeEditor({ initial }: { initial: Initial }) {
                 value={q.label}
                 onChange={(e) => update(i, { label: e.target.value })}
                 placeholder="e.g. Phone number"
+                title={`Intake question ${i + 1}`}
                 className={`${input} flex-1`}
               />
               <label className="flex items-center gap-1 text-xs text-slate-600">
@@ -124,6 +132,7 @@ export default function EventTypeEditor({ initial }: { initial: Initial }) {
                   type="checkbox"
                   checked={q.required}
                   onChange={(e) => update(i, { required: e.target.checked })}
+                  title={`Make question ${i + 1} required`}
                   className="h-4 w-4 rounded border-slate-300"
                 />
                 Required
