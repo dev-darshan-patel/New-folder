@@ -11,12 +11,12 @@ export type OAuthProfile = {
   name: string;
 };
 
-function appUrl(): string {
-  return process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+function appUrl(origin?: string): string {
+  return origin || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 }
 
-export function redirectUri(provider: OAuthProvider): string {
-  return `${appUrl()}/api/auth/${provider}/callback`;
+export function redirectUri(provider: OAuthProvider, origin?: string): string {
+  return `${appUrl(origin)}/api/auth/${provider}/callback`;
 }
 
 async function providerConfig(provider: OAuthProvider) {
@@ -57,13 +57,14 @@ export async function isProviderConfigured(provider: OAuthProvider): Promise<boo
 export async function buildAuthorizeUrl(
   provider: OAuthProvider,
   state: string,
+  origin?: string,
 ): Promise<string | null> {
   const cfg = await providerConfig(provider);
   if (!cfg.clientId) return null;
 
   const params = new URLSearchParams({
     client_id: cfg.clientId,
-    redirect_uri: redirectUri(provider),
+    redirect_uri: redirectUri(provider, origin),
     response_type: "code",
     scope: cfg.scope,
     state,
@@ -77,6 +78,7 @@ export async function buildAuthorizeUrl(
 export async function exchangeCodeForProfile(
   provider: OAuthProvider,
   code: string,
+  origin?: string,
 ): Promise<OAuthProfile> {
   const cfg = await providerConfig(provider);
   if (!cfg.clientId || !cfg.clientSecret) {
@@ -90,7 +92,7 @@ export async function exchangeCodeForProfile(
       client_id: cfg.clientId,
       client_secret: cfg.clientSecret,
       code,
-      redirect_uri: redirectUri(provider),
+      redirect_uri: redirectUri(provider, origin),
       grant_type: "authorization_code",
     }),
   });

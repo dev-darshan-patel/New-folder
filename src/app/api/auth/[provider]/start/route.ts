@@ -19,7 +19,8 @@ export async function GET(
   }
 
   const state = crypto.randomUUID();
-  const url = await buildAuthorizeUrl(provider as OAuthProvider, state);
+  const origin = new URL(req.url).origin;
+  const url = await buildAuthorizeUrl(provider as OAuthProvider, state, origin);
   if (!url) {
     return NextResponse.redirect(new URL("/login?error=oauth_not_configured", req.url));
   }

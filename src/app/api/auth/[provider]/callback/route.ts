@@ -41,7 +41,8 @@ export async function GET(
 
   let profile;
   try {
-    profile = await exchangeCodeForProfile(provider as OAuthProvider, code);
+    const origin = new URL(req.url).origin;
+    profile = await exchangeCodeForProfile(provider as OAuthProvider, code, origin);
   } catch (err) {
     console.error(`OAuth callback (${provider}) failed`, err);
     return fail("oauth_failed");
