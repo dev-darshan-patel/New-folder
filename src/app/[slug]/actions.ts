@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getSlotsForDate, getTeamSlotsForDate, type Slot } from "@/lib/availability";
 import { getTeamMemberBusyWindows, isFreeAt, pickRoundRobinMember } from "@/lib/team";
 import { sendEmail } from "@/lib/email";
+import { renderTemplate } from "@/lib/email-templates";
 import { buildIcs } from "@/lib/ics";
 import { parseQuestions } from "@/lib/intake";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
@@ -253,12 +254,17 @@ export async function createBookingAction(input: {
 
   // Notify invitee and business owner. Failures here must not block the booking.
   try {
-    await sendEmail({
-      to: email,
-      subject: `Booking confirmed: ${eventType.title}`,
-      text: `Hi ${name},\n\nYour booking with ${eventType.user.businessName} is confirmed.\n\nWhat: ${eventType.title}\nWhen: ${inviteeWhen} (${viewerTz})${withWho ? `\nWith: ${withWho}` : ""}\n\nThe calendar invite is attached. Need to change it? Reschedule or cancel here:\n${manageUrl}\n\nSee you then!`,
-      attachments: [icsAttachment],
+    const inviteeEmail = await renderTemplate("booking.confirmed.invitee", {
+      invitee_name: name,
+      business_name: eventType.user.businessName,
+      event_title: eventType.title,
+      when: inviteeWhen,
+      timezone: viewerTz,
+      with_line: withWho ? `\nWith: ${withWho}` : "",
+      manage_url: manageUrl,
     });
+    await sendEmail({ to: email, ...inviteeEmail, attachments: [icsAttachment] });
+
     const answerLines = answersJson
       ? "\n" +
         answers
@@ -266,14 +272,15 @@ export async function createBookingAction(input: {
           .map((a) => `${a.label}: ${a.value}`)
           .join("\n")
       : "";
-    await sendEmail({
-      to: eventType.user.email,
-      subject: `New booking: ${eventType.title} with ${name}`,
-      text: `${name} (${email}) booked ${eventType.title}.\nWhen: ${ownerWhen} (${businessTz})${
-        input.notes ? `\nNotes: ${input.notes}` : ""
-      }${answerLines}`,
-      attachments: [icsAttachment],
+    const ownerEmail = await renderTemplate("booking.created.owner", {
+      invitee_name: name,
+      invitee_email: email,
+      event_title: eventType.title,
+      when: ownerWhen,
+      timezone: businessTz,
+      extra: `${input.notes ? `\nNotes: ${input.notes}` : ""}${answerLines}`,
     });
+    await sendEmail({ to: eventType.user.email, ...ownerEmail, attachments: [icsAttachment] });
   } catch (err) {
     console.error("Failed to send booking email", err);
   }

@@ -11,6 +11,7 @@ type Mail = {
   to: string;
   subject: string;
   text: string;
+  html?: string;
   attachments?: Attachment[];
 };
 
@@ -71,7 +72,7 @@ async function createTransport() {
   };
 }
 
-export async function sendEmail({ to, subject, text, attachments }: Mail): Promise<void> {
+export async function sendEmail({ to, subject, text, html, attachments }: Mail): Promise<void> {
   const config = await createTransport();
 
   if (!config) {
@@ -89,6 +90,7 @@ export async function sendEmail({ to, subject, text, attachments }: Mail): Promi
     to,
     subject,
     text,
+    html,
     attachments: attachments?.map((a) => ({
       filename: a.filename,
       content: a.content,

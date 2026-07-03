@@ -12,6 +12,7 @@ import {
 } from "@/lib/auth";
 import { uniqueUserSlug } from "@/lib/slug";
 import { sendEmail } from "@/lib/email";
+import { renderTemplate } from "@/lib/email-templates";
 import { verifyTotp, consumeBackupCode } from "@/lib/totp";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
 
@@ -87,11 +88,11 @@ export async function signupAction(
 
   const base = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
   try {
-    await sendEmail({
-      to: email,
-      subject: "Verify your email address",
-      text: `Hi ${name},\n\nWelcome! Please confirm your email address by clicking the link below (valid for 24 hours):\n\n${base}/verify-email/${verifyToken}\n\nIf you didn't create this account, you can ignore this email.`,
+    const mail = await renderTemplate("auth.verify_email", {
+      user_name: name,
+      verify_url: `${base}/verify-email/${verifyToken}`,
     });
+    await sendEmail({ to: email, ...mail });
   } catch (err) {
     console.error("Failed to send verification email", err);
   }
@@ -227,11 +228,11 @@ export async function requestPasswordResetAction(
     const base = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
     const resetUrl = `${base}/reset-password/${token}`;
     try {
-      await sendEmail({
-        to: user.email,
-        subject: "Reset your password",
-        text: `Hi ${user.name},\n\nSomeone requested a password reset for your account. Click the link below to set a new password. It expires in 1 hour.\n\n${resetUrl}\n\nIf you didn't request this, you can safely ignore this email.`,
+      const mail = await renderTemplate("auth.password_reset", {
+        user_name: user.name,
+        reset_url: resetUrl,
       });
+      await sendEmail({ to: user.email, ...mail });
     } catch (err) {
       console.error("Failed to send password reset email", err);
     }

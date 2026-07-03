@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { getSlotsForDate, getTeamSlotsForDate, type Slot } from "@/lib/availability";
 import { getTeamMemberBusyWindows, isFreeAt, pickRoundRobinMember } from "@/lib/team";
 import { sendEmail } from "@/lib/email";
+import { renderTemplate } from "@/lib/email-templates";
 import { buildIcs } from "@/lib/ics";
 import { formatWhen } from "@/lib/format";
 
@@ -78,18 +79,20 @@ export async function cancelBookingAction(formData: FormData) {
   const withWho = await describeAssignee(booking);
   const cancelIcs = bookingIcs(booking, "CANCEL", sequence, withWho);
   try {
-    await sendEmail({
-      to: booking.inviteeEmail,
-      subject: `Booking canceled: ${booking.eventType.title}`,
-      text: `Hi ${booking.inviteeName},\n\nYour booking with ${booking.user.businessName} on ${when} has been canceled.`,
-      attachments: [cancelIcs],
+    const inviteeEmail = await renderTemplate("booking.canceled.invitee", {
+      invitee_name: booking.inviteeName,
+      business_name: booking.user.businessName,
+      event_title: booking.eventType.title,
+      when,
     });
-    await sendEmail({
-      to: booking.user.email,
-      subject: `Booking canceled: ${booking.eventType.title}`,
-      text: `${booking.inviteeName} canceled their ${booking.eventType.title} on ${when}.`,
-      attachments: [cancelIcs],
+    await sendEmail({ to: booking.inviteeEmail, ...inviteeEmail, attachments: [cancelIcs] });
+
+    const ownerEmail = await renderTemplate("booking.canceled.owner", {
+      invitee_name: booking.inviteeName,
+      event_title: booking.eventType.title,
+      when,
     });
+    await sendEmail({ to: booking.user.email, ...ownerEmail, attachments: [cancelIcs] });
   } catch (err) {
     console.error("Failed to send cancellation email", err);
   }
@@ -230,18 +233,22 @@ export async function rescheduleBookingAction(input: {
     withWho,
   );
   try {
-    await sendEmail({
-      to: booking.inviteeEmail,
-      subject: `Booking rescheduled: ${booking.eventType.title}`,
-      text: `Hi ${booking.inviteeName},\n\nYour booking with ${booking.user.businessName} has been moved to ${when} (${booking.user.timezone})${withWho ? `\nWith: ${withWho}` : ""}. The updated calendar invite is attached.`,
-      attachments: [updateIcs],
+    const inviteeEmail = await renderTemplate("booking.rescheduled.invitee", {
+      invitee_name: booking.inviteeName,
+      business_name: booking.user.businessName,
+      event_title: booking.eventType.title,
+      when,
+      timezone: booking.user.timezone,
+      with_line: withWho ? `\nWith: ${withWho}` : "",
     });
-    await sendEmail({
-      to: booking.user.email,
-      subject: `Booking rescheduled: ${booking.eventType.title}`,
-      text: `${booking.inviteeName} rescheduled ${booking.eventType.title} to ${when}.`,
-      attachments: [updateIcs],
+    await sendEmail({ to: booking.inviteeEmail, ...inviteeEmail, attachments: [updateIcs] });
+
+    const ownerEmail = await renderTemplate("booking.rescheduled.owner", {
+      invitee_name: booking.inviteeName,
+      event_title: booking.eventType.title,
+      when,
     });
+    await sendEmail({ to: booking.user.email, ...ownerEmail, attachments: [updateIcs] });
   } catch (err) {
     console.error("Failed to send reschedule email", err);
   }

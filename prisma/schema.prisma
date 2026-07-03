@@ -315,6 +315,24 @@ model FeatureFlag {
   updatedAt   DateTime @updatedAt
 }
 
+// Admin-editable transactional email templates. Each row backs one send-site
+// keyed by `key` (e.g. "booking.confirmed.invitee"). Rendered via
+// src/lib/email-templates.ts with {{var}} substitution against a per-key
+// whitelist. If a row is missing or disabled, the send-site falls back to its
+// hardcoded default, so editing here never breaks delivery.
+model EmailTemplate {
+  key       String   @id
+  // Grouping for the admin list: AUTH | ACCOUNT | BOOKING | NOTIFICATION.
+  category  String
+  // Human-readable label shown in the admin UI.
+  name      String
+  subject   String
+  html      String
+  text      String
+  enabled   Boolean  @default(true)
+  updatedAt DateTime @updatedAt
+}
+
 enum CouponType {
   // Grants a paid plan for N days without Stripe checkout.
   TRIAL

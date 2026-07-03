@@ -5,6 +5,8 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { slugify, RESERVED_SLUGS } from "@/lib/slug";
+import { sendEmail } from "@/lib/email";
+import { renderTemplate } from "@/lib/email-templates";
 
 export type SettingsState = { ok: true; message: string } | { error: string } | null;
 
@@ -69,6 +71,14 @@ export async function changePasswordAction(
 
   const passwordHash = await bcrypt.hash(next, 10);
   await prisma.user.update({ where: { id: user.id }, data: { passwordHash } });
+
+  // Security confirmation email. Never block the change on send failure.
+  try {
+    const mail = await renderTemplate("auth.password_changed", { user_name: user.name });
+    await sendEmail({ to: user.email, ...mail });
+  } catch (err) {
+    console.error("Failed to send password-changed email", err);
+  }
 
   return { ok: true, message: "Password changed." };
 }

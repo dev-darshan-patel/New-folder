@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { sendEmail } from "@/lib/email";
+import { renderTemplate } from "@/lib/email-templates";
 
 function isExpired(expiresAt: Date | null): boolean {
   return !expiresAt || expiresAt.getTime() < Date.now();
@@ -29,6 +31,22 @@ export default async function VerifyEmailPage({
         emailVerifyExpiresAt: null,
       },
     });
+
+    // Welcome email, sent once (the token is cleared above so a re-visit 404s).
+    // Only for first-time verification, not re-verifications of an already-set
+    // address.
+    if (!user.emailVerifiedAt) {
+      const base = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+      try {
+        const mail = await renderTemplate("account.welcome", {
+          user_name: user.name,
+          login_url: `${base}/dashboard`,
+        });
+        await sendEmail({ to: user.email, ...mail });
+      } catch (err) {
+        console.error("Failed to send welcome email", err);
+      }
+    }
   }
 
   return (

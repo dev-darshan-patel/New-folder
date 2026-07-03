@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/lib/email";
 import { isFeatureEnabled } from "@/lib/feature-flags";
 import { formatWhen } from "@/lib/format";
+import { renderTemplate } from "@/lib/email-templates";
 
 const HOUR = 60 * 60 * 1000;
 
@@ -28,13 +29,16 @@ async function remind(
     const when = formatWhen(b.startTime, b.user.timezone);
     const label = kind === "24h" ? "coming up" : "in about an hour";
     try {
-      await sendEmail({
-        to: b.inviteeEmail,
-        subject: `Reminder: ${b.eventType.title} ${label}`,
-        text: `Hi ${b.inviteeName},\n\nThis is a reminder that your ${b.eventType.title} with ${b.user.businessName} is ${label}.\n\nWhen: ${when} (${b.user.timezone})\n\nNeed to change it? ${
-          b.manageToken ? `${baseUrl}/booking/${b.manageToken}` : ""
-        }`,
+      const email = await renderTemplate("booking.reminder", {
+        invitee_name: b.inviteeName,
+        business_name: b.user.businessName,
+        event_title: b.eventType.title,
+        label,
+        when,
+        timezone: b.user.timezone,
+        manage_url: b.manageToken ? `${baseUrl}/booking/${b.manageToken}` : "",
       });
+      await sendEmail({ to: b.inviteeEmail, ...email });
       await prisma.booking.update({
         where: { id: b.id },
         data: { [field]: new Date() },

@@ -10,6 +10,7 @@ import { createSession, getImpersonator } from "@/lib/auth";
 import { requireAdminRole } from "@/lib/admin-auth";
 import { writeAuditLog } from "@/lib/admin-audit";
 import { sendEmail } from "@/lib/email";
+import { renderTemplate } from "@/lib/email-templates";
 import { uniqueUserSlug, RESERVED_SLUGS } from "@/lib/slug";
 
 const PLANS: Plan[] = ["FREE", "PRO", "BUSINESS"];
@@ -87,11 +88,11 @@ export async function forcePasswordResetAction(formData: FormData) {
   });
 
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-  await sendEmail({
-    to: target.email,
-    subject: "Reset your password",
-    text: `Hi ${target.name},\n\nAn admin has triggered a password reset for your account. Set a new password here (expires in 1 hour):\n${baseUrl}/reset-password/${token}\n\nIf you didn't expect this, contact support.`,
+  const mail = await renderTemplate("auth.password_reset", {
+    user_name: target.name,
+    reset_url: `${baseUrl}/reset-password/${token}`,
   });
+  await sendEmail({ to: target.email, ...mail });
 
   await writeAuditLog({
     actor: admin,
@@ -112,6 +113,21 @@ export async function setSuspendedAction(formData: FormData) {
   const target = await targetOrThrow(userId);
 
   await prisma.user.update({ where: { id: userId }, data: { suspended } });
+
+  // Notify the account owner. Never let a send failure block the action.
+  try {
+    const base = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    const mail = suspended
+      ? await renderTemplate("account.suspended", { user_name: target.name })
+      : await renderTemplate("account.restored", {
+          user_name: target.name,
+          login_url: `${base}/dashboard`,
+        });
+    await sendEmail({ to: target.email, ...mail });
+  } catch (err) {
+    console.error("Failed to send suspend/restore email", err);
+  }
+
   await writeAuditLog({
     actor: admin,
     action: suspended ? "user.suspend" : "user.unsuspend",

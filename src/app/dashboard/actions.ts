@@ -9,6 +9,7 @@ import { planConfig } from "@/lib/plans";
 import { FONTS } from "@/lib/branding";
 import { parseQuestions } from "@/lib/intake";
 import { sendEmail } from "@/lib/email";
+import { renderTemplate } from "@/lib/email-templates";
 import { rateLimit } from "@/lib/rate-limit";
 
 // Re-send the email-verification link to the signed-in (unverified) user.
@@ -29,11 +30,11 @@ export async function resendVerificationAction(): Promise<{ ok: boolean; error?:
   });
   const base = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
   try {
-    await sendEmail({
-      to: user.email,
-      subject: "Verify your email address",
-      text: `Hi ${user.name},\n\nConfirm your email address (valid for 24 hours):\n\n${base}/verify-email/${token}`,
+    const mail = await renderTemplate("auth.verify_email", {
+      user_name: user.name,
+      verify_url: `${base}/verify-email/${token}`,
     });
+    await sendEmail({ to: user.email, ...mail });
   } catch (err) {
     console.error("Failed to send verification email", err);
     return { ok: false, error: "Could not send the email. Try again later." };

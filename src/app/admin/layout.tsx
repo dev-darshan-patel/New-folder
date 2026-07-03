@@ -76,6 +76,12 @@ export default async function AdminLayout({
               >
                 Email settings
               </Link>
+              <Link
+                href="/admin/settings/email-templates"
+                className="rounded-lg px-3 py-2 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
+              >
+                Email templates
+              </Link>
             </>
           )}
         </nav>
