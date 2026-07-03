@@ -1,16 +1,9 @@
 import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/lib/email";
 import { isFeatureEnabled } from "@/lib/feature-flags";
+import { formatWhen } from "@/lib/format";
 
 const HOUR = 60 * 60 * 1000;
-
-function formatWhen(date: Date, timeZone: string): string {
-  return new Intl.DateTimeFormat("en-US", {
-    timeZone,
-    dateStyle: "full",
-    timeStyle: "short",
-  }).format(date);
-}
 
 async function remind(
   kind: "24h" | "1h",

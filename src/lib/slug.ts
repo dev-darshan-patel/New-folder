@@ -1,6 +1,19 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
 
+// Words that collide with static routes — must never be assigned as a
+// business slug (owner-chosen or admin-assigned).
+export const RESERVED_SLUGS = new Set([
+  "dashboard",
+  "login",
+  "signup",
+  "admin",
+  "api",
+  "booking",
+  "reset-password",
+  "forgot-password",
+]);
+
 // Convert an arbitrary string into a URL-safe slug.
 export function slugify(input: string): string {
   return input

@@ -179,8 +179,10 @@ export async function updateEventTypeAction(formData: FormData) {
     }
   }
 
-  // Ownership enforced via the userId filter.
-  await prisma.eventType.updateMany({
+  // Ownership enforced via the userId filter. Re-checked below before any
+  // EventTypeMember write, since that table has no userId column of its own
+  // and must never be touched based on an unverified `id` from the form.
+  const { count } = await prisma.eventType.updateMany({
     where: { id, userId: user.id },
     data: {
       ...(title ? { title } : {}),
@@ -192,6 +194,7 @@ export async function updateEventTypeAction(formData: FormData) {
       assignmentMode,
     },
   });
+  if (count === 0) return;
 
   if (assignmentMode !== "SOLO") {
     const validIds = poolMemberIds.length

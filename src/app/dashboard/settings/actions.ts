@@ -4,21 +4,9 @@ import { revalidatePath } from "next/cache";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
-import { slugify } from "@/lib/slug";
+import { slugify, RESERVED_SLUGS } from "@/lib/slug";
 
 export type SettingsState = { ok: true; message: string } | { error: string } | null;
-
-// Reserved words that collide with static routes — must not be used as slugs.
-const RESERVED_SLUGS = new Set([
-  "dashboard",
-  "login",
-  "signup",
-  "admin",
-  "api",
-  "booking",
-  "reset-password",
-  "forgot-password",
-]);
 
 export async function updateProfileAction(
   _prev: SettingsState,

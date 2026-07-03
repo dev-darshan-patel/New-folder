@@ -81,6 +81,11 @@ export async function getAdminAnalytics(rangeDays: number): Promise<AdminAnalyti
 
   let signupsInRange = 0;
   let bookingsInRange = 0;
+  // Sweep usersSorted with a single cursor instead of re-filtering the full
+  // list on every day (O(days + users) instead of O(days * users)).
+  let cursor = 0;
+  let cumulativeUsers = 0;
+  let mrrToDate = 0;
   for (let i = 0; i < rangeDays; i++) {
     const day = new Date(rangeStart.getTime() + i * 86_400_000);
     const key = dayKey(day);
@@ -91,14 +96,18 @@ export async function getAdminAnalytics(rangeDays: number): Promise<AdminAnalyti
     bookingsInRange += bk;
     // Approximate MRR-to-date: paying users that existed by end of this day
     // (we don't track upgrade history, so signup date is the proxy).
-    const existing = usersSorted.filter((u) => u.createdAt.getTime() < dayEnd);
-    const mrrToDate = existing.filter((u) => u.plan !== "FREE").reduce((sum, u) => sum + price(u.plan), 0);
+    while (cursor < usersSorted.length && usersSorted[cursor].createdAt.getTime() < dayEnd) {
+      const u = usersSorted[cursor];
+      cumulativeUsers += 1;
+      if (u.plan !== "FREE") mrrToDate += price(u.plan);
+      cursor += 1;
+    }
     series.push({
       date: key,
       signups: s,
       bookings: bk,
       mrr: mrrToDate,
-      cumulativeUsers: existing.length,
+      cumulativeUsers,
     });
   }
 

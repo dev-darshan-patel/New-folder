@@ -7,6 +7,7 @@ import { sendEmail } from "@/lib/email";
 import { buildIcs } from "@/lib/ics";
 import { parseQuestions } from "@/lib/intake";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
+import { formatWhen } from "@/lib/format";
 
 // Validate an IANA timezone string; returns it or null.
 function safeTimezone(tz?: string | null): string | null {
@@ -17,14 +18,6 @@ function safeTimezone(tz?: string | null): string | null {
   } catch {
     return null;
   }
-}
-
-function formatWhen(date: Date, timeZone: string): string {
-  return new Intl.DateTimeFormat("en-US", {
-    timeZone,
-    dateStyle: "full",
-    timeStyle: "short",
-  }).format(date);
 }
 
 // Fetch available slots for an event type on a given date (YYYY-MM-DD).

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useFormStatus } from "react-dom";
 import { updateEventTypeAction } from "../../actions";
 import type { IntakeQuestion } from "@/lib/intake";
 
@@ -194,13 +195,21 @@ export default function EventTypeEditor({ initial }: { initial: Initial }) {
         </div>
       )}
 
-      <button
-        type="submit"
-        className="rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-500"
-      >
-        Save changes
-      </button>
+      <SaveButton />
     </form>
+  );
+}
+
+function SaveButton() {
+  const { pending } = useFormStatus();
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      className="rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
+    >
+      {pending ? "Saving…" : "Save changes"}
+    </button>
   );
 }
 

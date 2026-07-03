@@ -10,7 +10,7 @@ import { createSession, getImpersonator } from "@/lib/auth";
 import { requireAdminRole } from "@/lib/admin-auth";
 import { writeAuditLog } from "@/lib/admin-audit";
 import { sendEmail } from "@/lib/email";
-import { uniqueUserSlug } from "@/lib/slug";
+import { uniqueUserSlug, RESERVED_SLUGS } from "@/lib/slug";
 
 const PLANS: Plan[] = ["FREE", "PRO", "BUSINESS"];
 const ROLES: AdminRole[] = ["SUPER_ADMIN", "SUPPORT", "READ_ONLY"];
@@ -242,17 +242,6 @@ export type AdminUserFormState =
   | { ok: true; message: string; userId?: string }
   | { error: string }
   | null;
-
-const RESERVED_SLUGS = new Set([
-  "dashboard",
-  "login",
-  "signup",
-  "admin",
-  "api",
-  "booking",
-  "reset-password",
-  "forgot-password",
-]);
 
 export async function createUserByAdminAction(
   _prev: AdminUserFormState,

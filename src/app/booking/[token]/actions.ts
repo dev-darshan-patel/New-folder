@@ -7,14 +7,7 @@ import { getSlotsForDate, getTeamSlotsForDate, type Slot } from "@/lib/availabil
 import { getTeamMemberBusyWindows, isFreeAt, pickRoundRobinMember } from "@/lib/team";
 import { sendEmail } from "@/lib/email";
 import { buildIcs } from "@/lib/ics";
-
-function formatWhen(date: Date, timeZone: string) {
-  return new Intl.DateTimeFormat("en-US", {
-    timeZone,
-    dateStyle: "full",
-    timeStyle: "short",
-  }).format(date);
-}
+import { formatWhen } from "@/lib/format";
 
 type FullBooking = Prisma.BookingGetPayload<{
   include: { eventType: true; user: true };
