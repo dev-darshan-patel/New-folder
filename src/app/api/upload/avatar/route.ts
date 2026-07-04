@@ -53,8 +53,9 @@ export async function POST(req: NextRequest) {
     await prisma.user.update({ where: { id: user.id }, data: { avatarUrl: url } });
     return Response.json({ url });
   } catch (err) {
-    console.error("Avatar upload error:", err);
-    return Response.json({ error: "Upload failed. Please try again." }, { status: 500 });
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("Avatar upload error:", msg);
+    return Response.json({ error: msg }, { status: 500 });
   }
 }
 
