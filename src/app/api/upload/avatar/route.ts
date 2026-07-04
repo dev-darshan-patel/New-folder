@@ -27,8 +27,8 @@ export async function POST(req: NextRequest) {
 
     let url: string;
 
-    if (process.env.BLOB_READ_WRITE_TOKEN) {
-      // Production: Vercel Blob
+    if (process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_STORE_ID) {
+      // Production: Vercel Blob (supports both token and OIDC auth)
       const blob = await put(`avatars/${filename}`, file, { access: "public" });
       url = blob.url;
     } else {
