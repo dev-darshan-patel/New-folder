@@ -141,7 +141,7 @@ export async function createBookingAction(input: {
 
   let assignedTeamMemberId: string | null = null;
   let bookingId: string;
-  const manageToken = crypto.randomUUID();
+  const manageToken = `booked-${crypto.randomUUID()}`;
 
   try {
     bookingId = await prisma.$transaction(async (tx) => {

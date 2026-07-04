@@ -52,6 +52,17 @@ export default async function ManageBookingPage({
           />
         </dl>
 
+        {!canceled && !past && booking.meetingUrl && (
+          <a
+            href={booking.meetingUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-6 block w-full rounded-lg bg-indigo-600 px-4 py-2.5 text-center text-sm font-semibold text-white hover:bg-indigo-500"
+          >
+            Join Google Meet
+          </a>
+        )}
+
         {!canceled && !past && (
           <div className="mt-8 flex gap-3">
             <Link

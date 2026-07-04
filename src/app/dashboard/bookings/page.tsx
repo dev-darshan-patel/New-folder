@@ -44,6 +44,7 @@ export default async function BookingsPage() {
             notes={b.notes}
             answers={parseAnswers(b.answers)}
             manageToken={b.manageToken}
+            meetingUrl={b.meetingUrl}
             with={b.teamMember?.name ?? null}
           />
         ))}
@@ -59,6 +60,7 @@ export default async function BookingsPage() {
               name={b.inviteeName}
               email={b.inviteeEmail}
               notes={b.notes}
+              meetingUrl={b.meetingUrl}
               muted
               with={b.teamMember?.name ?? null}
             />
@@ -107,6 +109,7 @@ function Row(props: {
   answers?: IntakeAnswer[];
   muted?: boolean;
   manageToken?: string | null;
+  meetingUrl?: string | null;
   with: string | null;
 }) {
   return (
@@ -120,6 +123,18 @@ function Row(props: {
         {props.name} &middot; {props.email}
       </p>
       {props.with && <p className="mt-1 text-xs text-slate-500">With: {props.with}</p>}
+      {props.meetingUrl && (
+        <p className="mt-1 text-sm">
+          <a
+            href={props.meetingUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium text-indigo-600 hover:underline"
+          >
+            Join Google Meet ↗
+          </a>
+        </p>
+      )}
       {props.notes && <p className="mt-1 text-sm text-slate-500">&ldquo;{props.notes}&rdquo;</p>}
       {props.answers && props.answers.length > 0 && (
         <dl className="mt-2 space-y-0.5 text-sm">
