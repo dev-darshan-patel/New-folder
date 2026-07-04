@@ -1,4 +1,3 @@
-import { head } from "@vercel/blob";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(
@@ -13,7 +12,7 @@ export async function GET(
   });
 
   if (!user?.avatarUrl) {
-    return Response.json({ error: "no avatarUrl in DB" }, { status: 404 });
+    return new Response(null, { status: 404 });
   }
 
   // Local dev: avatarUrl is a public path like /uploads/avatars/…
@@ -21,25 +20,34 @@ export async function GET(
     return Response.redirect(user.avatarUrl, 302);
   }
 
-  // Production: fetch the private blob server-side and stream to the browser.
+  // Production: fetch the private blob using the token as a Bearer credential.
+  const token = process.env.BLOB_READ_WRITE_TOKEN;
+  if (!token) {
+    return Response.json({ error: "BLOB_READ_WRITE_TOKEN not set" }, { status: 503 });
+  }
+
   try {
-    const info = await head(user.avatarUrl);
-    const upstream = await fetch(info.downloadUrl);
+    const upstream = await fetch(user.avatarUrl, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
     if (!upstream.ok) {
       return Response.json(
-        { error: `upstream fetch failed: ${upstream.status} ${upstream.statusText}`, downloadUrl: info.downloadUrl },
+        { error: `blob fetch failed: ${upstream.status}`, url: user.avatarUrl },
         { status: 502 },
       );
     }
+
+    const contentType = upstream.headers.get("Content-Type") ?? "image/jpeg";
     return new Response(upstream.body, {
       headers: {
-        "Content-Type": info.contentType ?? "image/jpeg",
+        "Content-Type": contentType,
         "Cache-Control": "private, max-age=3600",
       },
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error("Avatar proxy error:", msg);
-    return Response.json({ error: msg, avatarUrl: user.avatarUrl }, { status: 500 });
+    return Response.json({ error: msg }, { status: 500 });
   }
 }
