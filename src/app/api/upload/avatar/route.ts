@@ -25,12 +25,12 @@ export async function POST(req: NextRequest) {
     const ext = file.type.split("/")[1].replace("jpeg", "jpg");
     const filename = `${user.id}-${Date.now()}.${ext}`;
 
-    let url: string;
+    let storedUrl: string;
 
     if (process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_STORE_ID) {
-      // Production: Vercel Blob (supports both token and OIDC auth)
-      const blob = await put(`avatars/${filename}`, file, { access: "public" });
-      url = blob.url;
+      // Production: Vercel Blob (private store)
+      const blob = await put(`avatars/${filename}`, file, { access: "private" });
+      storedUrl = blob.url;
     } else {
       // Local dev fallback: write to public/uploads/avatars/
       try {
@@ -38,20 +38,17 @@ export async function POST(req: NextRequest) {
         await fs.mkdir(uploadsDir, { recursive: true });
         const bytes = await file.arrayBuffer();
         await fs.writeFile(path.join(uploadsDir, filename), Buffer.from(bytes));
-        url = `/uploads/avatars/${filename}`;
-      } catch {
-        return Response.json(
-          {
-            error:
-              "File storage is not configured. In Vercel, go to Storage → Create Blob store and link it to this project — Vercel will inject BLOB_READ_WRITE_TOKEN automatically.",
-          },
-          { status: 503 },
-        );
+        storedUrl = `/uploads/avatars/${filename}`;
+      } catch (fsErr) {
+        const msg = fsErr instanceof Error ? fsErr.message : String(fsErr);
+        return Response.json({ error: `Storage not configured: ${msg}` }, { status: 503 });
       }
     }
 
-    await prisma.user.update({ where: { id: user.id }, data: { avatarUrl: url } });
-    return Response.json({ url });
+    await prisma.user.update({ where: { id: user.id }, data: { avatarUrl: storedUrl } });
+
+    // Return the proxy URL so <img> tags don't need direct blob access.
+    return Response.json({ url: `/api/avatar/${user.id}` });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error("Avatar upload error:", msg);
@@ -67,7 +64,8 @@ export async function DELETE() {
     await prisma.user.update({ where: { id: user.id }, data: { avatarUrl: null } });
     return Response.json({ ok: true });
   } catch (err) {
-    console.error("Avatar delete error:", err);
-    return Response.json({ error: "Failed to remove photo." }, { status: 500 });
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("Avatar delete error:", msg);
+    return Response.json({ error: msg }, { status: 500 });
   }
 }

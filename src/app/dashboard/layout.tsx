@@ -48,7 +48,7 @@ export default async function DashboardLayout({
             <span className="relative shrink-0 h-8 w-8 overflow-hidden rounded-full border border-slate-200 bg-indigo-100">
               {user.avatarUrl ? (
                 <img
-                  src={user.avatarUrl}
+                  src={`/api/avatar/${user.id}`}
                   alt={user.name}
                   className="h-full w-full object-cover"
                 />
