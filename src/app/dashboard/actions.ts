@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { slugify } from "@/lib/slug";
-import { planConfig } from "@/lib/plans";
+import { getPlanConfig } from "@/lib/plans";
 import { FONTS } from "@/lib/branding";
 import { parseQuestions } from "@/lib/intake";
 import { sendEmail } from "@/lib/email";
@@ -78,7 +78,7 @@ export async function createEventTypeAction(formData: FormData) {
   if (!title) return;
 
   // Enforce the plan's event-type limit.
-  const limit = planConfig(user.plan).maxEventTypes;
+  const limit = (await getPlanConfig(user.plan)).maxEventTypes;
   if (limit !== null) {
     const count = await prisma.eventType.count({ where: { userId: user.id } });
     if (count >= limit) {
@@ -165,7 +165,7 @@ export async function updateEventTypeAction(formData: FormData) {
   const intakeQuestions = questions.length ? JSON.stringify(questions) : null;
 
   const rawMode = String(formData.get("assignmentMode") || "SOLO");
-  const teamSchedulingEnabled = planConfig(user.plan).teamScheduling;
+  const teamSchedulingEnabled = (await getPlanConfig(user.plan)).teamScheduling;
   const assignmentMode: "SOLO" | "ROUND_ROBIN" | "COLLECTIVE" =
     teamSchedulingEnabled && (rawMode === "ROUND_ROBIN" || rawMode === "COLLECTIVE")
       ? rawMode

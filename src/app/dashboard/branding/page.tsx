@@ -1,13 +1,13 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
-import { planConfig } from "@/lib/plans";
+import { getPlanConfig } from "@/lib/plans";
 import BrandingForm from "./BrandingForm";
 
 export default async function BrandingPage() {
   const user = await getCurrentUser();
   if (!user) return null;
 
-  const canCustomize = planConfig(user.plan).customBranding;
+  const canCustomize = (await getPlanConfig(user.plan)).customBranding;
 
   return (
     <div className="mx-auto max-w-4xl">

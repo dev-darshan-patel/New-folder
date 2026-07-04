@@ -6,7 +6,7 @@ import {
   type AtRiskRow,
   type InvoiceRow,
 } from "@/lib/admin-billing";
-import { planConfig } from "@/lib/plans";
+import { getPlanMap } from "@/lib/plans";
 import { AdminTable, type Column } from "@/components/admin/AdminTable";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -25,13 +25,14 @@ export default async function AdminBillingPage() {
     );
   }
 
-  const [overview, invoices] = await Promise.all([
+  const [overview, invoices, planMap] = await Promise.all([
     getBillingOverview(),
     getRecentInvoices(),
+    getPlanMap(),
   ]);
 
   const mrrRows: MrrRow[] = overview.mrrByPlan.map((r) => ({
-    plan: planConfig(r.plan).name,
+    plan: planMap.get(r.plan)?.name ?? r.plan,
     count: r.count,
     mrr: r.mrr,
   }));
@@ -72,7 +73,7 @@ export default async function AdminBillingPage() {
     {
       key: "plan",
       header: "Plan",
-      render: (u) => <Badge variant="secondary">{planConfig(u.plan).name}</Badge>,
+      render: (u) => <Badge variant="secondary">{planMap.get(u.plan)?.name ?? u.plan}</Badge>,
     },
     {
       key: "status",

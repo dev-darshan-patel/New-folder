@@ -7,7 +7,11 @@ import { createUserByAdminAction, type AdminUserFormState } from "../../actions"
 const INPUT_CLASSES =
   "mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100";
 
-export default function CreateUserForm() {
+export default function CreateUserForm({
+  plans,
+}: {
+  plans: { id: string; name: string }[];
+}) {
   const router = useRouter();
   const [state, formAction, pending] = useActionState<AdminUserFormState, FormData>(
     createUserByAdminAction,
@@ -96,9 +100,11 @@ export default function CreateUserForm() {
         <label className="block">
           <span className="text-sm font-medium text-slate-700">Plan</span>
           <select name="plan" defaultValue="FREE" className={INPUT_CLASSES}>
-            <option value="FREE">Free</option>
-            <option value="PRO">Pro</option>
-            <option value="BUSINESS">Business</option>
+            {plans.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
           </select>
         </label>
 

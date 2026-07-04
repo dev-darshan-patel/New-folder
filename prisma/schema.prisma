@@ -66,7 +66,7 @@ model User {
 
   // Billing / subscription. plan is the source of truth for feature gating and
   // is kept in sync with Stripe via webhooks.
-  plan               Plan      @default(FREE)
+  plan               String    @default("FREE")
   stripeCustomerId   String?   @unique
   stripeSubscriptionId String? @unique
   // Stripe subscription status, e.g. "active", "past_due", "canceled".
@@ -158,10 +158,30 @@ model AdminNote {
   @@index([userId])
 }
 
-enum Plan {
-  FREE
-  PRO
-  BUSINESS
+// Subscription plans are now admin-editable rows, not a fixed enum. `User.plan`
+// and `Coupon.grantPlan` store a Plan.id string. "FREE" is a reserved system
+// plan that always exists and can't be deleted; code still treats
+// plan == "FREE" as "not paying". Config is read via src/lib/plans.ts.
+model Plan {
+  id             String   @id
+  name           String
+  priceLabel     String
+  // Monthly price in whole USD. 0 = free.
+  priceMonthly   Int      @default(0)
+  // Max active event types. null = unlimited.
+  maxEventTypes  Int?
+  customBranding Boolean  @default(false)
+  teamScheduling Boolean  @default(false)
+  // Bullet-point feature list shown on the billing page.
+  features       String[]
+  // Stripe recurring Price ID this plan checks out with (null for FREE).
+  stripePriceId  String?
+  active         Boolean  @default(true)
+  sortOrder      Int      @default(0)
+  // System plans (FREE) can't be deleted.
+  isSystem       Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }
 
 // A bookable meeting type, e.g. "30 Minute Intro Call".
@@ -357,7 +377,7 @@ model Coupon {
   // TRIAL: number of days. STRIPE_PROMO: unused (0).
   value                 Int        @default(0)
   // TRIAL: plan to grant. STRIPE_PROMO: optional checkout plan filter.
-  grantPlan             Plan?
+  grantPlan             String?
   stripePromotionCodeId String?
   maxRedemptions        Int?
   redemptionCount       Int        @default(0)

@@ -1,12 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import type { CouponType, Plan } from "@prisma/client";
+import type { CouponType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireAdminRole } from "@/lib/admin-auth";
 import { writeAuditLog } from "@/lib/admin-audit";
+import { getPlanMap, type Plan } from "@/lib/plans";
 
-const PLANS: Plan[] = ["FREE", "PRO", "BUSINESS"];
 const TYPES: CouponType[] = ["TRIAL", "STRIPE_PROMO"];
 
 function normalizeCode(raw: string): string {
@@ -21,7 +21,7 @@ export async function createCouponAction(formData: FormData) {
   const type = String(formData.get("type") || "") as CouponType;
   const value = Math.max(0, Math.round(Number(formData.get("value") || 0)));
   const grantPlanRaw = String(formData.get("grantPlan") || "").trim();
-  const grantPlan = PLANS.includes(grantPlanRaw as Plan) ? (grantPlanRaw as Plan) : null;
+  const grantPlan = (await getPlanMap()).has(grantPlanRaw) ? (grantPlanRaw as Plan) : null;
   const stripePromotionCodeId =
     String(formData.get("stripePromotionCodeId") || "").trim() || null;
   const maxRaw = String(formData.get("maxRedemptions") || "").trim();

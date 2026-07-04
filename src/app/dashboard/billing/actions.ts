@@ -2,10 +2,10 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import type { Plan } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { getStripe, getStripePriceForPlan } from "@/lib/stripe";
+import type { Plan } from "@/lib/plans";
 import { validateCoupon, recordCouponRedemption } from "@/lib/coupons";
 
 function appUrl() {
@@ -40,7 +40,7 @@ export async function createCheckoutAction(formData: FormData) {
   if (validatedCoupon.ok && validatedCoupon.coupon.type === "TRIAL") {
     const { coupon } = validatedCoupon;
     const grantPlan = coupon.grantPlan;
-    if (grantPlan !== "PRO" && grantPlan !== "BUSINESS") {
+    if (!grantPlan || grantPlan === "FREE") {
       billingRedirect({ coupon_error: "This promo code is misconfigured." });
     }
     await prisma.user.update({

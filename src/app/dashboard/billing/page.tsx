@@ -1,6 +1,6 @@
 import { getCurrentUser } from "@/lib/auth";
 import { isStripeConfigured } from "@/lib/stripe";
-import { PLAN_ORDER, planConfig } from "@/lib/plans";
+import { getActivePlans, getPlanConfig } from "@/lib/plans";
 import {
   createCheckoutAction,
   createPortalAction,
@@ -25,8 +25,11 @@ export default async function BillingPage({
   if (!user) return null;
 
   const sp = await searchParams;
-  const current = planConfig(user.plan);
-  const stripeReady = await isStripeConfigured();
+  const [current, plans, stripeReady] = await Promise.all([
+    getPlanConfig(user.plan),
+    getActivePlans(),
+    isStripeConfigured(),
+  ]);
   const isDev = process.env.NODE_ENV !== "production";
 
   return (
@@ -69,8 +72,8 @@ export default async function BillingPage({
       </Card>
 
       <div className="mt-8 grid gap-5 md:grid-cols-3">
-        {PLAN_ORDER.map((planId) => {
-          const plan = planConfig(planId);
+        {plans.map((plan) => {
+          const planId = plan.id;
           const isCurrent = planId === user.plan;
           return (
             <Card
@@ -151,11 +154,11 @@ export default async function BillingPage({
               Only visible in development. Use this to test feature gating.
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
-              {PLAN_ORDER.map((planId) => (
-                <form key={planId} action={devSetPlanAction}>
-                  <input type="hidden" name="plan" value={planId} />
+              {plans.map((plan) => (
+                <form key={plan.id} action={devSetPlanAction}>
+                  <input type="hidden" name="plan" value={plan.id} />
                   <Button variant="outline" size="sm">
-                    Set {planConfig(planId).name}
+                    Set {plan.name}
                   </Button>
                 </form>
               ))}

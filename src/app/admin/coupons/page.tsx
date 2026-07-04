@@ -1,6 +1,6 @@
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { planConfig, PLAN_ORDER } from "@/lib/plans";
+import { getPlanMap, getAllPlans } from "@/lib/plans";
 import { createCouponAction, toggleCouponAction, deleteCouponAction } from "./actions";
 import { AdminTable, type Column } from "@/components/admin/AdminTable";
 import { Badge } from "@/components/ui/badge";
@@ -22,10 +22,15 @@ export default async function AdminCouponsPage() {
   const canEdit = viewer.adminRole !== "READ_ONLY";
   const canDelete = viewer.adminRole === "SUPER_ADMIN";
 
-  const coupons = await prisma.coupon.findMany({
-    orderBy: { createdAt: "desc" },
-    include: { _count: { select: { redemptions: true } } },
-  });
+  const [coupons, planMap, allPlans] = await Promise.all([
+    prisma.coupon.findMany({
+      orderBy: { createdAt: "desc" },
+      include: { _count: { select: { redemptions: true } } },
+    }),
+    getPlanMap(),
+    getAllPlans(),
+  ]);
+  const paidPlans = allPlans.filter((p) => p.id !== "FREE");
 
   const columns: Column<CouponRow>[] = [
     {
@@ -49,7 +54,7 @@ export default async function AdminCouponsPage() {
           {c.description && <p>{c.description}</p>}
           {c.type === "TRIAL" && c.grantPlan && (
             <p>
-              {c.value} days on {planConfig(c.grantPlan).name}
+              {c.value} days on {planMap.get(c.grantPlan)?.name ?? c.grantPlan}
             </p>
           )}
           {c.type === "STRIPE_PROMO" && c.stripePromotionCodeId && (
@@ -169,9 +174,9 @@ export default async function AdminCouponsPage() {
                   <span className="text-sm font-medium text-slate-700">Plan</span>
                   <NativeSelect name="grantPlan" className="mt-1" defaultValue="PRO">
                     <option value="">Any paid plan</option>
-                    {PLAN_ORDER.filter((p) => p !== "FREE").map((p) => (
-                      <option key={p} value={p}>
-                        {planConfig(p).name}
+                    {paidPlans.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
                       </option>
                     ))}
                   </NativeSelect>

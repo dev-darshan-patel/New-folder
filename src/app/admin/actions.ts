@@ -4,16 +4,16 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import crypto from "crypto";
 import bcrypt from "bcryptjs";
-import type { Plan, AdminRole } from "@prisma/client";
+import type { AdminRole } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { createSession, getImpersonator } from "@/lib/auth";
 import { requireAdminRole } from "@/lib/admin-auth";
 import { writeAuditLog } from "@/lib/admin-audit";
 import { sendEmail } from "@/lib/email";
 import { renderTemplate } from "@/lib/email-templates";
+import { getPlanMap, type Plan } from "@/lib/plans";
 import { uniqueUserSlug, RESERVED_SLUGS } from "@/lib/slug";
 
-const PLANS: Plan[] = ["FREE", "PRO", "BUSINESS"];
 const ROLES: AdminRole[] = ["SUPER_ADMIN", "SUPPORT", "READ_ONLY"];
 
 async function targetOrThrow(userId: string) {
@@ -51,7 +51,7 @@ export async function changeUserPlanAction(formData: FormData) {
   const userId = String(formData.get("userId") || "");
   const plan = String(formData.get("plan") || "") as Plan;
   const reason = String(formData.get("reason") || "").trim().slice(0, 500);
-  if (!PLANS.includes(plan)) return;
+  if (!(await getPlanMap()).has(plan)) return;
 
   const target = await targetOrThrow(userId);
   await prisma.user.update({
@@ -282,7 +282,7 @@ export async function createUserByAdminAction(
   }
   if (password.length < 8) return { error: "Password must be at least 8 characters." };
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return { error: "Enter a valid email." };
-  if (!PLANS.includes(planRaw as Plan)) return { error: "Invalid plan." };
+  if (!(await getPlanMap()).has(planRaw)) return { error: "Invalid plan." };
   const plan = planRaw as Plan;
 
   const existing = await prisma.user.findUnique({ where: { email }, select: { id: true } });

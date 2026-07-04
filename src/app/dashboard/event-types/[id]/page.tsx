@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { parseQuestions } from "@/lib/intake";
-import { planConfig } from "@/lib/plans";
+import { getPlanConfig } from "@/lib/plans";
 import EventTypeEditor from "./EventTypeEditor";
 
 export default async function EditEventTypePage({
@@ -20,7 +20,7 @@ export default async function EditEventTypePage({
   });
   if (!eventType) notFound();
 
-  const teamSchedulingEnabled = planConfig(user.plan).teamScheduling;
+  const teamSchedulingEnabled = (await getPlanConfig(user.plan)).teamScheduling;
   const [teamMembers, pool] = teamSchedulingEnabled
     ? await Promise.all([
         prisma.teamMember.findMany({

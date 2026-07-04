@@ -1,7 +1,6 @@
 import "server-only";
-import type { Plan } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { planConfig, PLAN_ORDER } from "@/lib/plans";
+import { getAllPlans, type Plan } from "@/lib/plans";
 import { getStripe } from "@/lib/stripe";
 
 export type AtRiskRow = {
@@ -48,10 +47,12 @@ export async function getBillingOverview(): Promise<BillingOverview> {
     }),
   ]);
 
-  const mrrByPlan = PLAN_ORDER.filter((p) => p !== "FREE").map((plan) => {
-    const count = paidUsers.filter((u) => u.plan === plan).length;
-    return { plan, count, mrr: count * planConfig(plan).priceMonthly };
-  });
+  const mrrByPlan = (await getAllPlans())
+    .filter((p) => p.id !== "FREE")
+    .map((p) => {
+      const count = paidUsers.filter((u) => u.plan === p.id).length;
+      return { plan: p.id, count, mrr: count * p.priceMonthly };
+    });
 
   const atRisk: AtRiskRow[] = paidUsers
     .filter(

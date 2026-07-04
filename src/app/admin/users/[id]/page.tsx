@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
-import { planConfig } from "@/lib/plans";
+import { getPlanConfig, getAllPlans } from "@/lib/plans";
 import { addAdminNoteAction } from "../../actions";
 import AdminActions from "./AdminActions";
 
@@ -39,6 +39,8 @@ export default async function AdminUserDetail({
 
   const viewer = await getCurrentUser();
   if (!viewer || !viewer.adminRole) notFound();
+
+  const [planCfg, allPlans] = await Promise.all([getPlanConfig(user.plan), getAllPlans()]);
 
   const [upcoming, totalBookings, bookings] = await Promise.all([
     prisma.booking.count({
@@ -104,7 +106,7 @@ export default async function AdminUserDetail({
               user.plan === "FREE" ? "bg-slate-100 text-slate-600" : "bg-indigo-100 text-indigo-700"
             }`}
           >
-            {planConfig(user.plan).name} · ${planConfig(user.plan).priceMonthly}/mo
+            {planCfg.name} · ${planCfg.priceMonthly}/mo
           </span>
         </div>
       </div>
@@ -263,7 +265,12 @@ export default async function AdminUserDetail({
         )}
       </Section>
 
-      <AdminActions target={user} viewerRole={viewer.adminRole} isSelf={viewer.id === user.id} />
+      <AdminActions
+        target={user}
+        viewerRole={viewer.adminRole}
+        isSelf={viewer.id === user.id}
+        plans={allPlans.map((p) => ({ id: p.id, name: p.name }))}
+      />
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
-import { planConfig, PLAN_ORDER } from "@/lib/plans";
+import { getPlanMap, getAllPlans } from "@/lib/plans";
 import {
   parseUsersQuery,
   buildUserWhere,
@@ -41,7 +41,7 @@ export default async function AdminUsers({
   const viewer = await getCurrentUser();
   const canCreate = viewer?.adminRole === "SUPER_ADMIN";
 
-  const [total, users] = await Promise.all([
+  const [total, users, planMap, allPlans] = await Promise.all([
     prisma.user.count({ where }),
     prisma.user.findMany({
       where,
@@ -50,6 +50,8 @@ export default async function AdminUsers({
       take: PAGE_SIZE,
       include: { _count: { select: { eventTypes: true, bookings: true } } },
     }),
+    getPlanMap(),
+    getAllPlans(),
   ]);
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -93,7 +95,7 @@ export default async function AdminUsers({
       sortable: true,
       render: (u) => (
         <Badge variant={u.plan === "FREE" ? "muted" : "default"}>
-          {planConfig(u.plan).name}
+          {planMap.get(u.plan)?.name ?? u.plan}
         </Badge>
       ),
     },
@@ -167,9 +169,9 @@ export default async function AdminUsers({
               defaultValue={parsed.plan ?? ""}
             >
               <option value="">All plans</option>
-              {PLAN_ORDER.map((p) => (
-                <option key={p} value={p}>
-                  {planConfig(p).name}
+              {allPlans.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
                 </option>
               ))}
             </NativeSelect>

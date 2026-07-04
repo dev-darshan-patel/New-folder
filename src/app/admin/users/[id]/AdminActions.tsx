@@ -1,5 +1,4 @@
-import type { AdminRole, Plan, User } from "@prisma/client";
-import { PLAN_ORDER, planConfig } from "@/lib/plans";
+import type { AdminRole, User } from "@prisma/client";
 import {
   changeUserPlanAction,
   forcePasswordResetAction,
@@ -17,10 +16,12 @@ export default function AdminActions({
   target,
   viewerRole,
   isSelf,
+  plans,
 }: {
   target: User;
   viewerRole: AdminRole;
   isSelf: boolean;
+  plans: { id: string; name: string }[];
 }) {
   const isSuperAdmin = viewerRole === "SUPER_ADMIN";
   const canMutate = viewerRole !== "READ_ONLY";
@@ -54,9 +55,9 @@ export default function AdminActions({
             defaultValue={target.plan}
             className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-slate-900 outline-none focus:border-indigo-500"
           >
-            {PLAN_ORDER.map((p: Plan) => (
-              <option key={p} value={p}>
-                {planConfig(p).name}
+            {plans.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
               </option>
             ))}
           </select>

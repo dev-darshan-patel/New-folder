@@ -1,5 +1,5 @@
-import type { Plan, User } from "@prisma/client";
-import { planConfig } from "@/lib/plans";
+import type { User } from "@prisma/client";
+import { getPlanConfig } from "@/lib/plans";
 
 export const DEFAULT_BRAND_COLOR = "#4f46e5"; // indigo-600
 export const DEFAULT_BRAND_FONT = "Geist";
@@ -36,14 +36,14 @@ function googleFontHref(fontKey: string): string | null {
 
 // Resolve the branding to actually render. Custom values only apply when the
 // user's plan allows custom branding; otherwise the defaults are used.
-export function resolveBranding(
+export async function resolveBranding(
   user: Pick<
     User,
     "brandColor" | "brandFont" | "logoUrl" | "welcomeMessage" | "plan"
   >,
   overrides?: { color?: string | null; fontKey?: string | null },
-): Branding {
-  const allowed = planConfig(user.plan as Plan).customBranding;
+): Promise<Branding> {
+  const allowed = (await getPlanConfig(user.plan)).customBranding;
 
   let color = allowed ? user.brandColor : DEFAULT_BRAND_COLOR;
   let fontKey = allowed ? user.brandFont : DEFAULT_BRAND_FONT;

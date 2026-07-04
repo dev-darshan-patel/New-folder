@@ -1,6 +1,7 @@
 import "server-only";
-import type { Coupon, Plan } from "@prisma/client";
+import type { Coupon } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import type { Plan } from "@/lib/plans";
 
 export type CouponValidation =
   | { ok: true; coupon: Coupon }

@@ -3,12 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
-import { planConfig } from "@/lib/plans";
+import { getPlanConfig } from "@/lib/plans";
 
 async function requireTeamSchedulingUser() {
   const user = await getCurrentUser();
   if (!user) throw new Error("Not authenticated");
-  if (!planConfig(user.plan).teamScheduling) {
+  if (!(await getPlanConfig(user.plan)).teamScheduling) {
     throw new Error("Team scheduling requires the Business plan.");
   }
   return user;

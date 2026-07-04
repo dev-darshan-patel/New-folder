@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { planConfig } from "@/lib/plans";
+import { getPlanConfig } from "@/lib/plans";
 import { isFeatureEnabled } from "@/lib/feature-flags";
 import EmbedSnippets from "./EmbedSnippets";
 
@@ -9,10 +9,11 @@ export default async function EmbedPage() {
   const user = await getCurrentUser();
   if (!user) return null;
 
-  const [canEmbedByPlan, embedEnabled] = await Promise.all([
-    Promise.resolve(planConfig(user.plan).customBranding),
+  const [planCfg, embedEnabled] = await Promise.all([
+    getPlanConfig(user.plan),
     isFeatureEnabled("embed_widget"),
   ]);
+  const canEmbedByPlan = planCfg.customBranding;
   const canEmbed = canEmbedByPlan && embedEnabled;
 
   const eventTypes = await prisma.eventType.findMany({

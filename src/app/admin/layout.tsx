@@ -64,6 +64,12 @@ export default async function AdminLayout({
                 Platform config
               </Link>
               <Link
+                href="/admin/settings/plans"
+                className="rounded-lg px-3 py-2 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
+              >
+                Plans
+              </Link>
+              <Link
                 href="/admin/settings/flags"
                 className="rounded-lg px-3 py-2 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
               >

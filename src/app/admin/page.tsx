@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getAdminAnalytics } from "@/lib/admin-metrics";
-import { planConfig } from "@/lib/plans";
+import { getPlanMap } from "@/lib/plans";
 import { AreaChart, BarChart } from "@/components/admin/Charts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -18,7 +18,7 @@ export default async function AdminOverview({
 }) {
   const sp = await searchParams;
   const range = RANGES.includes(Number(sp.range)) ? Number(sp.range) : 30;
-  const a = await getAdminAnalytics(range);
+  const [a, planMap] = await Promise.all([getAdminAnalytics(range), getPlanMap()]);
 
   const mrrPoints = a.series.map((p) => ({ label: shortDate(p.date), value: p.mrr }));
   const signupPoints = a.series.map((p) => ({ label: shortDate(p.date), value: p.signups }));
@@ -87,7 +87,7 @@ export default async function AdminOverview({
               return (
                 <div key={plan}>
                   <div className="flex justify-between text-sm">
-                    <span className="font-medium text-slate-700">{planConfig(plan).name}</span>
+                    <span className="font-medium text-slate-700">{planMap.get(plan)?.name ?? plan}</span>
                     <span className="text-slate-500">{count} · {pct}%</span>
                   </div>
                   <div className="mt-1 h-2 overflow-hidden rounded-full bg-slate-100">

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { requireAdminRole } from "@/lib/admin-auth";
+import { getAllPlans } from "@/lib/plans";
 import CreateUserForm from "./CreateUserForm";
 
 export default async function NewUserPage() {
@@ -9,6 +10,7 @@ export default async function NewUserPage() {
   } catch {
     redirect("/admin/users");
   }
+  const plans = await getAllPlans();
   return (
     <div className="mx-auto max-w-2xl">
       <div className="flex items-center justify-between">
@@ -23,7 +25,7 @@ export default async function NewUserPage() {
       <p className="mt-1 text-sm text-slate-600">
         Create a new business account. The user can change their password from account settings.
       </p>
-      <CreateUserForm />
+      <CreateUserForm plans={plans.map((p) => ({ id: p.id, name: p.name }))} />
     </div>
   );
 }

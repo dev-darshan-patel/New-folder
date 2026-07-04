@@ -1,7 +1,8 @@
 import "server-only";
 import Stripe from "stripe";
-import type { Plan, StripeMode } from "@prisma/client";
+import type { StripeMode } from "@prisma/client";
 import { getPlatformSettings } from "@/lib/settings";
+import { getAllPlans, getPlanConfig, type Plan } from "@/lib/plans";
 
 export type ActiveStripeConfig = {
   mode: StripeMode;
@@ -53,17 +54,24 @@ export async function isStripeConfigured(): Promise<boolean> {
   return Boolean(secretKey);
 }
 
-// Resolve the active mode's Stripe Price ID for a paid plan, or null.
+// Resolve the Stripe Price ID for a paid plan, or null. Prefers the plan's own
+// stripePriceId (admin-editable); falls back to the legacy platform-settings
+// price IDs for the built-in PRO/BUSINESS tiers.
 export async function getStripePriceForPlan(plan: Plan): Promise<string | null> {
+  const planCfg = await getPlanConfig(plan);
+  if (planCfg.stripePriceId) return planCfg.stripePriceId;
   const cfg = await getActiveStripeConfig();
   if (plan === "PRO") return cfg.pricePro;
   if (plan === "BUSINESS") return cfg.priceBusiness;
   return null;
 }
 
-// Map a Stripe Price ID (from a webhook event) back to a plan, using the
-// active mode's configured price IDs.
+// Map a Stripe Price ID (from a webhook event) back to a plan id. Checks each
+// plan's stripePriceId first, then the legacy platform-settings price IDs.
 export async function getPlanForStripePrice(priceId: string): Promise<Plan | null> {
+  const plans = await getAllPlans();
+  const match = plans.find((p) => p.stripePriceId && p.stripePriceId === priceId);
+  if (match) return match.id;
   const cfg = await getActiveStripeConfig();
   if (cfg.pricePro && priceId === cfg.pricePro) return "PRO";
   if (cfg.priceBusiness && priceId === cfg.priceBusiness) return "BUSINESS";

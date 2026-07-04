@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { planConfig } from "@/lib/plans";
+import { getPlanMap } from "@/lib/plans";
 import { parseUsersQuery, buildUserWhere, buildUserOrderBy } from "@/lib/admin-users-query";
 
 function csvEscape(value: string): string {
@@ -20,11 +20,14 @@ export async function GET(req: NextRequest) {
   const where = buildUserWhere(parsed);
   const orderBy = buildUserOrderBy(parsed);
 
-  const users = await prisma.user.findMany({
-    where,
-    orderBy,
-    include: { _count: { select: { eventTypes: true, bookings: true } } },
-  });
+  const [users, planMap] = await Promise.all([
+    prisma.user.findMany({
+      where,
+      orderBy,
+      include: { _count: { select: { eventTypes: true, bookings: true } } },
+    }),
+    getPlanMap(),
+  ]);
 
   const header = ["Business", "Email", "Slug", "Plan", "Event Types", "Bookings", "Joined"];
   const rows = users.map((u) =>
@@ -32,7 +35,7 @@ export async function GET(req: NextRequest) {
       u.businessName,
       u.email,
       u.slug,
-      planConfig(u.plan).name,
+      planMap.get(u.plan)?.name ?? u.plan,
       String(u._count.eventTypes),
       String(u._count.bookings),
       u.mobile ?? "",

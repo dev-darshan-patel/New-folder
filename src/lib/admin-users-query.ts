@@ -1,4 +1,4 @@
-import type { Prisma, Plan } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 
 export type UsersQuery = {
   q?: string;
@@ -17,9 +17,8 @@ export const PAGE_SIZE = 20;
 
 export function parseUsersQuery(sp: UsersQuery) {
   const q = (sp.q ?? "").trim();
-  const plan = (["FREE", "PRO", "BUSINESS"] as Plan[]).includes(sp.plan as Plan)
-    ? (sp.plan as Plan)
-    : null;
+  // Any plan id is accepted as a filter; an unknown id simply matches no rows.
+  const plan = (sp.plan ?? "").trim() || null;
   const hasBookings = sp.hasBookings === "1";
   const showDeleted = sp.showDeleted === "1";
   const sort: SortField = SORT_FIELDS.includes(sp.sort as SortField)

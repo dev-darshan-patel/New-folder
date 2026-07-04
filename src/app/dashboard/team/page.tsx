@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { planConfig } from "@/lib/plans";
+import { getPlanConfig } from "@/lib/plans";
 import { ensureOwnerTeamMember } from "@/lib/team";
 import {
   addTeamMemberAction,
@@ -18,7 +18,7 @@ export default async function TeamPage() {
   const user = await getCurrentUser();
   if (!user) return null;
 
-  if (!planConfig(user.plan).teamScheduling) {
+  if (!(await getPlanConfig(user.plan)).teamScheduling) {
     return (
       <div className="mx-auto max-w-2xl">
         <h1 className="text-2xl font-bold tracking-tight text-slate-900">Team</h1>

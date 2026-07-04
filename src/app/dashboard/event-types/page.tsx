@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { planConfig } from "@/lib/plans";
+import { getPlanConfig } from "@/lib/plans";
 import {
   createEventTypeAction,
   deleteEventTypeAction,
@@ -27,7 +27,8 @@ export default async function EventTypesPage({
     orderBy: { createdAt: "asc" },
   });
 
-  const limit = planConfig(user.plan).maxEventTypes;
+  const planCfg = await getPlanConfig(user.plan);
+  const limit = planCfg.maxEventTypes;
   const atLimit = limit !== null && eventTypes.length >= limit;
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
@@ -42,7 +43,7 @@ export default async function EventTypesPage({
           {eventTypes.length}
           {limit !== null ? ` of ${limit}` : ""} used
         </span>{" "}
-        on the {planConfig(user.plan).name} plan.
+        on the {planCfg.name} plan.
       </p>
 
       {(sp.limit || atLimit) && (

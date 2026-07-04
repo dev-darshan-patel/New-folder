@@ -1,6 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { planConfig } from "@/lib/plans";
-import type { Plan } from "@prisma/client";
+import { getPlanMap, getAllPlans, type Plan } from "@/lib/plans";
 
 export type DayPoint = { date: string; signups: number; bookings: number; mrr: number; cumulativeUsers: number };
 
@@ -49,7 +48,8 @@ export async function getAdminAnalytics(rangeDays: number): Promise<AdminAnalyti
   ]);
 
   const now = Date.now();
-  const price = (p: Plan) => planConfig(p).priceMonthly;
+  const planMap = await getPlanMap();
+  const price = (p: Plan) => planMap.get(p)?.priceMonthly ?? 0;
 
   const payingUsers = users.filter((u) => u.plan !== "FREE");
   const mrr = payingUsers.reduce((s, u) => s + price(u.plan), 0);
@@ -119,9 +119,10 @@ export async function getAdminAnalytics(rangeDays: number): Promise<AdminAnalyti
     { label: "Upgraded to paid", count: payingUsers.length },
   ];
 
-  const planMix = (["FREE", "PRO", "BUSINESS"] as Plan[]).map((plan) => ({
-    plan,
-    count: users.filter((u) => u.plan === plan).length,
+  const allPlans = await getAllPlans();
+  const planMix = allPlans.map((p) => ({
+    plan: p.id,
+    count: users.filter((u) => u.plan === p.id).length,
   }));
 
   const topByBookings = [...users]

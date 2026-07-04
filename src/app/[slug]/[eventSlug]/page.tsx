@@ -33,7 +33,7 @@ export default async function BookingPage({
   // The embed chrome is a platform-wide kill-switchable feature. When the flag
   // is off, an ?embed=1 request degrades to the normal full booking page.
   const embed = sp.embed === "1" && (await isFeatureEnabled("embed_widget"));
-  const brand = resolveBranding(user, {
+  const brand = await resolveBranding(user, {
     color: sp.accent ? `#${sp.accent.replace(/^#/, "")}` : null,
     fontKey: sp.font ?? null,
   });
