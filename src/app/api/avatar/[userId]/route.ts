@@ -16,15 +16,23 @@ export async function GET(
     return new Response(null, { status: 404 });
   }
 
-  // Local dev: avatarUrl is already a public path, redirect directly.
+  // Local dev: avatarUrl is a public path like /uploads/avatars/…
   if (user.avatarUrl.startsWith("/")) {
     return Response.redirect(user.avatarUrl, 302);
   }
 
-  // Production: get a fresh signed download URL from Vercel Blob.
+  // Production: fetch the private blob server-side and stream it to the browser.
   try {
     const info = await head(user.avatarUrl);
-    return Response.redirect(info.downloadUrl, 302);
+    const upstream = await fetch(info.downloadUrl);
+    if (!upstream.ok) return new Response(null, { status: 404 });
+
+    return new Response(upstream.body, {
+      headers: {
+        "Content-Type": info.contentType ?? "image/jpeg",
+        "Cache-Control": "private, max-age=3600",
+      },
+    });
   } catch {
     return new Response(null, { status: 404 });
   }
