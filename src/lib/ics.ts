@@ -12,6 +12,9 @@ type IcsInput = {
   organizerEmail: string;
   attendeeName: string;
   attendeeEmail: string;
+  // Physical location or a phone number — shown as the event's LOCATION.
+  // For an online meeting this is typically the video URL.
+  location?: string | null;
 };
 
 function toIcsDate(d: Date): string {
@@ -39,6 +42,7 @@ export function buildIcs(input: IcsInput): string {
     `DTEND:${toIcsDate(input.end)}`,
     `SUMMARY:${escapeText(input.title)}`,
     input.description ? `DESCRIPTION:${escapeText(input.description)}` : "",
+    input.location ? `LOCATION:${escapeText(input.location)}` : "",
     `ORGANIZER;CN=${escapeText(input.organizerName)}:mailto:${input.organizerEmail}`,
     `ATTENDEE;CN=${escapeText(input.attendeeName)};RSVP=TRUE:mailto:${input.attendeeEmail}`,
     `STATUS:${status}`,

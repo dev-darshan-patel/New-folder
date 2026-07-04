@@ -159,6 +159,24 @@ export async function updateEventTypeAction(formData: FormData) {
   const rawMax = String(formData.get("maxPerDay") || "").trim();
   const maxPerDay = rawMax === "" ? null : clampInt(rawMax, 1, 1000, 1);
 
+  // Meeting location. GOOGLE_MEET only sticks if the owner has actually
+  // connected their calendar; otherwise silently fall back to IN_PERSON so we
+  // never promise a Meet link we can't create.
+  const rawLocation = String(formData.get("locationType") || "IN_PERSON");
+  let locationType: "IN_PERSON" | "PHONE" | "GOOGLE_MEET" =
+    rawLocation === "PHONE" || rawLocation === "GOOGLE_MEET" ? rawLocation : "IN_PERSON";
+  if (locationType === "GOOGLE_MEET") {
+    const hasCalendar = await prisma.calendarConnection.findUnique({
+      where: { userId: user.id },
+      select: { id: true },
+    });
+    if (!hasCalendar) locationType = "IN_PERSON";
+  }
+  const locationDetail =
+    locationType === "GOOGLE_MEET"
+      ? null
+      : String(formData.get("locationDetail") || "").trim().slice(0, 500) || null;
+
   // Intake questions arrive as a JSON string from the client editor.
   const questions = parseQuestions(String(formData.get("intakeQuestions") || ""))
     .filter((q) => q.label.trim() !== "");
@@ -193,6 +211,8 @@ export async function updateEventTypeAction(formData: FormData) {
       maxPerDay,
       intakeQuestions,
       assignmentMode,
+      locationType,
+      locationDetail,
     },
   });
   if (count === 0) return;

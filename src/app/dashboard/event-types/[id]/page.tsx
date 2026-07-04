@@ -21,19 +21,25 @@ export default async function EditEventTypePage({
   if (!eventType) notFound();
 
   const teamSchedulingEnabled = (await getPlanConfig(user.plan)).teamScheduling;
-  const [teamMembers, pool] = teamSchedulingEnabled
-    ? await Promise.all([
-        prisma.teamMember.findMany({
+  const [teamMembers, pool, calendarConnection] = await Promise.all([
+    teamSchedulingEnabled
+      ? prisma.teamMember.findMany({
           where: { userId: user.id, active: true },
           select: { id: true, name: true, isOwner: true },
           orderBy: [{ isOwner: "desc" }, { name: "asc" }],
-        }),
-        prisma.eventTypeMember.findMany({
+        })
+      : Promise.resolve([]),
+    teamSchedulingEnabled
+      ? prisma.eventTypeMember.findMany({
           where: { eventTypeId: eventType.id },
           select: { teamMemberId: true },
-        }),
-      ])
-    : [[], []];
+        })
+      : Promise.resolve([]),
+    prisma.calendarConnection.findUnique({
+      where: { userId: user.id },
+      select: { id: true },
+    }),
+  ]);
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -60,6 +66,9 @@ export default async function EditEventTypePage({
           poolMemberIds: pool.map((p) => p.teamMemberId),
           teamMembers,
           teamSchedulingEnabled,
+          locationType: eventType.locationType,
+          locationDetail: eventType.locationDetail ?? "",
+          calendarConnected: Boolean(calendarConnection),
         }}
       />
     </div>

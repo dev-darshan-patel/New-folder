@@ -115,6 +115,17 @@ export default function BookingWidget({
           You&apos;re booked!
         </h2>
         <p className="mt-1 text-sm text-slate-600">{result.when}</p>
+        {result.meetingUrl && (
+          <a
+            href={result.meetingUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ backgroundColor: accent }}
+            className="mt-4 inline-block rounded-lg px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90"
+          >
+            Join Google Meet
+          </a>
+        )}
         <p className="mt-3 text-sm text-slate-500">
           A confirmation has been sent to your email.
         </p>

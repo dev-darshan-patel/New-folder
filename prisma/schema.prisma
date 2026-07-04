@@ -90,6 +90,31 @@ model User {
   adminNotes        AdminNote[]
   couponRedemptions CouponRedemption[]
   teamMembers  TeamMember[]
+  calendarConnection CalendarConnection?
+}
+
+// A business owner's connected external calendar (currently Google only).
+// Created via a per-user OAuth "connect" flow that is SEPARATE from login —
+// this one requests offline access + the calendar.events scope and stores a
+// refresh token so we can create Google Meet links on their behalf. Login
+// never stores tokens. One connection per user for now (@@unique userId).
+model CalendarConnection {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider     String   @default("google")
+  // The connected Google account's email, shown in the UI.
+  accountEmail String
+  // OAuth tokens. Stored as-is, matching the codebase's existing convention of
+  // keeping provider secrets in the DB (see PlatformSettings). Refresh token is
+  // long-lived; access token is refreshed when it nears expiry.
+  accessToken  String
+  refreshToken String
+  expiresAt    DateTime
+  // Space-delimited granted scopes, for debugging/verification.
+  scope        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 enum AssignmentMode {
@@ -205,12 +230,25 @@ model EventType {
   intakeQuestions String?
   active          Boolean        @default(true)
   assignmentMode  AssignmentMode @default(SOLO)
+  // Where the meeting happens. GOOGLE_MEET auto-generates a Meet link at
+  // booking time (requires the owner to have connected their Google Calendar).
+  // Default IN_PERSON preserves existing behavior for all pre-existing rows.
+  locationType    LocationType   @default(IN_PERSON)
+  // Free-form detail: an address for IN_PERSON or a number for PHONE.
+  // Unused for GOOGLE_MEET (the link is generated per booking).
+  locationDetail  String?
   createdAt       DateTime  @default(now())
 
   bookings        Booking[]
   members         EventTypeMember[]
 
   @@unique([userId, slug])
+}
+
+enum LocationType {
+  IN_PERSON
+  PHONE
+  GOOGLE_MEET
 }
 
 // A weekly-recurring availability window for a user.
@@ -259,6 +297,12 @@ model Booking {
   // Timestamps marking which reminder emails have been sent (idempotency).
   remind24hSentAt DateTime?
   remind1hSentAt  DateTime?
+  // Google Meet (or other video) URL generated at booking time for online
+  // event types. Null for in-person/phone or when generation failed/was skipped.
+  meetingUrl      String?
+  // The Google Calendar event id backing this booking, so reschedule can patch
+  // it and cancel can delete it. Null when no calendar event was created.
+  calendarEventId String?
   createdAt    DateTime      @default(now())
 
   @@index([userId, startTime])

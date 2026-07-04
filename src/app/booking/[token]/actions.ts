@@ -9,6 +9,7 @@ import { sendEmail } from "@/lib/email";
 import { renderTemplate } from "@/lib/email-templates";
 import { buildIcs } from "@/lib/ics";
 import { formatWhen } from "@/lib/format";
+import { updateMeetEventTime, deleteMeetEvent } from "@/lib/google-calendar";
 
 type FullBooking = Prisma.BookingGetPayload<{
   include: { eventType: true; user: true };
@@ -46,11 +47,12 @@ function bookingIcs(
     start: booking.startTime,
     end: booking.endTime,
     title: `${booking.eventType.title} — ${booking.user.businessName}`,
-    description: `Booking with ${booking.user.businessName}${withWho ? ` (with ${withWho})` : ""}.`,
+    description: `Booking with ${booking.user.businessName}${withWho ? ` (with ${withWho})` : ""}.${booking.meetingUrl ? ` Join: ${booking.meetingUrl}.` : ""}`,
     organizerName: booking.user.businessName,
     organizerEmail: booking.user.email,
     attendeeName: booking.inviteeName,
     attendeeEmail: booking.inviteeEmail,
+    location: booking.meetingUrl,
   });
   return {
     filename: "invite.ics",
@@ -74,6 +76,11 @@ export async function cancelBookingAction(formData: FormData) {
     where: { id: booking.id },
     data: { status: "CANCELLED", sequence },
   });
+
+  // Remove the Google Calendar event (and its Meet link) if one was created.
+  if (booking.calendarEventId) {
+    await deleteMeetEvent(booking.userId, booking.calendarEventId);
+  }
 
   const when = formatWhen(booking.startTime, booking.user.timezone);
   const withWho = await describeAssignee(booking);
@@ -223,6 +230,17 @@ export async function rescheduleBookingAction(input: {
     });
   }
 
+  // Move the Google Calendar event to the new time (keeps the same Meet link).
+  if (booking.calendarEventId) {
+    await updateMeetEventTime({
+      userId: booking.userId,
+      calendarEventId: booking.calendarEventId,
+      startUtc: start,
+      endUtc: end,
+      timeZone: booking.user.timezone,
+    });
+  }
+
   const when = formatWhen(start, booking.user.timezone);
   // Rebuild the ICS with the new time + bumped sequence so calendars update.
   const withWho = await describeAssignee({ ...booking, teamMemberId: assignedTeamMemberId } as FullBooking);
@@ -239,7 +257,7 @@ export async function rescheduleBookingAction(input: {
       event_title: booking.eventType.title,
       when,
       timezone: booking.user.timezone,
-      with_line: withWho ? `\nWith: ${withWho}` : "",
+      with_line: `${withWho ? `\nWith: ${withWho}` : ""}${booking.meetingUrl ? `\nJoin: ${booking.meetingUrl}` : ""}`,
     });
     await sendEmail({ to: booking.inviteeEmail, ...inviteeEmail, attachments: [updateIcs] });
 

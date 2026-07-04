@@ -6,6 +6,7 @@ import { getTeamMemberBusyWindows, isFreeAt, pickRoundRobinMember } from "@/lib/
 import { sendEmail } from "@/lib/email";
 import { renderTemplate } from "@/lib/email-templates";
 import { buildIcs } from "@/lib/ics";
+import { createMeetEvent } from "@/lib/google-calendar";
 import { parseQuestions } from "@/lib/intake";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
 import { formatWhen } from "@/lib/format";
@@ -62,7 +63,7 @@ export async function fetchSlotsAction(
 }
 
 export type BookingResult =
-  | { ok: true; when: string; manageUrl: string }
+  | { ok: true; when: string; manageUrl: string; meetingUrl?: string | null }
   | { ok: false; error: string };
 
 // Create a booking for an event type at a specific UTC start time.
@@ -208,7 +209,6 @@ export async function createBookingAction(input: {
     }
     throw err;
   }
-  void bookingId;
 
   const businessTz = eventType.user.timezone;
   const viewerTz = safeTimezone(input.viewerTimezone) ?? businessTz;
@@ -233,6 +233,46 @@ export async function createBookingAction(input: {
     withWho = pool.map((m) => m.name).join(", ") || null;
   }
 
+  // Resolve the meeting location. For GOOGLE_MEET, create a Calendar event with
+  // a Meet conference on the owner's calendar and capture the link. Any failure
+  // here degrades gracefully — the booking is already committed, so we just fall
+  // through with no link rather than erroring the invitee out.
+  let meetingUrl: string | null = null;
+  let locationText: string | null = null;
+  if (eventType.locationType === "GOOGLE_MEET") {
+    const meet = await createMeetEvent({
+      userId: eventType.userId,
+      summary: `${eventType.title} — ${name}`,
+      description: `Booking with ${eventType.user.businessName}. Manage: ${manageUrl}`,
+      startUtc: start,
+      endUtc: end,
+      timeZone: businessTz,
+      attendees: [
+        { email, name },
+        { email: eventType.user.email, name: eventType.user.businessName },
+      ],
+    });
+    if (meet) {
+      meetingUrl = meet.meetingUrl;
+      locationText = meet.meetingUrl;
+      await prisma.booking.update({
+        where: { id: bookingId },
+        data: { meetingUrl: meet.meetingUrl, calendarEventId: meet.calendarEventId },
+      });
+    }
+  } else if (eventType.locationDetail) {
+    locationText = eventType.locationDetail;
+  }
+
+  // A "\n…" fragment appended to the existing with_line/extra template vars so
+  // the location/link surfaces in both emails and the .ics without needing a
+  // template migration (existing DB rows already render with_line/extra).
+  const meetLine = meetingUrl
+    ? `\nJoin: ${meetingUrl}`
+    : locationText
+      ? `\nWhere: ${locationText}`
+      : "";
+
   const ics = buildIcs({
     uid: manageToken,
     sequence: 0,
@@ -240,11 +280,12 @@ export async function createBookingAction(input: {
     start,
     end,
     title: `${eventType.title} — ${eventType.user.businessName}`,
-    description: `Booking with ${eventType.user.businessName}${withWho ? ` (with ${withWho})` : ""}. Manage: ${manageUrl}`,
+    description: `Booking with ${eventType.user.businessName}${withWho ? ` (with ${withWho})` : ""}.${meetingUrl ? ` Join: ${meetingUrl}.` : ""} Manage: ${manageUrl}`,
     organizerName: eventType.user.businessName,
     organizerEmail: eventType.user.email,
     attendeeName: name,
     attendeeEmail: email,
+    location: locationText,
   });
   const icsAttachment = {
     filename: "invite.ics",
@@ -260,7 +301,7 @@ export async function createBookingAction(input: {
       event_title: eventType.title,
       when: inviteeWhen,
       timezone: viewerTz,
-      with_line: withWho ? `\nWith: ${withWho}` : "",
+      with_line: `${withWho ? `\nWith: ${withWho}` : ""}${meetLine}`,
       manage_url: manageUrl,
     });
     await sendEmail({ to: email, ...inviteeEmail, attachments: [icsAttachment] });
@@ -278,12 +319,12 @@ export async function createBookingAction(input: {
       event_title: eventType.title,
       when: ownerWhen,
       timezone: businessTz,
-      extra: `${input.notes ? `\nNotes: ${input.notes}` : ""}${answerLines}`,
+      extra: `${meetLine}${input.notes ? `\nNotes: ${input.notes}` : ""}${answerLines}`,
     });
     await sendEmail({ to: eventType.user.email, ...ownerEmail, attachments: [icsAttachment] });
   } catch (err) {
     console.error("Failed to send booking email", err);
   }
 
-  return { ok: true, when: inviteeWhen, manageUrl };
+  return { ok: true, when: inviteeWhen, manageUrl, meetingUrl };
 }

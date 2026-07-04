@@ -7,8 +7,18 @@ import { getCurrentUser } from "@/lib/auth";
 import { slugify, RESERVED_SLUGS } from "@/lib/slug";
 import { sendEmail } from "@/lib/email";
 import { renderTemplate } from "@/lib/email-templates";
+import { disconnectGoogleCalendar } from "@/lib/google-calendar";
 
 export type SettingsState = { ok: true; message: string } | { error: string } | null;
+
+// Remove the owner's connected Google Calendar. Event types set to Google Meet
+// will fall back to no-link until a calendar is reconnected.
+export async function disconnectCalendarAction() {
+  const user = await getCurrentUser();
+  if (!user) return;
+  await disconnectGoogleCalendar(user.id);
+  revalidatePath("/dashboard/settings");
+}
 
 export async function updateProfileAction(
   _prev: SettingsState,

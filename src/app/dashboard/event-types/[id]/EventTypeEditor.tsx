@@ -5,6 +5,8 @@ import { useFormStatus } from "react-dom";
 import { updateEventTypeAction } from "../../actions";
 import type { IntakeQuestion } from "@/lib/intake";
 
+type LocationType = "IN_PERSON" | "PHONE" | "GOOGLE_MEET";
+
 type Initial = {
   id: string;
   title: string;
@@ -17,12 +19,17 @@ type Initial = {
   poolMemberIds: string[];
   teamMembers: { id: string; name: string; isOwner: boolean }[];
   teamSchedulingEnabled: boolean;
+  locationType: LocationType;
+  locationDetail: string;
+  calendarConnected: boolean;
 };
 
 export default function EventTypeEditor({ initial }: { initial: Initial }) {
   const [questions, setQuestions] = useState<IntakeQuestion[]>(initial.questions);
   const [mode, setMode] = useState(initial.assignmentMode);
   const [pool, setPool] = useState<string[]>(initial.poolMemberIds);
+  const [location, setLocation] = useState<LocationType>(initial.locationType);
+  const [locationDetail, setLocationDetail] = useState(initial.locationDetail);
 
   function togglePool(id: string) {
     setPool((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
@@ -110,6 +117,60 @@ export default function EventTypeEditor({ initial }: { initial: Initial }) {
             className={input}
           />
         </Field>
+      </div>
+
+      <div>
+        <p className="text-sm font-medium text-slate-700">Location</p>
+        <p className="text-xs text-slate-500">Where this meeting takes place.</p>
+        <input type="hidden" name="locationType" value={location} />
+        <div className="mt-2 flex flex-wrap gap-2">
+          {(
+            [
+              { v: "IN_PERSON", label: "In person" },
+              { v: "PHONE", label: "Phone" },
+              { v: "GOOGLE_MEET", label: "Google Meet" },
+            ] as const
+          ).map((opt) => {
+            const disabled = opt.v === "GOOGLE_MEET" && !initial.calendarConnected;
+            return (
+              <button
+                key={opt.v}
+                type="button"
+                disabled={disabled}
+                onClick={() => setLocation(opt.v)}
+                title={
+                  disabled
+                    ? "Connect Google Calendar in Settings to enable Google Meet"
+                    : opt.label
+                }
+                className={`rounded-lg border px-3 py-1.5 text-sm font-medium ${
+                  location === opt.v
+                    ? "border-indigo-600 bg-indigo-50 text-indigo-700"
+                    : "border-slate-300 text-slate-700 hover:bg-slate-50"
+                } ${disabled ? "cursor-not-allowed opacity-40" : ""}`}
+              >
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {opt_google_hint(location, initial.calendarConnected)}
+
+        {(location === "IN_PERSON" || location === "PHONE") && (
+          <input
+            name="locationDetail"
+            value={locationDetail}
+            onChange={(e) => setLocationDetail(e.target.value)}
+            placeholder={
+              location === "PHONE"
+                ? "Phone number (shown to the invitee)"
+                : "Address or room (shown to the invitee)"
+            }
+            title="Location detail"
+            className={`${input} mt-3`}
+          />
+        )}
       </div>
 
       <div>
@@ -220,6 +281,29 @@ function SaveButton() {
       {pending ? "Saving…" : "Save changes"}
     </button>
   );
+}
+
+function opt_google_hint(location: LocationType, connected: boolean) {
+  if (location === "GOOGLE_MEET") {
+    return (
+      <p className="mt-2 text-xs text-slate-500">
+        A unique Google Meet link is created for each booking and included in the
+        confirmation email and calendar invite.
+      </p>
+    );
+  }
+  if (!connected) {
+    return (
+      <p className="mt-2 text-xs text-slate-400">
+        Want a video link?{" "}
+        <a href="/dashboard/settings" className="text-indigo-600 hover:underline">
+          Connect Google Calendar
+        </a>{" "}
+        to enable Google Meet.
+      </p>
+    );
+  }
+  return null;
 }
 
 const input =
