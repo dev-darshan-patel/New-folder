@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, createSession } from "@/lib/auth";
 import { slugify, RESERVED_SLUGS } from "@/lib/slug";
 import { sendEmail } from "@/lib/email";
 import { renderTemplate } from "@/lib/email-templates";
@@ -80,7 +80,13 @@ export async function changePasswordAction(
   }
 
   const passwordHash = await bcrypt.hash(next, 10);
-  await prisma.user.update({ where: { id: user.id }, data: { passwordHash } });
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { passwordHash, tokenVersion: { increment: 1 } },
+  });
+  // Re-issue this session with the new tokenVersion so the user who just
+  // changed their password isn't logged out by their own version bump.
+  await createSession(user.id);
 
   // Security confirmation email. Never block the change on send failure.
   try {

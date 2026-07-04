@@ -27,6 +27,7 @@ export async function fetchSlotsAction(
   eventTypeId: string,
   date: string,
 ): Promise<Slot[]> {
+  if (!(await rateLimit(`slots:${await clientIp()}`, 60, 60_000))) return [];
   const eventType = await prisma.eventType.findUnique({
     where: { id: eventTypeId },
     include: { user: true },
@@ -76,11 +77,11 @@ export async function createBookingAction(input: {
   viewerTimezone?: string;
   answers?: { label: string; value: string }[];
 }): Promise<BookingResult> {
-  if (!rateLimit(`book:${await clientIp()}`, 10, 600_000)) {
+  if (!(await rateLimit(`book:${await clientIp()}`, 10, 600_000))) {
     return { ok: false, error: "Too many booking attempts. Please wait a few minutes." };
   }
-  const name = input.name.trim();
-  const email = input.email.trim().toLowerCase();
+  const name = input.name.trim().slice(0, 200);
+  const email = input.email.trim().toLowerCase().slice(0, 320);
   if (!name || !email) return { ok: false, error: "Name and email are required." };
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
     return { ok: false, error: "Please enter a valid email address." };
@@ -122,9 +123,9 @@ export async function createBookingAction(input: {
 
   // Validate answers to required intake questions.
   const questions = parseQuestions(eventType.intakeQuestions);
-  const answers = (input.answers ?? []).map((a) => ({
-    label: String(a.label),
-    value: String(a.value ?? "").trim(),
+  const answers = (input.answers ?? []).slice(0, 50).map((a) => ({
+    label: String(a.label).slice(0, 500),
+    value: String(a.value ?? "").trim().slice(0, 2000),
   }));
   for (const q of questions) {
     if (q.required) {
@@ -185,7 +186,7 @@ export async function createBookingAction(input: {
           eventTypeId: eventType.id,
           inviteeName: name,
           inviteeEmail: email,
-          notes: input.notes?.trim() || null,
+          notes: input.notes?.trim().slice(0, 2000) || null,
           startTime: start,
           endTime: end,
           manageToken,

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sendDueReminders } from "@/lib/reminders";
+import { cleanupExpiredRateLimits } from "@/lib/rate-limit";
 
 // Trigger reminder emails for upcoming bookings. Point a scheduler (Vercel Cron,
 // system cron, etc.) at this endpoint every few minutes.
@@ -18,7 +19,8 @@ async function handle(req: NextRequest) {
   }
 
   const result = await sendDueReminders();
-  return NextResponse.json({ ok: true, ...result });
+  const rateLimitCleaned = await cleanupExpiredRateLimits();
+  return NextResponse.json({ ok: true, ...result, rateLimitCleaned });
 }
 
 export async function GET(req: NextRequest) {

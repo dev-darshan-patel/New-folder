@@ -1,47 +1,52 @@
 import "server-only";
+import { prisma } from "@/lib/prisma";
 
-// Simple in-memory sliding-window rate limiter, keyed by an arbitrary string
-// (usually "<action>:<ip>" or "<action>:<email>").
-//
-// NOTE: state is per-process. On serverless/multi-instance deploys each
-// instance keeps its own window, so real-world limits are N× looser. That is
-// an accepted first line of defense — swap the Map for Redis/Upstash when
-// horizontal scaling matters.
+// Postgres-backed sliding-window rate limiter. Shared across all serverless
+// instances — unlike the old in-memory Map, a cold start doesn't reset counters.
 
-type Window = { timestamps: number[] };
+// Returns true when the call is allowed, false when rate-limited.
+export async function rateLimit(
+  key: string,
+  limit: number,
+  windowMs: number,
+): Promise<boolean> {
+  const now = new Date();
+  const windowStart = new Date(now.getTime() - windowMs);
+  const expiresAt = new Date(now.getTime() + windowMs);
 
-const store = new Map<string, Window>();
+  try {
+    const row = await prisma.rateLimit.findUnique({ where: { key } });
 
-// Periodically drop stale keys so the map doesn't grow unbounded.
-const SWEEP_INTERVAL_MS = 10 * 60_000;
-let lastSweep = Date.now();
-
-function sweep(now: number, maxAgeMs: number) {
-  if (now - lastSweep < SWEEP_INTERVAL_MS) return;
-  lastSweep = now;
-  for (const [key, win] of store) {
-    if (
-      win.timestamps.length === 0 ||
-      now - win.timestamps[win.timestamps.length - 1] > maxAgeMs
-    ) {
-      store.delete(key);
+    if (!row || row.windowStart < windowStart) {
+      // No record or window expired — start fresh.
+      await prisma.rateLimit.upsert({
+        where: { key },
+        create: { key, count: 1, windowStart: now, expiresAt },
+        update: { count: 1, windowStart: now, expiresAt },
+      });
+      return true;
     }
+
+    if (row.count >= limit) return false;
+
+    await prisma.rateLimit.update({
+      where: { key },
+      data: { count: { increment: 1 }, expiresAt },
+    });
+    return true;
+  } catch {
+    // If the DB is unreachable, fail open — don't block legitimate users.
+    return true;
   }
 }
 
-// Returns true when the call is allowed, false when rate-limited.
-export function rateLimit(key: string, limit: number, windowMs: number): boolean {
-  const now = Date.now();
-  sweep(now, windowMs);
-  const win = store.get(key) ?? { timestamps: [] };
-  win.timestamps = win.timestamps.filter((t) => now - t < windowMs);
-  if (win.timestamps.length >= limit) {
-    store.set(key, win);
-    return false;
-  }
-  win.timestamps.push(now);
-  store.set(key, win);
-  return true;
+// Periodically clean up expired rows. Called from the cron endpoint so it
+// doesn't add latency to user-facing requests.
+export async function cleanupExpiredRateLimits(): Promise<number> {
+  const { count } = await prisma.rateLimit.deleteMany({
+    where: { expiresAt: { lt: new Date() } },
+  });
+  return count;
 }
 
 // Best-effort client IP from proxy headers; falls back to "unknown".

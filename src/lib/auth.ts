@@ -18,7 +18,14 @@ function secret() {
 // set, marks this session as an admin viewing the account as that user —
 // the admin's own id is embedded so the session can be switched back.
 export async function createSession(userId: string, opts?: { impersonatedBy?: string }) {
-  const jwt = new SignJWT({ sub: userId, ...(opts?.impersonatedBy ? { impersonatedBy: opts.impersonatedBy } : {}) })
+  // Embed the current tokenVersion so we can invalidate all sessions by bumping it.
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { tokenVersion: true } });
+  const tv = user?.tokenVersion ?? 0;
+  const jwt = new SignJWT({
+    sub: userId,
+    tv,
+    ...(opts?.impersonatedBy ? { impersonatedBy: opts.impersonatedBy } : {}),
+  })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime(`${SESSION_DAYS}d`);
@@ -39,7 +46,7 @@ export async function destroySession() {
   cookieStore.delete(COOKIE_NAME);
 }
 
-type SessionClaims = { userId: string; impersonatedBy: string | null };
+type SessionClaims = { userId: string; impersonatedBy: string | null; tokenVersion: number };
 
 const getSessionClaims = cache(async (): Promise<SessionClaims | null> => {
   const cookieStore = await cookies();
@@ -51,6 +58,7 @@ const getSessionClaims = cache(async (): Promise<SessionClaims | null> => {
     return {
       userId: payload.sub,
       impersonatedBy: typeof payload.impersonatedBy === "string" ? payload.impersonatedBy : null,
+      tokenVersion: typeof payload.tv === "number" ? payload.tv : 0,
     };
   } catch {
     return null;
@@ -64,6 +72,9 @@ export const getCurrentUser = cache(async (): Promise<User | null> => {
   if (!claims) return null;
   const user = await prisma.user.findUnique({ where: { id: claims.userId } });
   if (!user || user.suspended || user.deletedAt) return null;
+  // Reject sessions minted before the last tokenVersion bump (password change,
+  // admin force-logout, etc.).
+  if (user.tokenVersion > claims.tokenVersion) return null;
   return user;
 });
 

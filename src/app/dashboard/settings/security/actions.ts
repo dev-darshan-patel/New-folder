@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
-import { generateTotpSecret, verifyTotp, generateBackupCodes } from "@/lib/totp";
+import { generateTotpSecret, verifyTotp, generateBackupCodes, encryptTotpSecret } from "@/lib/totp";
 
 export type SecurityState =
   | { ok: true; message: string; backupCodes?: string[] }
@@ -21,7 +21,7 @@ export async function beginTotpSetupAction(): Promise<{ secret: string } | { err
   const secret = generateTotpSecret();
   await prisma.user.update({
     where: { id: user.id },
-    data: { totpSecret: secret, totpEnabled: false },
+    data: { totpSecret: encryptTotpSecret(secret), totpEnabled: false },
   });
   revalidatePath("/dashboard/settings/security");
   return { secret };

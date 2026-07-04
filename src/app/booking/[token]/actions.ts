@@ -10,6 +10,7 @@ import { renderTemplate } from "@/lib/email-templates";
 import { buildIcs } from "@/lib/ics";
 import { formatWhen } from "@/lib/format";
 import { updateMeetEventTime, deleteMeetEvent } from "@/lib/google-calendar";
+import { rateLimit, clientIp } from "@/lib/rate-limit";
 
 type FullBooking = Prisma.BookingGetPayload<{
   include: { eventType: true; user: true };
@@ -113,6 +114,7 @@ export async function fetchRescheduleSlots(
   token: string,
   date: string,
 ): Promise<Slot[]> {
+  if (!(await rateLimit(`resched-slots:${await clientIp()}`, 60, 60_000))) return [];
   const booking = await prisma.booking.findUnique({
     where: { manageToken: token },
     include: { eventType: true, user: true },

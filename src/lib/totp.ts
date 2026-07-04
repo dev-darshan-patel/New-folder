@@ -2,6 +2,7 @@ import "server-only";
 import { generateSecret, generateURI, verifySync } from "otplib";
 import QRCode from "qrcode";
 import bcrypt from "bcryptjs";
+import { encryptIfConfigured, decryptIfNeeded } from "@/lib/crypto";
 
 // Generate a new base32 TOTP secret for enrollment.
 export function generateTotpSecret(): string {
@@ -24,10 +25,21 @@ export async function makeQrDataUrl(params: {
   return { otpauth, qrDataUrl };
 }
 
-export function verifyTotp(secret: string, code: string): boolean {
+export function verifyTotp(storedSecret: string, code: string): boolean {
+  const secret = decryptIfNeeded(storedSecret);
   const clean = code.replace(/\s/g, "");
   const result = verifySync({ token: clean, secret });
   return result.valid;
+}
+
+// Encrypt a TOTP secret before storing in the DB.
+export function encryptTotpSecret(secret: string): string {
+  return encryptIfConfigured(secret);
+}
+
+// Decrypt a TOTP secret read from the DB (for QR display during setup).
+export function decryptTotpSecret(storedSecret: string): string {
+  return decryptIfNeeded(storedSecret);
 }
 
 // Generate N 10-character alphanumeric backup codes for user download.

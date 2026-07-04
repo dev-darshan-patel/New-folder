@@ -220,6 +220,21 @@ ${pre(`Your booking with {{business_name}} has been moved to {{when}} ({{timezon
     ],
   },
 
+  {
+    key: "auth.account_locked",
+    category: "AUTH",
+    name: "Account locked",
+    description: "Sent when an account is temporarily locked after too many failed login attempts.",
+    subject: "Your account has been temporarily locked",
+    text: `Hi {{user_name}},\n\nWe noticed multiple failed login attempts on your account. For your security, it has been temporarily locked for 15 minutes.\n\nIf this was you, simply wait and try again. If not, reset your password immediately.`,
+    html: `<p style="margin:0 0 16px;">Hi {{user_name}},</p>
+<p style="margin:0 0 16px;">We noticed multiple failed login attempts on your account. For your security, it has been temporarily locked for 15 minutes.</p>
+<p style="margin:0;color:#64748b;">If this was you, simply wait and try again. If not, reset your password immediately.</p>`,
+    vars: [
+      { name: "user_name", description: "Account owner's name", sample: "Darshan Patel" },
+    ],
+  },
+
   // --- ACCOUNT -------------------------------------------------------------
   {
     key: "account.welcome",

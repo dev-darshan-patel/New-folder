@@ -2,6 +2,7 @@ import "server-only";
 import { jwtVerify, createRemoteJWKSet } from "jose";
 import { prisma } from "@/lib/prisma";
 import { getPlatformSettings } from "@/lib/settings";
+import { encryptIfConfigured, decryptIfNeeded } from "@/lib/crypto";
 
 // Google Calendar integration for the business owner. This is a SEPARATE OAuth
 // flow from "Sign in with Google" (src/lib/oauth.ts): login only needs an
@@ -120,15 +121,15 @@ export async function connectGoogleCalendar(
       userId,
       provider: "google",
       accountEmail,
-      accessToken: tokens.access_token,
-      refreshToken: tokens.refresh_token,
+      accessToken: encryptIfConfigured(tokens.access_token),
+      refreshToken: encryptIfConfigured(tokens.refresh_token),
       expiresAt,
       scope: tokens.scope,
     },
     update: {
       accountEmail,
-      accessToken: tokens.access_token,
-      refreshToken: tokens.refresh_token,
+      accessToken: encryptIfConfigured(tokens.access_token),
+      refreshToken: encryptIfConfigured(tokens.refresh_token),
       expiresAt,
       scope: tokens.scope,
     },
@@ -150,7 +151,7 @@ export async function getValidAccessToken(userId: string): Promise<string | null
   if (!conn) return null;
 
   if (conn.expiresAt.getTime() - Date.now() > 60_000) {
-    return conn.accessToken;
+    return decryptIfNeeded(conn.accessToken);
   }
 
   const { clientId, clientSecret } = await googleCreds();
@@ -163,7 +164,7 @@ export async function getValidAccessToken(userId: string): Promise<string | null
       body: new URLSearchParams({
         client_id: clientId,
         client_secret: clientSecret,
-        refresh_token: conn.refreshToken,
+        refresh_token: decryptIfNeeded(conn.refreshToken),
         grant_type: "refresh_token",
       }),
     });
@@ -175,7 +176,7 @@ export async function getValidAccessToken(userId: string): Promise<string | null
     const expiresAt = new Date(Date.now() + tokens.expires_in * 1000);
     await prisma.calendarConnection.update({
       where: { userId },
-      data: { accessToken: tokens.access_token, expiresAt },
+      data: { accessToken: encryptIfConfigured(tokens.access_token), expiresAt },
     });
     return tokens.access_token;
   } catch (err) {

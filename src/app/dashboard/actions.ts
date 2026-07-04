@@ -17,7 +17,7 @@ export async function resendVerificationAction(): Promise<{ ok: boolean; error?:
   const user = await getCurrentUser();
   if (!user) return { ok: false, error: "Not authenticated" };
   if (user.emailVerifiedAt) return { ok: true };
-  if (!rateLimit(`verify-resend:${user.id}`, 3, 3_600_000)) {
+  if (!(await rateLimit(`verify-resend:${user.id}`, 3, 3_600_000))) {
     return { ok: false, error: "Too many resends. Try again later." };
   }
   const token = crypto.randomUUID();

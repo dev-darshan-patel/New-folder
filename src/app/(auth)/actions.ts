@@ -25,7 +25,7 @@ export async function signupAction(
   _prev: AuthState,
   formData: FormData,
 ): Promise<AuthState> {
-  if (!rateLimit(`signup:${await clientIp()}`, 5, 3_600_000)) {
+  if (!(await rateLimit(`signup:${await clientIp()}`, 5, 3_600_000))) {
     return { error: "Too many attempts. Try again in a few minutes." };
   }
   const { signupsEnabled } = await getPlatformConfig();
@@ -107,7 +107,7 @@ export async function loginAction(
   _prev: AuthState,
   formData: FormData,
 ): Promise<AuthState> {
-  if (!rateLimit(`login:${await clientIp()}`, 10, 300_000)) {
+  if (!(await rateLimit(`login:${await clientIp()}`, 10, 300_000))) {
     return { error: "Too many attempts. Try again in a few minutes." };
   }
   const email = String(formData.get("email") || "")
@@ -118,7 +118,7 @@ export async function loginAction(
   if (!email || !password) {
     return { error: "Email and password are required." };
   }
-  if (!rateLimit(`login:${email}`, 5, 300_000)) {
+  if (!(await rateLimit(`login:${email}`, 5, 300_000))) {
     return { error: "Too many attempts. Try again in a few minutes." };
   }
 
@@ -130,14 +130,41 @@ export async function loginAction(
         : "Invalid email or password.",
     };
   }
-  if (!(await bcrypt.compare(password, user.passwordHash))) {
-    return { error: "Invalid email or password." };
-  }
   if (user.deletedAt) {
     return { error: "This account no longer exists." };
   }
   if (user.suspended) {
     return { error: "This account has been suspended. Contact support." };
+  }
+  // Account lockout: block login if too many recent failed attempts.
+  if (user.lockedUntil && user.lockedUntil > new Date()) {
+    const mins = Math.ceil((user.lockedUntil.getTime() - Date.now()) / 60_000);
+    return { error: `Account temporarily locked. Try again in ${mins} minute${mins === 1 ? "" : "s"}.` };
+  }
+  if (!(await bcrypt.compare(password, user.passwordHash))) {
+    const attempts = user.failedLoginAttempts + 1;
+    const lockout = attempts >= 5 ? new Date(Date.now() + 15 * 60_000) : null;
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { failedLoginAttempts: attempts, lockedUntil: lockout },
+    });
+    if (lockout) {
+      try {
+        const mail = await renderTemplate("auth.account_locked", {
+          user_name: user.name,
+        });
+        await sendEmail({ to: user.email, ...mail });
+      } catch { /* best-effort */ }
+      return { error: "Too many failed attempts. Account locked for 15 minutes. Check your email." };
+    }
+    return { error: "Invalid email or password." };
+  }
+  // Successful login — clear lockout counters.
+  if (user.failedLoginAttempts > 0 || user.lockedUntil) {
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { failedLoginAttempts: 0, lockedUntil: null },
+    });
   }
 
   if (user.totpEnabled) {
@@ -153,7 +180,7 @@ export async function verifyTwoFactorAction(
   _prev: AuthState,
   formData: FormData,
 ): Promise<AuthState> {
-  if (!rateLimit(`2fa:${await clientIp()}`, 10, 300_000)) {
+  if (!(await rateLimit(`2fa:${await clientIp()}`, 10, 300_000))) {
     return { error: "Too many attempts. Try again in a few minutes." };
   }
   const pending = await readPending2fa();
@@ -206,7 +233,7 @@ export async function requestPasswordResetAction(
   formData: FormData,
 ): Promise<ResetRequestState> {
   // Return the success shape when limited so this can't be used to probe.
-  if (!rateLimit(`pwreset:${await clientIp()}`, 5, 900_000)) {
+  if (!(await rateLimit(`pwreset:${await clientIp()}`, 5, 900_000))) {
     return { ok: true };
   }
   const email = String(formData.get("email") || "")

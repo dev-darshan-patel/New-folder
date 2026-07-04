@@ -61,6 +61,14 @@ model User {
   emailVerifiedAt        DateTime?
   emailVerifyToken       String?   @unique
   emailVerifyExpiresAt   DateTime?
+  // Session version. Embedded in every JWT; if the stored version is higher
+  // than the JWT's, the session is rejected. Bumped on password change,
+  // suspension, or admin force-logout so all existing sessions die instantly.
+  tokenVersion           Int       @default(0)
+  // Account-lockout counters. failedLoginAttempts resets on successful login;
+  // lockedUntil blocks login attempts until it passes.
+  failedLoginAttempts    Int       @default(0)
+  lockedUntil            DateTime?
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
 
@@ -460,4 +468,19 @@ model Announcement {
   expiresAt DateTime?
   createdBy String
   createdAt DateTime @default(now())
+}
+
+// Sliding-window rate-limit counters, shared across all serverless instances.
+// Rows auto-expire and are cleaned up periodically by the rate-limit helper.
+model RateLimit {
+  // The rate-limit key, e.g. "login:192.168.1.1" or "login:user@example.com".
+  key       String   @id
+  // Number of attempts recorded in the current window.
+  count     Int      @default(0)
+  // When this window started.
+  windowStart DateTime
+  // When this row can be garbage-collected (windowStart + windowMs).
+  expiresAt DateTime
+
+  @@index([expiresAt])
 }
