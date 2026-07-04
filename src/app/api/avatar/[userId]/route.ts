@@ -13,7 +13,7 @@ export async function GET(
   });
 
   if (!user?.avatarUrl) {
-    return new Response(null, { status: 404 });
+    return Response.json({ error: "no avatarUrl in DB" }, { status: 404 });
   }
 
   // Local dev: avatarUrl is a public path like /uploads/avatars/…
@@ -21,19 +21,25 @@ export async function GET(
     return Response.redirect(user.avatarUrl, 302);
   }
 
-  // Production: fetch the private blob server-side and stream it to the browser.
+  // Production: fetch the private blob server-side and stream to the browser.
   try {
     const info = await head(user.avatarUrl);
     const upstream = await fetch(info.downloadUrl);
-    if (!upstream.ok) return new Response(null, { status: 404 });
-
+    if (!upstream.ok) {
+      return Response.json(
+        { error: `upstream fetch failed: ${upstream.status} ${upstream.statusText}`, downloadUrl: info.downloadUrl },
+        { status: 502 },
+      );
+    }
     return new Response(upstream.body, {
       headers: {
         "Content-Type": info.contentType ?? "image/jpeg",
         "Cache-Control": "private, max-age=3600",
       },
     });
-  } catch {
-    return new Response(null, { status: 404 });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("Avatar proxy error:", msg);
+    return Response.json({ error: msg, avatarUrl: user.avatarUrl }, { status: 500 });
   }
 }
