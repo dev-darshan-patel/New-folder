@@ -33,7 +33,7 @@ export default async function SettingsPage() {
 
         <div className="mt-5 border-b border-slate-100 pb-6">
           <AvatarUpload
-            currentUrl={user.avatarUrl ? `/api/avatar/${user.id}` : null}
+            currentUrl={user.avatarUrl ?? null}
             initials={initials(user.name)}
           />
         </div>
