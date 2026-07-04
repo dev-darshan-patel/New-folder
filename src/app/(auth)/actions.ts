@@ -97,8 +97,10 @@ export async function signupAction(
     console.error("Failed to send verification email", err);
   }
 
+  // Log them in but send them to the "verify your email" gate — they can't
+  // reach any dashboard feature until they click the link we just emailed.
   await createSession(user.id);
-  redirect("/dashboard");
+  redirect("/verify-email");
 }
 
 export async function loginAction(

@@ -4,7 +4,6 @@ import { getCurrentUser } from "@/lib/auth";
 import LogoutButton from "@/components/LogoutButton";
 import ImpersonationBanner from "@/components/ImpersonationBanner";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
-import VerifyEmailBanner from "./VerifyEmailBanner";
 import MobileNav from "./MobileNav";
 import { Button } from "@/components/ui/button";
 
@@ -27,11 +26,14 @@ export default async function DashboardLayout({
 }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
+  // Hard gate: no feature access until the email is verified. OAuth accounts
+  // and pre-existing (backfilled) users already have emailVerifiedAt set, so
+  // this only stops brand-new, unverified password signups.
+  if (!user.emailVerifiedAt) redirect("/verify-email");
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-50">
       <ImpersonationBanner />
-      {!user.emailVerifiedAt && <VerifyEmailBanner />}
       <MobileNav businessName={user.businessName} isAdmin={!!user.adminRole} />
       <div className="flex flex-1">
         <aside className="hidden w-60 flex-col border-r border-slate-200 bg-white p-5 md:flex">
