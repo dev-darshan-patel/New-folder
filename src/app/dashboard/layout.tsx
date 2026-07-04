@@ -38,7 +38,31 @@ export default async function DashboardLayout({
           <Link href="/dashboard" className="text-lg font-bold text-slate-900">
             Booking<span className="text-indigo-600">.</span>
           </Link>
-          <p className="mt-1 truncate text-xs text-slate-500">{user.businessName}</p>
+
+          {/* User identity strip */}
+          <Link
+            href="/dashboard/settings"
+            className="mt-3 flex items-center gap-2.5 rounded-lg p-1.5 transition-colors hover:bg-slate-50"
+            title="Account settings"
+          >
+            <span className="relative shrink-0 h-8 w-8 overflow-hidden rounded-full border border-slate-200 bg-indigo-100">
+              {user.avatarUrl ? (
+                <img
+                  src={user.avatarUrl}
+                  alt={user.name}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <span className="flex h-full w-full items-center justify-center text-xs font-bold text-indigo-600">
+                  {user.name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase()}
+                </span>
+              )}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-sm font-medium text-slate-800">{user.name}</span>
+              <span className="block truncate text-xs text-slate-500">{user.businessName}</span>
+            </span>
+          </Link>
 
           <nav className="mt-8 flex flex-1 flex-col gap-1">
             {navItems.map((item) => (

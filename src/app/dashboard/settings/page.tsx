@@ -2,6 +2,16 @@ import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import ProfileForm from "./ProfileForm";
 import PasswordForm from "./PasswordForm";
+import AvatarUpload from "@/components/AvatarUpload";
+
+function initials(name: string) {
+  return name
+    .split(" ")
+    .map((w) => w[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+}
 
 export default async function SettingsPage() {
   const user = await getCurrentUser();
@@ -20,6 +30,14 @@ export default async function SettingsPage() {
           Your email is{" "}
           <span className="font-medium text-slate-700">{user.email}</span>.
         </p>
+
+        <div className="mt-5 border-b border-slate-100 pb-6">
+          <AvatarUpload
+            currentUrl={user.avatarUrl ?? null}
+            initials={initials(user.name)}
+          />
+        </div>
+
         <ProfileForm
           initial={{
             name: user.name,

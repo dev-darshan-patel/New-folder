@@ -49,5 +49,8 @@ next-env.d.ts
 /.remember/
 /graphify-out/
 
+# Local dev avatar uploads (production uses Vercel Blob)
+/public/uploads/
+
 .vercel
 .env*

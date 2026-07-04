@@ -74,6 +74,9 @@ model User {
   // End of the current paid period; the plan stays active until this passes.
   planRenewsAt       DateTime?
 
+  // Profile picture uploaded by the business owner (shown in dashboard + booking page).
+  avatarUrl       String?
+
   // Branding (applied to the public booking page + embed). Custom values only
   // take effect on plans where customBranding is enabled; otherwise defaults.
   brandColor      String   @default("#4f46e5")
