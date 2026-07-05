@@ -47,6 +47,7 @@ export async function POST(req: NextRequest) {
             stripeSubscriptionId: null,
             subscriptionStatus: "canceled",
             planRenewsAt: null,
+            cancelAtPeriodEnd: false,
           },
         });
         break;
@@ -72,6 +73,7 @@ async function syncSubscription(sub: Stripe.Subscription) {
       stripeSubscriptionId: sub.id,
       subscriptionStatus: sub.status,
       planRenewsAt: periodEnd ? new Date(periodEnd * 1000) : null,
+      cancelAtPeriodEnd: sub.cancel_at_period_end,
     },
   });
 }

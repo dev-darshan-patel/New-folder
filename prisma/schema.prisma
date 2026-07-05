@@ -81,6 +81,9 @@ model User {
   subscriptionStatus String?
   // End of the current paid period; the plan stays active until this passes.
   planRenewsAt       DateTime?
+  // True when the subscription is scheduled to cancel at planRenewsAt instead
+  // of auto-renewing. Lets the billing page show "ends on" vs "renews on".
+  cancelAtPeriodEnd  Boolean   @default(false)
 
   // Profile picture uploaded by the business owner (shown in dashboard + booking page).
   avatarUrl       String?

@@ -40,7 +40,11 @@ export default async function BillingPage({
       <p className="mt-1 text-sm text-slate-600">
         You&apos;re on the <span className="font-semibold">{current.name}</span> plan
         {user.planRenewsAt && user.plan !== "FREE" && (
-          <> · renews {user.planRenewsAt.toLocaleDateString()}</>
+          user.cancelAtPeriodEnd ? (
+            <> · ends {user.planRenewsAt.toLocaleDateString()}</>
+          ) : (
+            <> · renews {user.planRenewsAt.toLocaleDateString()}</>
+          )
         )}
         .
       </p>
@@ -50,6 +54,12 @@ export default async function BillingPage({
           {sp.coupon
             ? `Promo code ${sp.coupon} applied — you're all set!`
             : "Subscription updated — thank you!"}
+        </Banner>
+      )}
+      {user.cancelAtPeriodEnd && user.plan !== "FREE" && user.planRenewsAt && (
+        <Banner tone="amber">
+          Your subscription is set to cancel — you&apos;ll keep {current.name} access until{" "}
+          {user.planRenewsAt.toLocaleDateString()}, then move to the Free plan.
         </Banner>
       )}
       {sp.canceled && <Banner tone="amber">Checkout canceled.</Banner>}
