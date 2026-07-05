@@ -1,6 +1,7 @@
 import { TZDate } from "@date-fns/tz";
 import { prisma } from "@/lib/prisma";
 import { getTeamMemberBusyWindows, isFreeAt } from "@/lib/team";
+import { BLOCKING_STATUSES } from "@/lib/booking-status";
 
 export type Slot = {
   // UTC ISO string for the slot start.
@@ -25,6 +26,99 @@ function zonedToUtc(
   return new Date(zoned.getTime());
 }
 
+// Shift a calendar date by `delta` days using plain calendar-day arithmetic
+// (month/year rollover handled by Date, no timezone involved yet — the result
+// is fed back into zonedToUtc for a DST-safe conversion).
+function addDaysCalendar(
+  year: number,
+  month: number,
+  day: number,
+  delta: number,
+): { year: number; month: number; day: number } {
+  const d = new Date(Date.UTC(year, month - 1, day + delta));
+  return { year: d.getUTCFullYear(), month: d.getUTCMonth() + 1, day: d.getUTCDate() };
+}
+
+// UTC [start, end) bounds for the Sun-Sat calendar week containing `date`,
+// in the given timezone.
+function weekRangeUtc(
+  year: number,
+  month: number,
+  day: number,
+  timeZone: string,
+): { start: Date; end: Date } {
+  const probe = new TZDate(year, month - 1, day, 12, 0, 0, 0, timeZone);
+  const weekday = probe.getDay();
+  const start = addDaysCalendar(year, month, day, -weekday);
+  const end = addDaysCalendar(start.year, start.month, start.day, 7);
+  return {
+    start: zonedToUtc(start.year, start.month, start.day, 0, timeZone),
+    end: zonedToUtc(end.year, end.month, end.day, 0, timeZone),
+  };
+}
+
+// UTC [start, end) bounds for the calendar month containing `date`, in the
+// given timezone.
+function monthRangeUtc(
+  year: number,
+  month: number,
+  timeZone: string,
+): { start: Date; end: Date } {
+  const next = new Date(Date.UTC(year, month, 1)); // `month` (1-based) as the
+  // 0-based index into Date.UTC's next month — e.g. month=7 (July) -> index 7 = August.
+  return {
+    start: zonedToUtc(year, month, 1, 0, timeZone),
+    end: zonedToUtc(next.getUTCFullYear(), next.getUTCMonth() + 1, next.getUTCDate(), 0, timeZone),
+  };
+}
+
+// Calendar Y/M/D of a UTC instant, as seen in the given timezone. Inverse of
+// zonedToUtc — used to re-derive the wall-clock date for a booking's startTime
+// so write-time cap checks look at the same week/month the slot UI did.
+export function utcToZonedYmd(
+  instant: Date,
+  timeZone: string,
+): { year: number; month: number; day: number } {
+  const iso = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(instant);
+  const [year, month, day] = iso.split("-").map(Number);
+  return { year, month, day };
+}
+
+// True if this event type has already hit its weekly or monthly cap for the
+// week/month containing `date` — in which case the whole day has no slots.
+// Shared by the solo and team slot generators.
+export async function weekOrMonthCapHit(params: {
+  eventTypeId: string;
+  year: number;
+  month: number;
+  day: number;
+  timeZone: string;
+  maxPerWeek?: number | null;
+  maxPerMonth?: number | null;
+}): Promise<boolean> {
+  const { eventTypeId, year, month, day, timeZone, maxPerWeek, maxPerMonth } = params;
+  if (maxPerWeek != null) {
+    const { start, end } = weekRangeUtc(year, month, day, timeZone);
+    const count = await prisma.booking.count({
+      where: { eventTypeId, status: { in: BLOCKING_STATUSES }, startTime: { gte: start, lt: end } },
+    });
+    if (count >= maxPerWeek) return true;
+  }
+  if (maxPerMonth != null) {
+    const { start, end } = monthRangeUtc(year, month, timeZone);
+    const count = await prisma.booking.count({
+      where: { eventTypeId, status: { in: BLOCKING_STATUSES }, startTime: { gte: start, lt: end } },
+    });
+    if (count >= maxPerMonth) return true;
+  }
+  return false;
+}
+
 // Generate bookable slots for a single date (YYYY-MM-DD) on a user's booking page.
 export async function getSlotsForDate(params: {
   userId: string;
@@ -34,10 +128,13 @@ export async function getSlotsForDate(params: {
   date: string; // YYYY-MM-DD in the user's timezone
   // Per-event-type cap on bookings for this calendar day. null/undefined = none.
   maxPerDay?: number | null;
+  // Per-event-type caps on bookings for the calendar week/month. null/undefined = none.
+  maxPerWeek?: number | null;
+  maxPerMonth?: number | null;
   // Restrict the day's booking count to a single event type when capping.
   eventTypeId?: string;
 }): Promise<Slot[]> {
-  const { userId, timeZone, durationMinutes, bufferMinutes, date, maxPerDay, eventTypeId } =
+  const { userId, timeZone, durationMinutes, bufferMinutes, date, maxPerDay, maxPerWeek, maxPerMonth, eventTypeId } =
     params;
 
   const [year, month, day] = date.split("-").map(Number);
@@ -60,7 +157,7 @@ export async function getSlotsForDate(params: {
   const bookings = await prisma.booking.findMany({
     where: {
       userId,
-      status: "CONFIRMED",
+      status: { in: BLOCKING_STATUSES },
       startTime: { gte: dayStartUtc, lt: dayEndUtc },
     },
     select: { startTime: true, endTime: true, eventTypeId: true },
@@ -70,6 +167,20 @@ export async function getSlotsForDate(params: {
   if (maxPerDay != null && eventTypeId) {
     const countForDay = bookings.filter((b) => b.eventTypeId === eventTypeId).length;
     if (countForDay >= maxPerDay) return [];
+  }
+
+  // Weekly/monthly cap: same "whole day is off" semantics as the daily cap.
+  if ((maxPerWeek != null || maxPerMonth != null) && eventTypeId) {
+    const capped = await weekOrMonthCapHit({
+      eventTypeId,
+      year,
+      month,
+      day,
+      timeZone,
+      maxPerWeek,
+      maxPerMonth,
+    });
+    if (capped) return [];
   }
 
   const now = Date.now();
@@ -114,9 +225,11 @@ export async function getTeamSlotsForDate(params: {
   bufferMinutes: number;
   date: string; // YYYY-MM-DD in the business timezone
   maxPerDay?: number | null;
+  maxPerWeek?: number | null;
+  maxPerMonth?: number | null;
   eventTypeId?: string;
 }): Promise<Slot[]> {
-  const { assignmentMode, pool, timeZone, durationMinutes, bufferMinutes, date, maxPerDay, eventTypeId } =
+  const { assignmentMode, pool, timeZone, durationMinutes, bufferMinutes, date, maxPerDay, maxPerWeek, maxPerMonth, eventTypeId } =
     params;
   if (pool.length === 0) return [];
 
@@ -140,11 +253,25 @@ export async function getTeamSlotsForDate(params: {
     const countForDay = await prisma.booking.count({
       where: {
         eventTypeId,
-        status: "CONFIRMED",
+        status: { in: BLOCKING_STATUSES },
         startTime: { gte: dayStartUtc, lt: dayEndUtc },
       },
     });
     if (countForDay >= maxPerDay) return [];
+  }
+
+  // Weekly/monthly cap, same "whole day is off" semantics as the daily cap.
+  if ((maxPerWeek != null || maxPerMonth != null) && eventTypeId) {
+    const capped = await weekOrMonthCapHit({
+      eventTypeId,
+      year,
+      month,
+      day,
+      timeZone,
+      maxPerWeek,
+      maxPerMonth,
+    });
+    if (capped) return [];
   }
 
   // Fetch each pool member's busy windows for the day once, up front.

@@ -116,7 +116,7 @@ export async function connectGoogleCalendar(
   const expiresAt = new Date(Date.now() + tokens.expires_in * 1000);
 
   await prisma.calendarConnection.upsert({
-    where: { userId },
+    where: { userId_provider: { userId, provider: "google" } },
     create: {
       userId,
       provider: "google",
@@ -137,17 +137,21 @@ export async function connectGoogleCalendar(
 }
 
 export async function getCalendarConnection(userId: string) {
-  return prisma.calendarConnection.findUnique({ where: { userId } });
+  return prisma.calendarConnection.findUnique({
+    where: { userId_provider: { userId, provider: "google" } },
+  });
 }
 
 export async function disconnectGoogleCalendar(userId: string): Promise<void> {
-  await prisma.calendarConnection.deleteMany({ where: { userId } });
+  await prisma.calendarConnection.deleteMany({ where: { userId, provider: "google" } });
 }
 
 // Return a valid access token for the user, refreshing it if it's within 60s of
 // expiry. Returns null if the user has no connection or the refresh fails.
 export async function getValidAccessToken(userId: string): Promise<string | null> {
-  const conn = await prisma.calendarConnection.findUnique({ where: { userId } });
+  const conn = await prisma.calendarConnection.findUnique({
+    where: { userId_provider: { userId, provider: "google" } },
+  });
   if (!conn) return null;
 
   if (conn.expiresAt.getTime() - Date.now() > 60_000) {
@@ -175,7 +179,7 @@ export async function getValidAccessToken(userId: string): Promise<string | null
     const tokens = (await res.json()) as TokenResponse;
     const expiresAt = new Date(Date.now() + tokens.expires_in * 1000);
     await prisma.calendarConnection.update({
-      where: { userId },
+      where: { userId_provider: { userId, provider: "google" } },
       data: { accessToken: encryptIfConfigured(tokens.access_token), expiresAt },
     });
     return tokens.access_token;

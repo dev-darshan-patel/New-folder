@@ -13,6 +13,7 @@ type Mail = {
   text: string;
   html?: string;
   attachments?: Attachment[];
+  replyTo?: string;
 };
 
 async function createTransport() {
@@ -72,7 +73,7 @@ async function createTransport() {
   };
 }
 
-export async function sendEmail({ to, subject, text, html, attachments }: Mail): Promise<void> {
+export async function sendEmail({ to, subject, text, html, attachments, replyTo }: Mail): Promise<void> {
   const config = await createTransport();
 
   if (!config) {
@@ -91,6 +92,7 @@ export async function sendEmail({ to, subject, text, html, attachments }: Mail):
     subject,
     text,
     html,
+    ...(replyTo ? { replyTo } : {}),
     attachments: attachments?.map((a) => ({
       filename: a.filename,
       content: a.content,

@@ -158,22 +158,51 @@ export async function updateEventTypeAction(formData: FormData) {
   const bufferMinutes = clampInt(formData.get("bufferMinutes"), 0, 100000, 0);
   const rawMax = String(formData.get("maxPerDay") || "").trim();
   const maxPerDay = rawMax === "" ? null : clampInt(rawMax, 1, 1000, 1);
+  const rawMaxWeek = String(formData.get("maxPerWeek") || "").trim();
+  const maxPerWeek = rawMaxWeek === "" ? null : clampInt(rawMaxWeek, 1, 5000, 1);
+  const rawMaxMonth = String(formData.get("maxPerMonth") || "").trim();
+  const maxPerMonth = rawMaxMonth === "" ? null : clampInt(rawMaxMonth, 1, 20000, 1);
+  const minNoticeToCancelMinutes = clampInt(formData.get("minNoticeToCancelMinutes"), 0, 100000, 0);
 
-  // Meeting location. GOOGLE_MEET only sticks if the owner has actually
-  // connected their calendar; otherwise silently fall back to IN_PERSON so we
-  // never promise a Meet link we can't create.
+  // Confirmation redirect must be an absolute http(s) URL, or we silently drop it
+  // rather than send invitees to a broken/unsafe destination.
+  const rawRedirect = String(formData.get("confirmationRedirectUrl") || "").trim();
+  let confirmationRedirectUrl: string | null = null;
+  if (rawRedirect) {
+    try {
+      const parsed = new URL(rawRedirect);
+      if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+        confirmationRedirectUrl = parsed.toString();
+      }
+    } catch {
+      // invalid URL — leave as null
+    }
+  }
+
+  const rawReplyTo = String(formData.get("replyToEmail") || "").trim();
+  const replyToEmail =
+    rawReplyTo && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(rawReplyTo) ? rawReplyTo : null;
+
+  const requiresApproval = formData.get("requiresApproval") === "1";
+
+  // Meeting location. GOOGLE_MEET/ZOOM only stick if the owner has actually
+  // connected that provider; otherwise silently fall back to IN_PERSON so we
+  // never promise a video link we can't create.
   const rawLocation = String(formData.get("locationType") || "IN_PERSON");
-  let locationType: "IN_PERSON" | "PHONE" | "GOOGLE_MEET" =
-    rawLocation === "PHONE" || rawLocation === "GOOGLE_MEET" ? rawLocation : "IN_PERSON";
-  if (locationType === "GOOGLE_MEET") {
-    const hasCalendar = await prisma.calendarConnection.findUnique({
-      where: { userId: user.id },
+  let locationType: "IN_PERSON" | "PHONE" | "GOOGLE_MEET" | "ZOOM" =
+    rawLocation === "PHONE" || rawLocation === "GOOGLE_MEET" || rawLocation === "ZOOM"
+      ? rawLocation
+      : "IN_PERSON";
+  if (locationType === "GOOGLE_MEET" || locationType === "ZOOM") {
+    const provider = locationType === "GOOGLE_MEET" ? "google" : "zoom";
+    const hasConnection = await prisma.calendarConnection.findUnique({
+      where: { userId_provider: { userId: user.id, provider } },
       select: { id: true },
     });
-    if (!hasCalendar) locationType = "IN_PERSON";
+    if (!hasConnection) locationType = "IN_PERSON";
   }
   const locationDetail =
-    locationType === "GOOGLE_MEET"
+    locationType === "GOOGLE_MEET" || locationType === "ZOOM"
       ? null
       : String(formData.get("locationDetail") || "").trim().slice(0, 500) || null;
 
@@ -209,6 +238,12 @@ export async function updateEventTypeAction(formData: FormData) {
       durationMinutes: duration,
       bufferMinutes,
       maxPerDay,
+      maxPerWeek,
+      maxPerMonth,
+      minNoticeToCancelMinutes,
+      confirmationRedirectUrl,
+      replyToEmail,
+      requiresApproval,
       intakeQuestions,
       assignmentMode,
       locationType,

@@ -10,8 +10,8 @@ import { SETTINGS_ID } from "@/lib/settings";
 // them as public, embedded in the redirect URL) so they're saved directly;
 // an empty submission clears them. Client secrets follow the same
 // never-prefilled / "leave blank to keep" pattern as the Stripe panel.
-const PLAIN_FIELDS = ["googleClientId", "microsoftClientId", "microsoftTenant"] as const;
-const SECRET_FIELDS = ["googleClientSecret", "microsoftClientSecret"] as const;
+const PLAIN_FIELDS = ["googleClientId", "microsoftClientId", "microsoftTenant", "zoomClientId"] as const;
+const SECRET_FIELDS = ["googleClientSecret", "microsoftClientSecret", "zoomClientSecret"] as const;
 
 export async function updateAuthSettingsAction(formData: FormData) {
   const admin = await requireAdminRole("SUPER_ADMIN");

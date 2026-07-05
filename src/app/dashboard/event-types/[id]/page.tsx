@@ -21,7 +21,7 @@ export default async function EditEventTypePage({
   if (!eventType) notFound();
 
   const teamSchedulingEnabled = (await getPlanConfig(user.plan)).teamScheduling;
-  const [teamMembers, pool, calendarConnection] = await Promise.all([
+  const [teamMembers, pool, calendarConnection, zoomConnection] = await Promise.all([
     teamSchedulingEnabled
       ? prisma.teamMember.findMany({
           where: { userId: user.id, active: true },
@@ -36,7 +36,11 @@ export default async function EditEventTypePage({
         })
       : Promise.resolve([]),
     prisma.calendarConnection.findUnique({
-      where: { userId: user.id },
+      where: { userId_provider: { userId: user.id, provider: "google" } },
+      select: { id: true },
+    }),
+    prisma.calendarConnection.findUnique({
+      where: { userId_provider: { userId: user.id, provider: "zoom" } },
       select: { id: true },
     }),
   ]);
@@ -61,6 +65,12 @@ export default async function EditEventTypePage({
           durationMinutes: eventType.durationMinutes,
           bufferMinutes: eventType.bufferMinutes,
           maxPerDay: eventType.maxPerDay,
+          maxPerWeek: eventType.maxPerWeek,
+          maxPerMonth: eventType.maxPerMonth,
+          minNoticeToCancelMinutes: eventType.minNoticeToCancelMinutes,
+          confirmationRedirectUrl: eventType.confirmationRedirectUrl ?? "",
+          replyToEmail: eventType.replyToEmail ?? "",
+          requiresApproval: eventType.requiresApproval,
           questions: parseQuestions(eventType.intakeQuestions),
           assignmentMode: eventType.assignmentMode,
           poolMemberIds: pool.map((p) => p.teamMemberId),
@@ -69,6 +79,7 @@ export default async function EditEventTypePage({
           locationType: eventType.locationType,
           locationDetail: eventType.locationDetail ?? "",
           calendarConnected: Boolean(calendarConnection),
+          zoomConnected: Boolean(zoomConnection),
         }}
       />
     </div>

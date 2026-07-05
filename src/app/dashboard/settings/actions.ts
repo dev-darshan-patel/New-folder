@@ -8,6 +8,7 @@ import { slugify, RESERVED_SLUGS } from "@/lib/slug";
 import { sendEmail } from "@/lib/email";
 import { renderTemplate } from "@/lib/email-templates";
 import { disconnectGoogleCalendar } from "@/lib/google-calendar";
+import { disconnectZoom } from "@/lib/zoom";
 
 export type SettingsState = { ok: true; message: string } | { error: string } | null;
 
@@ -17,6 +18,15 @@ export async function disconnectCalendarAction() {
   const user = await getCurrentUser();
   if (!user) return;
   await disconnectGoogleCalendar(user.id);
+  revalidatePath("/dashboard/settings");
+}
+
+// Remove the owner's connected Zoom account. Event types set to Zoom will
+// fall back to no-link until Zoom is reconnected.
+export async function disconnectZoomAction() {
+  const user = await getCurrentUser();
+  if (!user) return;
+  await disconnectZoom(user.id);
   revalidatePath("/dashboard/settings");
 }
 

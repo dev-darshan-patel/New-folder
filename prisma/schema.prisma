@@ -105,20 +105,22 @@ model User {
   adminNotes        AdminNote[]
   couponRedemptions CouponRedemption[]
   teamMembers  TeamMember[]
-  calendarConnection CalendarConnection?
+  calendarConnections CalendarConnection[]
 }
 
-// A business owner's connected external calendar (currently Google only).
-// Created via a per-user OAuth "connect" flow that is SEPARATE from login —
-// this one requests offline access + the calendar.events scope and stores a
-// refresh token so we can create Google Meet links on their behalf. Login
-// never stores tokens. One connection per user for now (@@unique userId).
+// A business owner's connected external calendar/video account (Google,
+// Zoom, ...). Created via a per-user OAuth "connect" flow that is SEPARATE
+// from login — these request offline access + a meeting-creation scope and
+// store a refresh token so we can create video links on the owner's behalf.
+// Login never stores tokens. One connection per (userId, provider) — an owner
+// can connect Google AND Zoom at the same time.
 model CalendarConnection {
   id           String   @id @default(cuid())
-  userId       String   @unique
+  userId       String
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // "google" | "zoom"
   provider     String   @default("google")
-  // The connected Google account's email, shown in the UI.
+  // The connected account's email, shown in the UI.
   accountEmail String
   // OAuth tokens. Stored as-is, matching the codebase's existing convention of
   // keeping provider secrets in the DB (see PlatformSettings). Refresh token is
@@ -130,6 +132,8 @@ model CalendarConnection {
   scope        String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+
+  @@unique([userId, provider])
 }
 
 enum AssignmentMode {
@@ -241,12 +245,30 @@ model EventType {
   bufferMinutes   Int       @default(0)
   // Max bookings allowed per calendar day for this event type. null = unlimited.
   maxPerDay       Int?
+  // Max bookings allowed per calendar week (Sun-Sat, business timezone). null = unlimited.
+  maxPerWeek      Int?
+  // Max bookings allowed per calendar month (business timezone). null = unlimited.
+  maxPerMonth     Int?
+  // Minutes of notice required before the start time to self-cancel/reschedule.
+  // 0 = no restriction. Only enforced for the invitee; the owner can always
+  // cancel/reschedule (checked via getCurrentUser() ownership in the action).
+  minNoticeToCancelMinutes Int @default(0)
+  // Where to send the invitee after a successful booking, instead of the
+  // built-in confirmation screen. Must be an absolute http(s) URL.
+  confirmationRedirectUrl String?
+  // Reply-to address for invitee-facing emails for this event type (e.g. a
+  // shared support inbox). Falls back to the platform's default from-address
+  // when null.
+  replyToEmail    String?
+  // When true, new bookings land as PENDING instead of CONFIRMED and the
+  // owner must approve/reject them from the dashboard before they're final.
+  requiresApproval Boolean @default(false)
   // JSON array of custom intake questions: [{ label, required }].
   intakeQuestions String?
   active          Boolean        @default(true)
   assignmentMode  AssignmentMode @default(SOLO)
-  // Where the meeting happens. GOOGLE_MEET auto-generates a Meet link at
-  // booking time (requires the owner to have connected their Google Calendar).
+  // Where the meeting happens. GOOGLE_MEET/ZOOM auto-generate a video link at
+  // booking time (requires the owner to have connected that provider).
   // Default IN_PERSON preserves existing behavior for all pre-existing rows.
   locationType    LocationType   @default(IN_PERSON)
   // Free-form detail: an address for IN_PERSON or a number for PHONE.
@@ -264,6 +286,7 @@ enum LocationType {
   IN_PERSON
   PHONE
   GOOGLE_MEET
+  ZOOM
 }
 
 // A weekly-recurring availability window for a user.
@@ -295,6 +318,9 @@ model Booking {
   notes        String?
   // JSON array of answers to the event type's intake questions: [{ label, value }].
   answers      String?
+  // JSON array of extra guests the invitee added: [{ name?, email }]. Each
+  // gets its own ICS ATTENDEE line and a copy of the confirmation email.
+  guests       String?
   // Stored in UTC.
   startTime    DateTime
   endTime      DateTime
@@ -312,11 +338,14 @@ model Booking {
   // Timestamps marking which reminder emails have been sent (idempotency).
   remind24hSentAt DateTime?
   remind1hSentAt  DateTime?
-  // Google Meet (or other video) URL generated at booking time for online
-  // event types. Null for in-person/phone or when generation failed/was skipped.
+  // Video URL generated at booking time for online event types. Null for
+  // in-person/phone or when generation failed/was skipped.
   meetingUrl      String?
-  // The Google Calendar event id backing this booking, so reschedule can patch
-  // it and cancel can delete it. Null when no calendar event was created.
+  // Which provider created meetingUrl/calendarEventId ("google" | "zoom"), so
+  // reschedule/cancel call the right API. Null when no video link was created.
+  meetingProvider String?
+  // The provider-side meeting/event id backing this booking, so reschedule can
+  // patch it and cancel can delete it. Null when no meeting was created.
   calendarEventId String?
   createdAt    DateTime      @default(now())
 
@@ -325,6 +354,10 @@ model Booking {
 
 enum BookingStatus {
   CONFIRMED
+  // Awaiting owner approval (requiresApproval event types only). Blocks the
+  // slot the same as CONFIRMED so two people can't be approved into an
+  // overlapping time. Becomes CONFIRMED on approval, CANCELLED on rejection.
+  PENDING
   CANCELLED
 }
 
@@ -365,6 +398,11 @@ model PlatformSettings {
   // Azure AD tenant to authorize against. "common" (the default) accepts both
   // personal Microsoft/Outlook accounts and work-or-school accounts.
   microsoftTenant       String  @default("common")
+
+  // Zoom OAuth app credentials, for the per-owner "Connect Zoom" flow that
+  // auto-generates Zoom meeting links (separate from any Zoom login).
+  zoomClientId     String?
+  zoomClientSecret String?
 
   // Platform-wide operational config (Phase 7).
   maintenanceMode    Boolean @default(false)

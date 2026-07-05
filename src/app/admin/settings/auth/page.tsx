@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 import { getCurrentUser } from "@/lib/auth";
 import { getPlatformSettings } from "@/lib/settings";
 import { isProviderConfigured } from "@/lib/oauth";
+import { isZoomConfigurable } from "@/lib/zoom";
 import { updateAuthSettingsAction, clearAuthSecretAction } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-const SECRET_FIELD_NAMES = ["googleClientSecret", "microsoftClientSecret"] as const;
+const SECRET_FIELD_NAMES = ["googleClientSecret", "microsoftClientSecret", "zoomClientSecret"] as const;
 
 function maskTail(value: string | null): string {
   if (!value) return "Not set";
@@ -30,9 +31,10 @@ export default async function AdminAuthSettingsPage() {
   }
 
   const settings = await getPlatformSettings();
-  const [googleReady, microsoftReady] = await Promise.all([
+  const [googleReady, microsoftReady, zoomReady] = await Promise.all([
     isProviderConfigured("google"),
     isProviderConfigured("microsoft"),
+    isZoomConfigurable(),
   ]);
 
   const hdrs = await headers();
@@ -99,6 +101,43 @@ export default async function AdminAuthSettingsPage() {
                 placeholder="common"
                 hint='"common" accepts both personal Outlook/Microsoft accounts and work-or-school accounts.'
               />
+            </>
+          }
+        />
+
+        <div className="mt-10 border-t border-slate-200 pt-6">
+          <h2 className="text-lg font-semibold text-slate-900">Meeting link integrations</h2>
+          <p className="mt-1 text-sm text-slate-600">
+            Separate from sign-in — these let tenants auto-generate a video link for
+            their own bookings. Each tenant connects their own account under their
+            Settings page.
+          </p>
+        </div>
+
+        <ProviderPanel
+          title="Zoom"
+          ready={zoomReady}
+          redirectUriValue={`${baseUrl}/api/calendar/zoom/callback`}
+          setupHref="https://marketplace.zoom.us/develop/create"
+          fields={
+            <>
+              <PlainField
+                label="Client ID"
+                name="zoomClientId"
+                defaultValue={settings.zoomClientId ?? ""}
+                placeholder="Zoom OAuth app Client ID"
+              />
+              <SecretField
+                label="Client secret"
+                name="zoomClientSecret"
+                masked={maskTail(settings.zoomClientSecret)}
+                placeholder="Zoom OAuth app Client secret"
+              />
+              <p className="text-xs text-slate-400">
+                Create a &quot;General App&quot; (OAuth) on Zoom Marketplace with scopes{" "}
+                <code className="rounded bg-slate-100 px-1">meeting:write:meeting</code> and{" "}
+                <code className="rounded bg-slate-100 px-1">user:read:user</code>.
+              </p>
             </>
           }
         />

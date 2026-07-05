@@ -192,6 +192,7 @@ export default async function AdminBookings({
               >
                 <option value="">All</option>
                 <option value="CONFIRMED">Confirmed</option>
+                <option value="PENDING">Pending approval</option>
                 <option value="CANCELLED">Canceled</option>
               </NativeSelect>
             </Field>

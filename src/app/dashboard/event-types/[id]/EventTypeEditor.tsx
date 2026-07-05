@@ -5,7 +5,7 @@ import { useFormStatus } from "react-dom";
 import { updateEventTypeAction } from "../../actions";
 import type { IntakeQuestion } from "@/lib/intake";
 
-type LocationType = "IN_PERSON" | "PHONE" | "GOOGLE_MEET";
+type LocationType = "IN_PERSON" | "PHONE" | "GOOGLE_MEET" | "ZOOM";
 
 type Initial = {
   id: string;
@@ -14,6 +14,12 @@ type Initial = {
   durationMinutes: number;
   bufferMinutes: number;
   maxPerDay: number | null;
+  maxPerWeek: number | null;
+  maxPerMonth: number | null;
+  minNoticeToCancelMinutes: number;
+  confirmationRedirectUrl: string;
+  replyToEmail: string;
+  requiresApproval: boolean;
   questions: IntakeQuestion[];
   assignmentMode: "SOLO" | "ROUND_ROBIN" | "COLLECTIVE";
   poolMemberIds: string[];
@@ -22,6 +28,7 @@ type Initial = {
   locationType: LocationType;
   locationDetail: string;
   calendarConnected: boolean;
+  zoomConnected: boolean;
 };
 
 export default function EventTypeEditor({ initial }: { initial: Initial }) {
@@ -117,7 +124,87 @@ export default function EventTypeEditor({ initial }: { initial: Initial }) {
             className={input}
           />
         </Field>
+
+        <Field label="Max bookings / week">
+          <input
+            name="maxPerWeek"
+            type="number"
+            min={1}
+            defaultValue={initial.maxPerWeek ?? ""}
+            placeholder="Unlimited"
+            title="Maximum number of bookings allowed per calendar week"
+            className={input}
+          />
+        </Field>
+
+        <Field label="Max bookings / month">
+          <input
+            name="maxPerMonth"
+            type="number"
+            min={1}
+            defaultValue={initial.maxPerMonth ?? ""}
+            placeholder="Unlimited"
+            title="Maximum number of bookings allowed per calendar month"
+            className={input}
+          />
+        </Field>
+
+        <Field label="Cancel/reschedule notice">
+          <select
+            name="minNoticeToCancelMinutes"
+            defaultValue={String(initial.minNoticeToCancelMinutes)}
+            title="Minimum notice required for an invitee to cancel or reschedule"
+            className={input}
+          >
+            <option value="0">None</option>
+            <option value="60">1 hour</option>
+            <option value="120">2 hours</option>
+            <option value="240">4 hours</option>
+            <option value="720">12 hours</option>
+            <option value="1440">1 day</option>
+          </select>
+        </Field>
       </div>
+
+      <div className="grid gap-5 sm:grid-cols-2">
+        <Field label="Confirmation redirect URL (optional)">
+          <input
+            name="confirmationRedirectUrl"
+            type="url"
+            defaultValue={initial.confirmationRedirectUrl}
+            placeholder="https://example.com/thank-you"
+            title="Send invitees here instead of the built-in confirmation screen"
+            className={input}
+          />
+        </Field>
+
+        <Field label="Reply-to email (optional)">
+          <input
+            name="replyToEmail"
+            type="email"
+            defaultValue={initial.replyToEmail}
+            placeholder="support@yourbusiness.com"
+            title="Replies to invitee emails go to this address instead of the default"
+            className={input}
+          />
+        </Field>
+      </div>
+
+      <label className="flex items-start gap-2 text-sm text-slate-700">
+        <input
+          type="checkbox"
+          name="requiresApproval"
+          value="1"
+          defaultChecked={initial.requiresApproval}
+          className="mt-0.5 h-4 w-4 rounded border-slate-300"
+        />
+        <span>
+          Require manual approval
+          <span className="block text-xs text-slate-500">
+            New bookings wait for you to approve or decline before they&apos;re confirmed.
+          </span>
+        </span>
+      </label>
 
       <div>
         <p className="text-sm font-medium text-slate-700">Location</p>
@@ -129,9 +216,12 @@ export default function EventTypeEditor({ initial }: { initial: Initial }) {
               { v: "IN_PERSON", label: "In person" },
               { v: "PHONE", label: "Phone" },
               { v: "GOOGLE_MEET", label: "Google Meet" },
+              { v: "ZOOM", label: "Zoom" },
             ] as const
           ).map((opt) => {
-            const disabled = opt.v === "GOOGLE_MEET" && !initial.calendarConnected;
+            const disabled =
+              (opt.v === "GOOGLE_MEET" && !initial.calendarConnected) ||
+              (opt.v === "ZOOM" && !initial.zoomConnected);
             return (
               <button
                 key={opt.v}
@@ -140,7 +230,7 @@ export default function EventTypeEditor({ initial }: { initial: Initial }) {
                 onClick={() => setLocation(opt.v)}
                 title={
                   disabled
-                    ? "Connect Google Calendar in Settings to enable Google Meet"
+                    ? `Connect ${opt.v === "GOOGLE_MEET" ? "Google Calendar" : "Zoom"} in Settings to enable ${opt.label}`
                     : opt.label
                 }
                 className={`rounded-lg border px-3 py-1.5 text-sm font-medium ${
@@ -155,7 +245,7 @@ export default function EventTypeEditor({ initial }: { initial: Initial }) {
           })}
         </div>
 
-        {opt_google_hint(location, initial.calendarConnected)}
+        {locationHint(location, initial.calendarConnected, initial.zoomConnected)}
 
         {(location === "IN_PERSON" || location === "PHONE") && (
           <input
@@ -283,23 +373,23 @@ function SaveButton() {
   );
 }
 
-function opt_google_hint(location: LocationType, connected: boolean) {
-  if (location === "GOOGLE_MEET") {
+function locationHint(location: LocationType, calendarConnected: boolean, zoomConnected: boolean) {
+  if (location === "GOOGLE_MEET" || location === "ZOOM") {
     return (
       <p className="mt-2 text-xs text-slate-500">
-        A unique Google Meet link is created for each booking and included in the
-        confirmation email and calendar invite.
+        A unique {location === "GOOGLE_MEET" ? "Google Meet" : "Zoom"} link is created
+        for each booking and included in the confirmation email and calendar invite.
       </p>
     );
   }
-  if (!connected) {
+  if (!calendarConnected || !zoomConnected) {
     return (
       <p className="mt-2 text-xs text-slate-400">
         Want a video link?{" "}
         <a href="/dashboard/settings" className="text-indigo-600 hover:underline">
-          Connect Google Calendar
+          Connect {!calendarConnected && !zoomConnected ? "Google Calendar or Zoom" : !calendarConnected ? "Google Calendar" : "Zoom"}
         </a>{" "}
-        to enable Google Meet.
+        to enable it.
       </p>
     );
   }

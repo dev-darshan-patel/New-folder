@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { getCalendarConnection, isCalendarConfigurable } from "@/lib/google-calendar";
+import { getZoomConnection, isZoomConfigurable } from "@/lib/zoom";
 import ProfileForm from "./ProfileForm";
 import PasswordForm from "./PasswordForm";
 import AvatarUpload from "@/components/AvatarUpload";
-import { disconnectCalendarAction } from "./actions";
+import { disconnectCalendarAction, disconnectZoomAction } from "./actions";
 
 function initials(name: string) {
   return name
@@ -22,20 +23,30 @@ const CALENDAR_STATUS: Record<string, { text: string; tone: "ok" | "err" }> = {
   not_configured: { text: "Google sign-in isn't configured on this platform yet. Ask the admin to set it up.", tone: "err" },
 };
 
+const ZOOM_STATUS: Record<string, { text: string; tone: "ok" | "err" }> = {
+  connected: { text: "Zoom connected. Zoom event types will now generate links automatically.", tone: "ok" },
+  denied: { text: "Zoom connection was cancelled.", tone: "err" },
+  error: { text: "Couldn't connect Zoom. Please try again.", tone: "err" },
+  not_configured: { text: "Zoom isn't configured on this platform yet. Ask the admin to set it up.", tone: "err" },
+};
+
 export default async function SettingsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ calendar?: string }>;
+  searchParams: Promise<{ calendar?: string; zoom?: string }>;
 }) {
   const user = await getCurrentUser();
   if (!user) return null;
 
-  const [connection, calendarConfigurable, sp] = await Promise.all([
+  const [connection, calendarConfigurable, zoomConnection, zoomConfigurable, sp] = await Promise.all([
     getCalendarConnection(user.id),
     isCalendarConfigurable(),
+    getZoomConnection(user.id),
+    isZoomConfigurable(),
     searchParams,
   ]);
   const calendarStatus = sp.calendar ? CALENDAR_STATUS[sp.calendar] : null;
+  const zoomStatus = sp.zoom ? ZOOM_STATUS[sp.zoom] : null;
 
   return (
     <div className="mx-auto max-w-2xl space-y-8">
@@ -77,7 +88,7 @@ export default async function SettingsPage({
       <section className="rounded-2xl border border-slate-200 bg-white p-6">
         <h2 className="font-semibold text-slate-900">Integrations</h2>
         <p className="mt-1 text-sm text-slate-600">
-          Connect Google Calendar to auto-generate a Google Meet link for online
+          Connect Google Calendar or Zoom to auto-generate a video link for online
           event types and add each booking to your calendar.
         </p>
 
@@ -122,6 +133,54 @@ export default async function SettingsPage({
           ) : calendarConfigurable ? (
             <a
               href="/api/calendar/google/start"
+              className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500"
+            >
+              Connect
+            </a>
+          ) : (
+            <span className="text-xs text-slate-400">Unavailable</span>
+          )}
+        </div>
+
+        {zoomStatus && (
+          <p
+            className={`mt-4 rounded-lg px-3 py-2 text-sm ${
+              zoomStatus.tone === "ok" ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"
+            }`}
+          >
+            {zoomStatus.text}
+          </p>
+        )}
+
+        <div className="mt-4 flex items-center justify-between rounded-xl border border-slate-200 p-4">
+          <div className="flex items-center gap-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-lg">
+              🎥
+            </span>
+            <div>
+              <p className="text-sm font-medium text-slate-800">Zoom</p>
+              {zoomConnection ? (
+                <p className="text-xs text-green-600">
+                  Connected{zoomConnection.accountEmail ? ` — ${zoomConnection.accountEmail}` : ""}
+                </p>
+              ) : (
+                <p className="text-xs text-slate-500">Not connected</p>
+              )}
+            </div>
+          </div>
+
+          {zoomConnection ? (
+            <form action={disconnectZoomAction}>
+              <button
+                type="submit"
+                className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              >
+                Disconnect
+              </button>
+            </form>
+          ) : zoomConfigurable ? (
+            <a
+              href="/api/calendar/zoom/start"
               className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500"
             >
               Connect

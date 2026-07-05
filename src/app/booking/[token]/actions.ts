@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getSlotsForDate, getTeamSlotsForDate, type Slot } from "@/lib/availability";
@@ -10,7 +11,19 @@ import { renderTemplate } from "@/lib/email-templates";
 import { buildIcs } from "@/lib/ics";
 import { formatWhen } from "@/lib/format";
 import { updateMeetEventTime, deleteMeetEvent } from "@/lib/google-calendar";
+import { updateZoomMeetingTime, deleteZoomMeeting } from "@/lib/zoom";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
+import { getCurrentUser } from "@/lib/auth";
+import { parseGuests } from "@/lib/guests";
+import { BLOCKING_STATUSES } from "@/lib/booking-status";
+
+// True if the notice window before `startTime` has already passed. The
+// business owner is never subject to this — only self-service invitee
+// cancel/reschedule is restricted.
+function noticeWindowPassed(startTime: Date, minNoticeMinutes: number): boolean {
+  if (minNoticeMinutes <= 0) return false;
+  return startTime.getTime() - Date.now() < minNoticeMinutes * 60_000;
+}
 
 type FullBooking = Prisma.BookingGetPayload<{
   include: { eventType: true; user: true };
@@ -53,6 +66,7 @@ function bookingIcs(
     organizerEmail: booking.user.email,
     attendeeName: booking.inviteeName,
     attendeeEmail: booking.inviteeEmail,
+    extraAttendees: parseGuests(booking.guests),
     location: booking.meetingUrl,
   });
   return {
@@ -72,15 +86,28 @@ export async function cancelBookingAction(formData: FormData) {
   });
   if (!booking || booking.status === "CANCELLED") return;
 
+  const viewer = await getCurrentUser();
+  const isOwner = viewer?.id === booking.userId;
+  if (
+    !isOwner &&
+    noticeWindowPassed(booking.startTime, booking.eventType.minNoticeToCancelMinutes)
+  ) {
+    redirect(`/booking/${token}?error=too_late_to_cancel`);
+  }
+
   const sequence = booking.sequence + 1;
   await prisma.booking.update({
     where: { id: booking.id },
     data: { status: "CANCELLED", sequence },
   });
 
-  // Remove the Google Calendar event (and its Meet link) if one was created.
+  // Remove the video meeting if one was created, via whichever provider made it.
   if (booking.calendarEventId) {
-    await deleteMeetEvent(booking.userId, booking.calendarEventId);
+    if (booking.meetingProvider === "zoom") {
+      await deleteZoomMeeting(booking.userId, booking.calendarEventId);
+    } else {
+      await deleteMeetEvent(booking.userId, booking.calendarEventId);
+    }
   }
 
   const when = formatWhen(booking.startTime, booking.user.timezone);
@@ -93,7 +120,20 @@ export async function cancelBookingAction(formData: FormData) {
       event_title: booking.eventType.title,
       when,
     });
-    await sendEmail({ to: booking.inviteeEmail, ...inviteeEmail, attachments: [cancelIcs] });
+    await sendEmail({
+      to: booking.inviteeEmail,
+      ...inviteeEmail,
+      attachments: [cancelIcs],
+      ...(booking.eventType.replyToEmail ? { replyTo: booking.eventType.replyToEmail } : {}),
+    });
+    for (const guest of parseGuests(booking.guests)) {
+      await sendEmail({
+        to: guest.email,
+        ...inviteeEmail,
+        attachments: [cancelIcs],
+        ...(booking.eventType.replyToEmail ? { replyTo: booking.eventType.replyToEmail } : {}),
+      });
+    }
 
     const ownerEmail = await renderTemplate("booking.canceled.owner", {
       invitee_name: booking.inviteeName,
@@ -162,6 +202,18 @@ export async function rescheduleBookingAction(input: {
     return { ok: false, error: "This booking can no longer be changed." };
   }
 
+  const viewer = await getCurrentUser();
+  const isOwner = viewer?.id === booking.userId;
+  if (
+    !isOwner &&
+    noticeWindowPassed(booking.startTime, booking.eventType.minNoticeToCancelMinutes)
+  ) {
+    return {
+      ok: false,
+      error: "This booking is too close to its start time to reschedule.",
+    };
+  }
+
   const start = new Date(input.startUtc);
   if (Number.isNaN(start.getTime()) || start.getTime() < Date.now()) {
     return { ok: false, error: "That time is no longer available." };
@@ -174,7 +226,7 @@ export async function rescheduleBookingAction(input: {
     const conflict = await prisma.booking.findFirst({
       where: {
         userId: booking.userId,
-        status: "CONFIRMED",
+        status: { in: BLOCKING_STATUSES },
         id: { not: booking.id },
         startTime: { lt: end },
         endTime: { gt: start },
@@ -232,15 +284,26 @@ export async function rescheduleBookingAction(input: {
     });
   }
 
-  // Move the Google Calendar event to the new time (keeps the same Meet link).
+  // Move the video meeting to the new time (keeps the same link), via
+  // whichever provider created it.
   if (booking.calendarEventId) {
-    await updateMeetEventTime({
-      userId: booking.userId,
-      calendarEventId: booking.calendarEventId,
-      startUtc: start,
-      endUtc: end,
-      timeZone: booking.user.timezone,
-    });
+    if (booking.meetingProvider === "zoom") {
+      await updateZoomMeetingTime({
+        userId: booking.userId,
+        meetingId: booking.calendarEventId,
+        startUtc: start,
+        endUtc: end,
+        timeZone: booking.user.timezone,
+      });
+    } else {
+      await updateMeetEventTime({
+        userId: booking.userId,
+        calendarEventId: booking.calendarEventId,
+        startUtc: start,
+        endUtc: end,
+        timeZone: booking.user.timezone,
+      });
+    }
   }
 
   const when = formatWhen(start, booking.user.timezone);
@@ -261,7 +324,20 @@ export async function rescheduleBookingAction(input: {
       timezone: booking.user.timezone,
       with_line: `${withWho ? `\nWith: ${withWho}` : ""}${booking.meetingUrl ? `\nJoin: ${booking.meetingUrl}` : ""}`,
     });
-    await sendEmail({ to: booking.inviteeEmail, ...inviteeEmail, attachments: [updateIcs] });
+    await sendEmail({
+      to: booking.inviteeEmail,
+      ...inviteeEmail,
+      attachments: [updateIcs],
+      ...(booking.eventType.replyToEmail ? { replyTo: booking.eventType.replyToEmail } : {}),
+    });
+    for (const guest of parseGuests(booking.guests)) {
+      await sendEmail({
+        to: guest.email,
+        ...inviteeEmail,
+        attachments: [updateIcs],
+        ...(booking.eventType.replyToEmail ? { replyTo: booking.eventType.replyToEmail } : {}),
+      });
+    }
 
     const ownerEmail = await renderTemplate("booking.rescheduled.owner", {
       invitee_name: booking.inviteeName,

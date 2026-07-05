@@ -2,7 +2,9 @@ import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { parseAnswers, type IntakeAnswer } from "@/lib/intake";
+import { parseGuests } from "@/lib/guests";
 import { cancelBookingAction } from "@/app/booking/[token]/actions";
+import { approveBookingAction, rejectBookingAction } from "./approval-actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -11,11 +13,18 @@ export default async function BookingsPage() {
   if (!user) return null;
 
   const now = new Date();
-  const bookings = await prisma.booking.findMany({
-    where: { userId: user.id, status: "CONFIRMED" },
-    include: { eventType: true, teamMember: { select: { name: true } } },
-    orderBy: { startTime: "asc" },
-  });
+  const [bookings, pending] = await Promise.all([
+    prisma.booking.findMany({
+      where: { userId: user.id, status: "CONFIRMED" },
+      include: { eventType: true, teamMember: { select: { name: true } } },
+      orderBy: { startTime: "asc" },
+    }),
+    prisma.booking.findMany({
+      where: { userId: user.id, status: "PENDING" },
+      include: { eventType: true, teamMember: { select: { name: true } } },
+      orderBy: { startTime: "asc" },
+    }),
+  ]);
 
   const upcoming = bookings.filter((b) => b.startTime >= now);
   const past = bookings.filter((b) => b.startTime < now).reverse();
@@ -28,10 +37,33 @@ export default async function BookingsPage() {
 
   return (
     <div className="mx-auto max-w-3xl">
-      <h1 className="text-2xl font-bold tracking-tight text-slate-900">Bookings</h1>
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900">Bookings</h1>
+        <Button asChild variant="outline" size="sm">
+          <a href="/dashboard/bookings/export">Export CSV</a>
+        </Button>
+      </div>
       <p className="mt-1 text-sm text-slate-600">
         Times shown in your timezone ({user.timezone}).
       </p>
+
+      {pending.length > 0 && (
+        <Section title="Awaiting approval" empty="">
+          {pending.map((b) => (
+            <PendingRow
+              key={b.id}
+              id={b.id}
+              when={fmt.format(b.startTime)}
+              title={b.eventType.title}
+              name={b.inviteeName}
+              email={b.inviteeEmail}
+              notes={b.notes}
+              guests={parseGuests(b.guests)}
+              with={b.teamMember?.name ?? null}
+            />
+          ))}
+        </Section>
+      )}
 
       <Section title="Upcoming" empty="No upcoming bookings.">
         {upcoming.map((b) => (
@@ -43,8 +75,10 @@ export default async function BookingsPage() {
             email={b.inviteeEmail}
             notes={b.notes}
             answers={parseAnswers(b.answers)}
+            guests={parseGuests(b.guests)}
             manageToken={b.manageToken}
             meetingUrl={b.meetingUrl}
+            meetingProvider={b.meetingProvider}
             with={b.teamMember?.name ?? null}
           />
         ))}
@@ -60,7 +94,9 @@ export default async function BookingsPage() {
               name={b.inviteeName}
               email={b.inviteeEmail}
               notes={b.notes}
+              guests={parseGuests(b.guests)}
               meetingUrl={b.meetingUrl}
+              meetingProvider={b.meetingProvider}
               muted
               with={b.teamMember?.name ?? null}
             />
@@ -107,9 +143,11 @@ function Row(props: {
   email: string;
   notes: string | null;
   answers?: IntakeAnswer[];
+  guests?: { name?: string; email: string }[];
   muted?: boolean;
   manageToken?: string | null;
   meetingUrl?: string | null;
+  meetingProvider?: string | null;
   with: string | null;
 }) {
   return (
@@ -131,11 +169,16 @@ function Row(props: {
             rel="noopener noreferrer"
             className="font-medium text-indigo-600 hover:underline"
           >
-            Join Google Meet ↗
+            {props.meetingProvider === "zoom" ? "Join Zoom Meeting" : "Join Google Meet"} ↗
           </a>
         </p>
       )}
       {props.notes && <p className="mt-1 text-sm text-slate-500">&ldquo;{props.notes}&rdquo;</p>}
+      {props.guests && props.guests.length > 0 && (
+        <p className="mt-1 text-xs text-slate-500">
+          Guests: {props.guests.map((g) => g.name || g.email).join(", ")}
+        </p>
+      )}
       {props.answers && props.answers.length > 0 && (
         <dl className="mt-2 space-y-0.5 text-sm">
           {props.answers.map((a, i) => (
@@ -165,6 +208,52 @@ function Row(props: {
           </form>
         </div>
       )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function PendingRow(props: {
+  id: string;
+  when: string;
+  title: string;
+  name: string;
+  email: string;
+  notes: string | null;
+  guests?: { name?: string; email: string }[];
+  with: string | null;
+}) {
+  return (
+    <Card className="border-amber-200 bg-amber-50">
+      <CardContent className="p-4">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <p className="font-medium text-slate-900">{props.title}</p>
+          <p className="text-sm text-slate-500">{props.when}</p>
+        </div>
+        <p className="mt-1 text-sm text-slate-600">
+          {props.name} &middot; {props.email}
+        </p>
+        {props.with && <p className="mt-1 text-xs text-slate-500">With: {props.with}</p>}
+        {props.notes && <p className="mt-1 text-sm text-slate-500">&ldquo;{props.notes}&rdquo;</p>}
+        {props.guests && props.guests.length > 0 && (
+          <p className="mt-1 text-xs text-slate-500">
+            Guests: {props.guests.map((g) => g.name || g.email).join(", ")}
+          </p>
+        )}
+        <div className="mt-3 flex gap-3 border-t border-amber-200 pt-3 text-sm">
+          <form action={approveBookingAction}>
+            <input type="hidden" name="id" value={props.id} />
+            <Button type="submit" size="sm">
+              Approve
+            </Button>
+          </form>
+          <form action={rejectBookingAction}>
+            <input type="hidden" name="id" value={props.id} />
+            <Button type="submit" size="sm" variant="outline" className="border-red-300 text-red-600 hover:bg-red-50">
+              Decline
+            </Button>
+          </form>
+        </div>
       </CardContent>
     </Card>
   );

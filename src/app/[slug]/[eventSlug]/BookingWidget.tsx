@@ -105,6 +105,44 @@ export default function BookingWidget({
     setSelectedSlot(null);
   }
 
+  // If the event type has a confirmation redirect configured, send the
+  // invitee straight there instead of showing the built-in confirmation card.
+  useEffect(() => {
+    if (result?.ok && result.redirectUrl) {
+      window.location.assign(result.redirectUrl);
+    }
+  }, [result]);
+
+  if (result?.ok && result.redirectUrl) {
+    return (
+      <p className="mt-10 text-center text-sm text-slate-500">Redirecting…</p>
+    );
+  }
+
+  if (result?.ok && result.pending) {
+    return (
+      <div className="mt-10 rounded-2xl border border-amber-200 bg-amber-50 p-8 text-center">
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-amber-500 text-2xl text-white">
+          ⏳
+        </div>
+        <h2 className="mt-4 text-lg font-semibold text-slate-900">
+          Request received
+        </h2>
+        <p className="mt-1 text-sm text-slate-600">{result.when}</p>
+        <p className="mt-3 text-sm text-slate-500">
+          This booking isn&apos;t confirmed yet — we&apos;ll email you once it&apos;s approved.
+        </p>
+        <a
+          href={result.manageUrl}
+          style={{ color: accent }}
+          className="mt-4 inline-block text-sm font-medium hover:underline"
+        >
+          View request
+        </a>
+      </div>
+    );
+  }
+
   if (result?.ok) {
     return (
       <div className="mt-10 rounded-2xl border border-green-200 bg-green-50 p-8 text-center">
@@ -123,7 +161,7 @@ export default function BookingWidget({
             style={{ backgroundColor: accent }}
             className="mt-4 inline-block rounded-lg px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90"
           >
-            Join Google Meet
+            {result.meetingProvider === "zoom" ? "Join Zoom Meeting" : "Join Google Meet"}
           </a>
         )}
         <p className="mt-3 text-sm text-slate-500">
@@ -229,6 +267,16 @@ export default function BookingWidget({
                 label: q.label,
                 value: String(fd.get(`q-${i}`) || ""),
               }));
+              const guests = String(fd.get("guests") || "")
+                .split(/[\n,]/)
+                .map((line) => line.trim())
+                .filter(Boolean)
+                .map((line) => {
+                  const match = line.match(/^(.*)<(.+)>$/);
+                  return match
+                    ? { name: match[1].trim() || undefined, email: match[2].trim() }
+                    : { email: line };
+                });
               startSubmit(async () => {
                 const res = await createBookingAction({
                   eventTypeId,
@@ -238,6 +286,7 @@ export default function BookingWidget({
                   notes: String(fd.get("notes") || ""),
                   viewerTimezone: viewerTz,
                   answers,
+                  guests,
                 });
                 if (res.ok) setResult(res);
                 else setFormError(res.error);
@@ -272,6 +321,11 @@ export default function BookingWidget({
                 name="notes"
                 rows={2}
                 placeholder="Anything we should know? (optional)"
+              />
+              <Textarea
+                name="guests"
+                rows={2}
+                placeholder="Add guests? One email per line (optional)"
               />
               {questions.map((q, i) => (
                 <Input

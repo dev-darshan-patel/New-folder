@@ -18,7 +18,7 @@ export const PAGE_SIZE = 25;
 
 export function parseBookingsQuery(sp: BookingsQuery) {
   const q = (sp.q ?? "").trim();
-  const status = (["CONFIRMED", "CANCELLED"] as BookingStatus[]).includes(
+  const status = (["CONFIRMED", "PENDING", "CANCELLED"] as BookingStatus[]).includes(
     sp.status as BookingStatus,
   )
     ? (sp.status as BookingStatus)

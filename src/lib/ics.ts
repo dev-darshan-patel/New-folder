@@ -12,6 +12,9 @@ type IcsInput = {
   organizerEmail: string;
   attendeeName: string;
   attendeeEmail: string;
+  // Additional guests invited by the primary attendee. Each gets its own
+  // ATTENDEE line so calendar clients show/RSVP them individually.
+  extraAttendees?: { name?: string; email: string }[];
   // Physical location or a phone number — shown as the event's LOCATION.
   // For an online meeting this is typically the video URL.
   location?: string | null;
@@ -45,6 +48,10 @@ export function buildIcs(input: IcsInput): string {
     input.location ? `LOCATION:${escapeText(input.location)}` : "",
     `ORGANIZER;CN=${escapeText(input.organizerName)}:mailto:${input.organizerEmail}`,
     `ATTENDEE;CN=${escapeText(input.attendeeName)};RSVP=TRUE:mailto:${input.attendeeEmail}`,
+    ...(input.extraAttendees ?? []).map(
+      (g) =>
+        `ATTENDEE;CN=${escapeText(g.name || g.email)};RSVP=TRUE:mailto:${g.email}`,
+    ),
     `STATUS:${status}`,
     "END:VEVENT",
     "END:VCALENDAR",

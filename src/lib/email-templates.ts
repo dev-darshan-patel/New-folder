@@ -88,6 +88,60 @@ ${pre(`When: {{when}} ({{timezone}}){{extra}}`)}`,
     ],
   },
   {
+    key: "booking.pending.invitee",
+    category: "BOOKING",
+    name: "Booking request received (to invitee)",
+    description: "Sent to the customer when their booking requires the owner's approval.",
+    subject: "Booking request received: {{event_title}}",
+    text: `Hi {{invitee_name}},\n\nThanks for requesting a booking with {{business_name}}. It's not confirmed yet — {{business_name}} needs to approve it first.\n\nWhat: {{event_title}}\nWhen: {{when}} ({{timezone}})\n\nWe'll email you as soon as it's approved.`,
+    html: `<p style="margin:0 0 16px;">Hi {{invitee_name}},</p>
+<p style="margin:0 0 16px;">Thanks for requesting a booking with <strong>{{business_name}}</strong>. It&rsquo;s not confirmed yet &mdash; {{business_name}} needs to approve it first.</p>
+${pre(`What: {{event_title}}\nWhen: {{when}} ({{timezone}})`)}
+<p style="margin:0;color:#64748b;">We&rsquo;ll email you as soon as it&rsquo;s approved.</p>`,
+    vars: [
+      { name: "invitee_name", description: "Customer's name", sample: "Alex Carter" },
+      { name: "business_name", description: "Business name", sample: "Demo Salon" },
+      { name: "event_title", description: "Event type title", sample: "30 Minute Meeting" },
+      { name: "when", description: "Formatted date & time", sample: "Friday, July 10, 2026 at 2:30 PM" },
+      { name: "timezone", description: "Invitee timezone", sample: "Asia/Calcutta" },
+    ],
+  },
+  {
+    key: "booking.pending.owner",
+    category: "BOOKING",
+    name: "New booking request (to owner)",
+    description: "Sent to the business owner when a customer requests a booking that needs approval.",
+    subject: "Approval needed: {{event_title}} with {{invitee_name}}",
+    text: `{{invitee_name}} ({{invitee_email}}) requested {{event_title}}.\nWhen: {{when}} ({{timezone}})\n\nReview and approve or decline it here:\n{{review_url}}`,
+    html: `<p style="margin:0 0 16px;"><strong>{{invitee_name}}</strong> ({{invitee_email}}) requested {{event_title}}.</p>
+${pre(`When: {{when}} ({{timezone}})`)}
+<p style="margin:0;">${button("{{review_url}}", "Review request")}</p>`,
+    vars: [
+      { name: "invitee_name", description: "Customer's name", sample: "Alex Carter" },
+      { name: "invitee_email", description: "Customer's email", sample: "alex@example.com" },
+      { name: "event_title", description: "Event type title", sample: "30 Minute Meeting" },
+      { name: "when", description: "Formatted date & time (business tz)", sample: "Friday, July 10, 2026 at 2:30 PM" },
+      { name: "timezone", description: "Business timezone", sample: "America/New_York" },
+      { name: "review_url", description: "Link to the dashboard bookings page", sample: "https://example.com/dashboard/bookings" },
+    ],
+  },
+  {
+    key: "booking.declined.invitee",
+    category: "BOOKING",
+    name: "Booking request declined (to invitee)",
+    description: "Sent to the customer when the owner declines their booking request.",
+    subject: "Booking request declined: {{event_title}}",
+    text: `Hi {{invitee_name}},\n\n{{business_name}} wasn't able to accept your request for {{event_title}} on {{when}}. Please pick another time.`,
+    html: `<p style="margin:0 0 16px;">Hi {{invitee_name}},</p>
+<p style="margin:0;"><strong>{{business_name}}</strong> wasn&rsquo;t able to accept your request for {{event_title}} on {{when}}. Please pick another time.</p>`,
+    vars: [
+      { name: "invitee_name", description: "Customer's name", sample: "Alex Carter" },
+      { name: "business_name", description: "Business name", sample: "Demo Salon" },
+      { name: "event_title", description: "Event type title", sample: "30 Minute Meeting" },
+      { name: "when", description: "Formatted date & time", sample: "Friday, July 10, 2026 at 2:30 PM" },
+    ],
+  },
+  {
     key: "booking.reminder",
     category: "BOOKING",
     name: "Booking reminder",

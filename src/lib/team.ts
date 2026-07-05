@@ -1,5 +1,6 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
+import { BLOCKING_STATUSES } from "@/lib/booking-status";
 
 export type BusyWindow = { start: Date; end: Date };
 
@@ -17,7 +18,7 @@ export async function getTeamMemberBusyWindows(
   if (!member) return [];
 
   const inRange = {
-    status: "CONFIRMED" as const,
+    status: { in: BLOCKING_STATUSES },
     startTime: { lt: dayEndUtc },
     endTime: { gt: dayStartUtc },
   };

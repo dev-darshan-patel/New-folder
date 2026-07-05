@@ -1,13 +1,22 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { getSlotsForDate, getTeamSlotsForDate, type Slot } from "@/lib/availability";
+import {
+  getSlotsForDate,
+  getTeamSlotsForDate,
+  weekOrMonthCapHit,
+  utcToZonedYmd,
+  type Slot,
+} from "@/lib/availability";
 import { getTeamMemberBusyWindows, isFreeAt, pickRoundRobinMember } from "@/lib/team";
 import { sendEmail } from "@/lib/email";
 import { renderTemplate } from "@/lib/email-templates";
 import { buildIcs } from "@/lib/ics";
 import { createMeetEvent } from "@/lib/google-calendar";
+import { createZoomMeeting } from "@/lib/zoom";
 import { parseQuestions } from "@/lib/intake";
+import { sanitizeGuests, type Guest } from "@/lib/guests";
+import { BLOCKING_STATUSES } from "@/lib/booking-status";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
 import { formatWhen } from "@/lib/format";
 
@@ -43,6 +52,8 @@ export async function fetchSlotsAction(
       bufferMinutes: eventType.bufferMinutes,
       date,
       maxPerDay: eventType.maxPerDay,
+      maxPerWeek: eventType.maxPerWeek,
+      maxPerMonth: eventType.maxPerMonth,
       eventTypeId: eventType.id,
     });
   }
@@ -59,12 +70,24 @@ export async function fetchSlotsAction(
     bufferMinutes: eventType.bufferMinutes,
     date,
     maxPerDay: eventType.maxPerDay,
+    maxPerWeek: eventType.maxPerWeek,
+    maxPerMonth: eventType.maxPerMonth,
     eventTypeId: eventType.id,
   });
 }
 
 export type BookingResult =
-  | { ok: true; when: string; manageUrl: string; meetingUrl?: string | null }
+  | {
+      ok: true;
+      when: string;
+      manageUrl: string;
+      meetingUrl?: string | null;
+      meetingProvider?: string | null;
+      redirectUrl?: string | null;
+      // True when the event type requires owner approval — the booking is
+      // PENDING, not yet confirmed, and has no meeting link yet.
+      pending?: boolean;
+    }
   | { ok: false; error: string };
 
 // Create a booking for an event type at a specific UTC start time.
@@ -76,6 +99,7 @@ export async function createBookingAction(input: {
   notes?: string;
   viewerTimezone?: string;
   answers?: { label: string; value: string }[];
+  guests?: Guest[];
 }): Promise<BookingResult> {
   if (!(await rateLimit(`book:${await clientIp()}`, 10, 600_000))) {
     return { ok: false, error: "Too many booking attempts. Please wait a few minutes." };
@@ -112,12 +136,30 @@ export async function createBookingAction(input: {
     const dayCount = await prisma.booking.count({
       where: {
         eventTypeId: eventType.id,
-        status: "CONFIRMED",
+        status: { in: BLOCKING_STATUSES },
         startTime: { gte: dayStart, lt: dayEnd },
       },
     });
     if (dayCount >= eventType.maxPerDay) {
       return { ok: false, error: "This day is fully booked. Please pick another." };
+    }
+  }
+
+  // Enforce weekly/monthly caps server-side, in the business's own timezone
+  // (matches the slot UI, which hides the whole day once either cap is hit).
+  if (eventType.maxPerWeek != null || eventType.maxPerMonth != null) {
+    const { year, month, day } = utcToZonedYmd(start, eventType.user.timezone);
+    const capped = await weekOrMonthCapHit({
+      eventTypeId: eventType.id,
+      year,
+      month,
+      day,
+      timeZone: eventType.user.timezone,
+      maxPerWeek: eventType.maxPerWeek,
+      maxPerMonth: eventType.maxPerMonth,
+    });
+    if (capped) {
+      return { ok: false, error: "This time is no longer available. Please pick another." };
     }
   }
 
@@ -139,6 +181,9 @@ export async function createBookingAction(input: {
     ? JSON.stringify(answers.filter((a) => a.value !== ""))
     : null;
 
+  const guests = sanitizeGuests(input.guests ?? [], email);
+  const guestsJson = guests.length ? JSON.stringify(guests) : null;
+
   let assignedTeamMemberId: string | null = null;
   let bookingId: string;
   const manageToken = `booked-${crypto.randomUUID()}`;
@@ -149,7 +194,7 @@ export async function createBookingAction(input: {
         const conflict = await tx.booking.findFirst({
           where: {
             userId: eventType.userId,
-            status: "CONFIRMED",
+            status: { in: BLOCKING_STATUSES },
             startTime: { lt: end },
             endTime: { gt: start },
           },
@@ -191,7 +236,9 @@ export async function createBookingAction(input: {
           endTime: end,
           manageToken,
           answers: answersJson,
+          guests: guestsJson,
           teamMemberId: assignedTeamMemberId,
+          status: eventType.requiresApproval ? "PENDING" : "CONFIRMED",
         },
       });
 
@@ -219,6 +266,40 @@ export async function createBookingAction(input: {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
   const manageUrl = `${baseUrl}/booking/${manageToken}`;
 
+  // Pending bookings skip meeting-link creation and the full confirmation
+  // email — those happen at approval time — and instead notify both parties
+  // that a decision is needed.
+  if (eventType.requiresApproval) {
+    try {
+      const inviteeEmail = await renderTemplate("booking.pending.invitee", {
+        invitee_name: name,
+        business_name: eventType.user.businessName,
+        event_title: eventType.title,
+        when: inviteeWhen,
+        timezone: viewerTz,
+      });
+      await sendEmail({
+        to: email,
+        ...inviteeEmail,
+        ...(eventType.replyToEmail ? { replyTo: eventType.replyToEmail } : {}),
+      });
+
+      const ownerEmail = await renderTemplate("booking.pending.owner", {
+        invitee_name: name,
+        invitee_email: email,
+        event_title: eventType.title,
+        when: ownerWhen,
+        timezone: businessTz,
+        review_url: `${baseUrl}/dashboard/bookings`,
+      });
+      await sendEmail({ to: eventType.user.email, ...ownerEmail });
+    } catch (err) {
+      console.error("Failed to send pending-booking email", err);
+    }
+
+    return { ok: true, when: inviteeWhen, manageUrl, pending: true };
+  }
+
   let withWho: string | null = null;
   if (eventType.assignmentMode === "ROUND_ROBIN" && assignedTeamMemberId) {
     const m = await prisma.teamMember.findUnique({
@@ -234,11 +315,12 @@ export async function createBookingAction(input: {
     withWho = pool.map((m) => m.name).join(", ") || null;
   }
 
-  // Resolve the meeting location. For GOOGLE_MEET, create a Calendar event with
-  // a Meet conference on the owner's calendar and capture the link. Any failure
-  // here degrades gracefully — the booking is already committed, so we just fall
+  // Resolve the meeting location. For GOOGLE_MEET/ZOOM, create a meeting on
+  // the owner's connected account and capture the link. Any failure here
+  // degrades gracefully — the booking is already committed, so we just fall
   // through with no link rather than erroring the invitee out.
   let meetingUrl: string | null = null;
+  let meetingProvider: string | null = null;
   let locationText: string | null = null;
   if (eventType.locationType === "GOOGLE_MEET") {
     const meet = await createMeetEvent({
@@ -251,14 +333,33 @@ export async function createBookingAction(input: {
       attendees: [
         { email, name },
         { email: eventType.user.email, name: eventType.user.businessName },
+        ...guests.map((g) => ({ email: g.email, name: g.name })),
       ],
     });
     if (meet) {
       meetingUrl = meet.meetingUrl;
+      meetingProvider = "google";
       locationText = meet.meetingUrl;
       await prisma.booking.update({
         where: { id: bookingId },
-        data: { meetingUrl: meet.meetingUrl, calendarEventId: meet.calendarEventId },
+        data: { meetingUrl: meet.meetingUrl, calendarEventId: meet.calendarEventId, meetingProvider: "google" },
+      });
+    }
+  } else if (eventType.locationType === "ZOOM") {
+    const meet = await createZoomMeeting({
+      userId: eventType.userId,
+      topic: `${eventType.title} — ${name}`,
+      startUtc: start,
+      endUtc: end,
+      timeZone: businessTz,
+    });
+    if (meet) {
+      meetingUrl = meet.meetingUrl;
+      meetingProvider = "zoom";
+      locationText = meet.meetingUrl;
+      await prisma.booking.update({
+        where: { id: bookingId },
+        data: { meetingUrl: meet.meetingUrl, calendarEventId: meet.meetingId, meetingProvider: "zoom" },
       });
     }
   } else if (eventType.locationDetail) {
@@ -286,6 +387,7 @@ export async function createBookingAction(input: {
     organizerEmail: eventType.user.email,
     attendeeName: name,
     attendeeEmail: email,
+    extraAttendees: guests,
     location: locationText,
   });
   const icsAttachment = {
@@ -305,7 +407,20 @@ export async function createBookingAction(input: {
       with_line: `${withWho ? `\nWith: ${withWho}` : ""}${meetLine}`,
       manage_url: manageUrl,
     });
-    await sendEmail({ to: email, ...inviteeEmail, attachments: [icsAttachment] });
+    await sendEmail({
+      to: email,
+      ...inviteeEmail,
+      attachments: [icsAttachment],
+      ...(eventType.replyToEmail ? { replyTo: eventType.replyToEmail } : {}),
+    });
+    for (const guest of guests) {
+      await sendEmail({
+        to: guest.email,
+        ...inviteeEmail,
+        attachments: [icsAttachment],
+        ...(eventType.replyToEmail ? { replyTo: eventType.replyToEmail } : {}),
+      });
+    }
 
     const answerLines = answersJson
       ? "\n" +
@@ -327,5 +442,12 @@ export async function createBookingAction(input: {
     console.error("Failed to send booking email", err);
   }
 
-  return { ok: true, when: inviteeWhen, manageUrl, meetingUrl };
+  return {
+    ok: true,
+    when: inviteeWhen,
+    manageUrl,
+    meetingUrl,
+    meetingProvider,
+    redirectUrl: eventType.confirmationRedirectUrl,
+  };
 }
