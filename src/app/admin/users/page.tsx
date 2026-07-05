@@ -111,7 +111,34 @@ export default async function AdminUsers({
       header: "Status",
       align: "right",
       cellClassName: "text-slate-500",
-      render: (u) => u.subscriptionStatus ?? "—",
+      render: (u) => (
+        <div className="flex items-center justify-end gap-1.5">
+          <span>{u.subscriptionStatus ?? "—"}</span>
+          {u.cancelAtPeriodEnd && <Badge variant="warning">Canceling</Badge>}
+        </div>
+      ),
+    },
+    {
+      key: "planRenewsAt",
+      header: "Renews / Ends",
+      align: "right",
+      cellClassName: "text-slate-500",
+      render: (u) =>
+        u.planRenewsAt ? (
+          <span className={u.cancelAtPeriodEnd ? "text-amber-700" : undefined}>
+            {u.cancelAtPeriodEnd ? "Ends " : "Renews "}
+            {u.planRenewsAt.toLocaleDateString()}
+          </span>
+        ) : (
+          "—"
+        ),
+    },
+    {
+      key: "planCancelRequestedAt",
+      header: "Canceled on",
+      align: "right",
+      cellClassName: "text-slate-500",
+      render: (u) => u.planCancelRequestedAt?.toLocaleDateString() ?? "—",
     },
     {
       key: "eventTypes",

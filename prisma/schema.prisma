@@ -84,6 +84,10 @@ model User {
   // True when the subscription is scheduled to cancel at planRenewsAt instead
   // of auto-renewing. Lets the billing page show "ends on" vs "renews on".
   cancelAtPeriodEnd  Boolean   @default(false)
+  // When the tenant scheduled the cancellation (i.e. when cancelAtPeriodEnd
+  // first flipped to true). Null once resumed or once the plan lapses.
+  // Shown to admins in /admin/users so support can see who cancelled and when.
+  planCancelRequestedAt DateTime?
 
   // Profile picture uploaded by the business owner (shown in dashboard + booking page).
   avatarUrl       String?

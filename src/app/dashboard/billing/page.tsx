@@ -128,7 +128,7 @@ export default async function BillingPage({
                         Your plan
                       </Button>
                     )
-                  ) : planId === "FREE" ? (
+                  ) : plan.sortOrder < current.sortOrder ? (
                     <span className="block text-center text-xs text-slate-400">
                       Downgrade via Manage subscription
                     </span>

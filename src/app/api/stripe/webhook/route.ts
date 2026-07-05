@@ -48,6 +48,7 @@ export async function POST(req: NextRequest) {
             subscriptionStatus: "canceled",
             planRenewsAt: null,
             cancelAtPeriodEnd: false,
+            planCancelRequestedAt: null,
           },
         });
         break;
@@ -66,6 +67,19 @@ async function syncSubscription(sub: Stripe.Subscription) {
   const plan = priceId ? await getPlanForStripePrice(priceId) : null;
   const periodEnd = sub.items.data[0]?.current_period_end;
 
+  // Only stamp planCancelRequestedAt the moment cancelAtPeriodEnd flips from
+  // false -> true (when the tenant actually requested it), and clear it if
+  // they resume — so admins see the real date the cancellation was made.
+  const existing = await prisma.user.findFirst({
+    where: { stripeCustomerId: String(sub.customer) },
+    select: { cancelAtPeriodEnd: true },
+  });
+  const planCancelRequestedAt = sub.cancel_at_period_end
+    ? existing?.cancelAtPeriodEnd
+      ? undefined // already flagged — keep the original timestamp
+      : new Date()
+    : null;
+
   await prisma.user.updateMany({
     where: { stripeCustomerId: String(sub.customer) },
     data: {
@@ -74,6 +88,7 @@ async function syncSubscription(sub: Stripe.Subscription) {
       subscriptionStatus: sub.status,
       planRenewsAt: periodEnd ? new Date(periodEnd * 1000) : null,
       cancelAtPeriodEnd: sub.cancel_at_period_end,
+      ...(planCancelRequestedAt !== undefined ? { planCancelRequestedAt } : {}),
     },
   });
 }
