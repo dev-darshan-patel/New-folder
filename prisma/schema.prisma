@@ -263,6 +263,11 @@ model EventType {
   // When true, new bookings land as PENDING instead of CONFIRMED and the
   // owner must approve/reject them from the dashboard before they're final.
   requiresApproval Boolean @default(false)
+  // When set, this is a GROUP event type: instead of auto-generating time slots
+  // from weekly availability, the owner manually creates Session rows with a
+  // fixed capacity, and many invitees can book into the same session up to that
+  // capacity. null = classic 1:1 event type (unchanged behavior).
+  capacity        Int?
   // JSON array of custom intake questions: [{ label, required }].
   intakeQuestions String?
   active          Boolean        @default(true)
@@ -278,6 +283,7 @@ model EventType {
 
   bookings        Booking[]
   members         EventTypeMember[]
+  sessions        Session[]
 
   @@unique([userId, slug])
 }
@@ -287,6 +293,42 @@ enum LocationType {
   PHONE
   GOOGLE_MEET
   ZOOM
+}
+
+// A concrete instance of a GROUP event type (EventType.capacity != null).
+// Owner creates one per class/webinar occurrence: date + capacity. Many
+// bookings can attach to the same session up to its capacity. Overbooking is
+// prevented by an atomic UPDATE ... WHERE seatsTaken < capacity — see the
+// group booking action.
+model Session {
+  id              String    @id @default(cuid())
+  eventTypeId     String
+  eventType       EventType @relation(fields: [eventTypeId], references: [id], onDelete: Cascade)
+  // Stored in UTC. Duration comes from the event type — no endTime field so
+  // there's no way for the two to drift out of sync.
+  startTime       DateTime
+  // Snapshot of the event type's duration at creation, so shortening the
+  // event type later doesn't retroactively cut a session short.
+  durationMinutes Int
+  // Max attendees for this session. Snapshotted from EventType.capacity at
+  // creation but editable per-session (e.g. one class has extra chairs).
+  capacity        Int
+  // Number of confirmed seats taken. Atomically incremented on book, decremented
+  // on cancel. Never edited directly by application code — always via the
+  // atomic UPDATE statements in the group booking + cancel actions.
+  seatsTaken      Int       @default(0)
+  // Shared video meeting URL for the whole session (all attendees join here).
+  // Created at session-creation time when the event type is GOOGLE_MEET/ZOOM.
+  meetingUrl      String?
+  meetingProvider String?
+  calendarEventId String?
+  cancelled       Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  bookings        Booking[]
+
+  @@index([eventTypeId, startTime])
 }
 
 // A weekly-recurring availability window for a user.
@@ -311,6 +353,10 @@ model Booking {
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   eventTypeId  String
   eventType    EventType     @relation(fields: [eventTypeId], references: [id], onDelete: Cascade)
+  // For group event types only: which Session this booking attaches to. Null
+  // for classic 1:1 bookings — those keep using the auto-generated slot flow.
+  sessionId    String?
+  session      Session?      @relation(fields: [sessionId], references: [id], onDelete: SetNull)
   teamMemberId String?
   teamMember   TeamMember?   @relation(fields: [teamMemberId], references: [id], onDelete: SetNull)
   inviteeName  String

@@ -20,6 +20,7 @@ type Initial = {
   confirmationRedirectUrl: string;
   replyToEmail: string;
   requiresApproval: boolean;
+  capacity: number | null;
   questions: IntakeQuestion[];
   assignmentMode: "SOLO" | "ROUND_ROBIN" | "COLLECTIVE";
   poolMemberIds: string[];
@@ -37,6 +38,10 @@ export default function EventTypeEditor({ initial }: { initial: Initial }) {
   const [pool, setPool] = useState<string[]>(initial.poolMemberIds);
   const [location, setLocation] = useState<LocationType>(initial.locationType);
   const [locationDetail, setLocationDetail] = useState(initial.locationDetail);
+  const [isGroup, setIsGroup] = useState(initial.capacity != null);
+  const [capacity, setCapacity] = useState<string>(
+    initial.capacity != null ? String(initial.capacity) : "10",
+  );
 
   function togglePool(id: string) {
     setPool((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
@@ -205,6 +210,42 @@ export default function EventTypeEditor({ initial }: { initial: Initial }) {
           </span>
         </span>
       </label>
+
+      <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+        <label className="flex items-start gap-2 text-sm text-slate-700">
+          <input
+            type="checkbox"
+            checked={isGroup}
+            onChange={(e) => setIsGroup(e.target.checked)}
+            className="mt-0.5 h-4 w-4 rounded border-slate-300"
+          />
+          <span>
+            Group event (multiple attendees per session)
+            <span className="block text-xs text-slate-500">
+              Instead of showing time slots from your weekly availability, you create each
+              class/session manually and invitees book into a shared spot up to the seat
+              limit. Ideal for classes, webinars, and workshops.
+            </span>
+          </span>
+        </label>
+        {isGroup && (
+          <div className="mt-3 pl-6">
+            <Field label="Seats per session">
+              <input
+                type="number"
+                min={1}
+                value={capacity}
+                onChange={(e) => setCapacity(e.target.value)}
+                className={input}
+                title="Default seat count for new sessions of this event type"
+              />
+            </Field>
+          </div>
+        )}
+        {/* Only send `capacity` in the form payload when the group toggle is on;
+            otherwise it stays null in the DB and the classic 1:1 flow runs. */}
+        {isGroup && <input type="hidden" name="capacity" value={capacity} />}
+      </div>
 
       <div>
         <p className="text-sm font-medium text-slate-700">Location</p>

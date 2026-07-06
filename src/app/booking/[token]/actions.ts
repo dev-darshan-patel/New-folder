@@ -96,13 +96,36 @@ export async function cancelBookingAction(formData: FormData) {
   }
 
   const sequence = booking.sequence + 1;
-  await prisma.booking.update({
-    where: { id: booking.id },
-    data: { status: "CANCELLED", sequence },
-  });
+  // Group vs 1:1: for a group session booking, we ALSO need to decrement the
+  // session's seatsTaken counter — atomically, in the same transaction, so the
+  // counter can't drift from reality even if the process crashes mid-way. For
+  // 1:1 bookings this is a plain update. Do NOT delete the shared session
+  // meeting (many other attendees still need it) — that only happens if the
+  // OWNER cancels the whole session via cancelSessionAction.
+  if (booking.sessionId && booking.status === "CONFIRMED") {
+    await prisma.$transaction([
+      prisma.booking.update({
+        where: { id: booking.id },
+        data: { status: "CANCELLED", sequence },
+      }),
+      // Guarded by seatsTaken > 0 so we never underflow into negatives even
+      // if something weird happened (double-cancel race, manual DB edit).
+      prisma.$executeRaw`
+        UPDATE "Session"
+        SET "seatsTaken" = "seatsTaken" - 1, "updatedAt" = NOW()
+        WHERE id = ${booking.sessionId} AND "seatsTaken" > 0
+      `,
+    ]);
+  } else {
+    await prisma.booking.update({
+      where: { id: booking.id },
+      data: { status: "CANCELLED", sequence },
+    });
+  }
 
-  // Remove the video meeting if one was created, via whichever provider made it.
-  if (booking.calendarEventId) {
+  // Remove the video meeting for 1:1 bookings only. For group bookings, the
+  // meeting belongs to the whole session and lives/dies with it.
+  if (!booking.sessionId && booking.calendarEventId) {
     if (booking.meetingProvider === "zoom") {
       await deleteZoomMeeting(booking.userId, booking.calendarEventId);
     } else {
@@ -200,6 +223,15 @@ export async function rescheduleBookingAction(input: {
   });
   if (!booking || booking.status === "CANCELLED") {
     return { ok: false, error: "This booking can no longer be changed." };
+  }
+  // Group bookings can't be rescheduled inline — cancel and pick another
+  // session instead. Rescheduling would need to atomically swap seats between
+  // two sessions, adding a lot of edge cases for a v1 feature.
+  if (booking.sessionId) {
+    return {
+      ok: false,
+      error: "Group bookings can't be rescheduled — please cancel and pick another session.",
+    };
   }
 
   const viewer = await getCurrentUser();

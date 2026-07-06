@@ -451,3 +451,208 @@ export async function createBookingAction(input: {
     redirectUrl: eventType.confirmationRedirectUrl,
   };
 }
+
+// Create a booking against a GROUP event type's Session. The seat claim is
+// atomic — one UPDATE statement, verified by the database, no race between
+// "count" and "insert." If two invitees race for the last seat, the second's
+// UPDATE affects zero rows and we return SESSION_FULL.
+export async function createGroupBookingAction(input: {
+  eventTypeId: string;
+  sessionId: string;
+  name: string;
+  email: string;
+  notes?: string;
+  viewerTimezone?: string;
+  answers?: { label: string; value: string }[];
+}): Promise<BookingResult> {
+  if (!(await rateLimit(`book:${await clientIp()}`, 10, 600_000))) {
+    return { ok: false, error: "Too many booking attempts. Please wait a few minutes." };
+  }
+  const name = input.name.trim().slice(0, 200);
+  const email = input.email.trim().toLowerCase().slice(0, 320);
+  if (!name || !email) return { ok: false, error: "Name and email are required." };
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+    return { ok: false, error: "Please enter a valid email address." };
+  }
+
+  const eventType = await prisma.eventType.findUnique({
+    where: { id: input.eventTypeId },
+    include: { user: true },
+  });
+  if (!eventType || !eventType.active || eventType.capacity == null) {
+    return { ok: false, error: "This event type is no longer available." };
+  }
+  if (eventType.user.suspended || eventType.user.deletedAt) {
+    return { ok: false, error: "This business is not currently accepting bookings." };
+  }
+
+  // Validate required intake answers up front so we don't waste a seat claim.
+  const questions = parseQuestions(eventType.intakeQuestions);
+  const answers = (input.answers ?? []).slice(0, 50).map((a) => ({
+    label: String(a.label).slice(0, 500),
+    value: String(a.value ?? "").trim().slice(0, 2000),
+  }));
+  for (const q of questions) {
+    if (q.required) {
+      const a = answers.find((x) => x.label === q.label);
+      if (!a || a.value === "") {
+        return { ok: false, error: `Please answer: ${q.label}` };
+      }
+    }
+  }
+  const answersJson = answers.some((a) => a.value !== "")
+    ? JSON.stringify(answers.filter((a) => a.value !== ""))
+    : null;
+
+  const manageToken = `booked-${crypto.randomUUID()}`;
+
+  // Everything DB-side runs in one transaction: atomic seat claim, then the
+  // booking insert. If the insert fails for any reason, the seat claim rolls
+  // back, so seatsTaken can never drift above the true count.
+  let session: {
+    id: string;
+    startTime: Date;
+    durationMinutes: number;
+    meetingUrl: string | null;
+    meetingProvider: string | null;
+    cancelled: boolean;
+  };
+  let bookingId: string;
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      // Atomic increment: the DB checks seatsTaken < capacity as part of the
+      // UPDATE, so two racing requests can't both see "one seat left" and both
+      // succeed — the second one matches zero rows. This is enforced at the
+      // engine level, not by our application logic.
+      const claimed: number = await tx.$executeRaw`
+        UPDATE "Session"
+        SET "seatsTaken" = "seatsTaken" + 1, "updatedAt" = NOW()
+        WHERE id = ${input.sessionId}
+          AND "eventTypeId" = ${eventType.id}
+          AND cancelled = false
+          AND "startTime" > NOW()
+          AND "seatsTaken" < capacity
+      `;
+      if (claimed === 0) throw new Error("SESSION_UNAVAILABLE");
+
+      const s = await tx.session.findUnique({ where: { id: input.sessionId } });
+      if (!s) throw new Error("SESSION_UNAVAILABLE");
+
+      const created = await tx.booking.create({
+        data: {
+          userId: eventType.userId,
+          eventTypeId: eventType.id,
+          sessionId: s.id,
+          inviteeName: name,
+          inviteeEmail: email,
+          notes: input.notes?.trim().slice(0, 2000) || null,
+          startTime: s.startTime,
+          endTime: new Date(s.startTime.getTime() + s.durationMinutes * 60_000),
+          manageToken,
+          answers: answersJson,
+          status: eventType.requiresApproval ? "PENDING" : "CONFIRMED",
+          // Denormalize the session's meeting fields onto the booking so the
+          // existing manage/dashboard views (which read booking.meetingUrl)
+          // Just Work without needing to join through session.
+          meetingUrl: s.meetingUrl,
+          meetingProvider: s.meetingProvider,
+        },
+      });
+      return { session: s, bookingId: created.id };
+    });
+    session = result.session;
+    bookingId = result.bookingId;
+    void bookingId;
+  } catch (err) {
+    if (err instanceof Error && err.message === "SESSION_UNAVAILABLE") {
+      return { ok: false, error: "Sorry, this session just filled up or was canceled." };
+    }
+    throw err;
+  }
+
+  const businessTz = eventType.user.timezone;
+  const viewerTz = safeTimezone(input.viewerTimezone) ?? businessTz;
+  const inviteeWhen = formatWhen(session.startTime, viewerTz);
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const manageUrl = `${baseUrl}/booking/${manageToken}`;
+
+  const meetLine = session.meetingUrl
+    ? `\nJoin: ${session.meetingUrl}`
+    : eventType.locationDetail
+      ? `\nWhere: ${eventType.locationDetail}`
+      : "";
+
+  const ics = buildIcs({
+    uid: manageToken,
+    sequence: 0,
+    method: "REQUEST",
+    start: session.startTime,
+    end: new Date(session.startTime.getTime() + session.durationMinutes * 60_000),
+    title: `${eventType.title} — ${eventType.user.businessName}`,
+    description: `Booking with ${eventType.user.businessName}.${session.meetingUrl ? ` Join: ${session.meetingUrl}.` : ""} Manage: ${manageUrl}`,
+    organizerName: eventType.user.businessName,
+    organizerEmail: eventType.user.email,
+    attendeeName: name,
+    attendeeEmail: email,
+    location: session.meetingUrl,
+  });
+  const icsAttachment = {
+    filename: "invite.ics",
+    content: ics,
+    contentType: "text/calendar; charset=utf-8; method=REQUEST",
+  };
+
+  // Notify invitee and business owner. Failures here must not block the booking.
+  try {
+    const inviteeEmail = await renderTemplate(
+      eventType.requiresApproval ? "booking.pending.invitee" : "booking.confirmed.invitee",
+      {
+        invitee_name: name,
+        business_name: eventType.user.businessName,
+        event_title: eventType.title,
+        when: inviteeWhen,
+        timezone: viewerTz,
+        with_line: meetLine,
+        manage_url: manageUrl,
+      },
+    );
+    await sendEmail({
+      to: email,
+      ...inviteeEmail,
+      // Skip the ICS for pending bookings — no real event yet.
+      ...(eventType.requiresApproval ? {} : { attachments: [icsAttachment] }),
+      ...(eventType.replyToEmail ? { replyTo: eventType.replyToEmail } : {}),
+    });
+
+    const ownerWhen = formatWhen(session.startTime, businessTz);
+    const ownerEmail = await renderTemplate(
+      eventType.requiresApproval ? "booking.pending.owner" : "booking.created.owner",
+      {
+        invitee_name: name,
+        invitee_email: email,
+        event_title: eventType.title,
+        when: ownerWhen,
+        timezone: businessTz,
+        extra: `${meetLine}${input.notes ? `\nNotes: ${input.notes}` : ""}`,
+        review_url: `${baseUrl}/dashboard/bookings`,
+      },
+    );
+    await sendEmail({
+      to: eventType.user.email,
+      ...ownerEmail,
+      ...(eventType.requiresApproval ? {} : { attachments: [icsAttachment] }),
+    });
+  } catch (err) {
+    console.error("Failed to send group booking email", err);
+  }
+
+  return {
+    ok: true,
+    when: inviteeWhen,
+    manageUrl,
+    meetingUrl: session.meetingUrl,
+    meetingProvider: session.meetingProvider,
+    redirectUrl: eventType.confirmationRedirectUrl,
+    pending: eventType.requiresApproval,
+  };
+}

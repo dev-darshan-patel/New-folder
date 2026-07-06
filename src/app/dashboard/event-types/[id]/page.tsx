@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { parseQuestions } from "@/lib/intake";
 import { getPlanConfig } from "@/lib/plans";
 import EventTypeEditor from "./EventTypeEditor";
+import SessionsSection from "./SessionsSection";
 
 export default async function EditEventTypePage({
   params,
@@ -71,6 +72,7 @@ export default async function EditEventTypePage({
           confirmationRedirectUrl: eventType.confirmationRedirectUrl ?? "",
           replyToEmail: eventType.replyToEmail ?? "",
           requiresApproval: eventType.requiresApproval,
+          capacity: eventType.capacity,
           questions: parseQuestions(eventType.intakeQuestions),
           assignmentMode: eventType.assignmentMode,
           poolMemberIds: pool.map((p) => p.teamMemberId),
@@ -82,6 +84,15 @@ export default async function EditEventTypePage({
           zoomConnected: Boolean(zoomConnection),
         }}
       />
+
+      {eventType.capacity != null && (
+        <SessionsSection
+          eventTypeId={eventType.id}
+          defaultCapacity={eventType.capacity}
+          durationMinutes={eventType.durationMinutes}
+          businessTimezone={user.timezone}
+        />
+      )}
     </div>
   );
 }

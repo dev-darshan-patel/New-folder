@@ -11,6 +11,8 @@ import { parseQuestions } from "@/lib/intake";
 import { sendEmail } from "@/lib/email";
 import { renderTemplate } from "@/lib/email-templates";
 import { rateLimit } from "@/lib/rate-limit";
+import { createMeetEvent, deleteMeetEvent } from "@/lib/google-calendar";
+import { createZoomMeeting, deleteZoomMeeting } from "@/lib/zoom";
 
 // Re-send the email-verification link to the signed-in (unverified) user.
 export async function resendVerificationAction(): Promise<{ ok: boolean; error?: string }> {
@@ -185,6 +187,12 @@ export async function updateEventTypeAction(formData: FormData) {
 
   const requiresApproval = formData.get("requiresApproval") === "1";
 
+  // Group event type toggle. Any positive integer marks the event type as
+  // GROUP (invitees book into owner-created Session rows); empty/zero = classic
+  // 1:1 (unchanged behavior).
+  const rawCapacity = String(formData.get("capacity") || "").trim();
+  const capacity = rawCapacity === "" ? null : clampInt(rawCapacity, 1, 10_000, 1);
+
   // Meeting location. GOOGLE_MEET/ZOOM only stick if the owner has actually
   // connected that provider; otherwise silently fall back to IN_PERSON so we
   // never promise a video link we can't create.
@@ -244,6 +252,7 @@ export async function updateEventTypeAction(formData: FormData) {
       confirmationRedirectUrl,
       replyToEmail,
       requiresApproval,
+      capacity,
       intakeQuestions,
       assignmentMode,
       locationType,
@@ -293,4 +302,128 @@ function toMinutes(hhmm: string): number | null {
   const m = Number(match[2]);
   if (h > 23 || m > 59) return null;
   return h * 60 + m;
+}
+
+// Create a Session for a GROUP event type. Owner picks a date/time + capacity;
+// the system snapshots the event type's duration and (for GOOGLE_MEET/ZOOM
+// event types) provisions ONE shared video meeting that every attendee will
+// join. Ownership enforced by the userId filter on the event type lookup.
+export async function createSessionAction(formData: FormData): Promise<void> {
+  const user = await getCurrentUser();
+  if (!user) throw new Error("Not authenticated");
+
+  const eventTypeId = String(formData.get("eventTypeId") || "");
+  const startLocal = String(formData.get("startLocal") || ""); // "YYYY-MM-DDTHH:mm"
+  const rawCapacity = String(formData.get("capacity") || "").trim();
+
+  const eventType = await prisma.eventType.findFirst({
+    where: { id: eventTypeId, userId: user.id },
+  });
+  if (!eventType) return;
+  if (eventType.capacity == null) return; // not a group event type
+
+  const capacity = clampInt(rawCapacity || String(eventType.capacity), 1, 10_000, eventType.capacity);
+
+  // Parse the local wall-clock string in the business timezone. `new Date(iso)`
+  // interprets a bare "YYYY-MM-DDTHH:mm" as LOCAL to the server, which is wrong;
+  // instead reconstruct it via TZDate so it's local to the business's own zone.
+  const { TZDate } = await import("@date-fns/tz");
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(startLocal);
+  if (!match) return;
+  const [, y, mo, d, h, mi] = match.map(Number);
+  const start = new Date(new TZDate(y, mo - 1, d, h, mi, 0, 0, user.timezone).getTime());
+  if (Number.isNaN(start.getTime()) || start.getTime() < Date.now()) return;
+  const end = new Date(start.getTime() + eventType.durationMinutes * 60_000);
+
+  // Provision a shared meeting for Meet/Zoom event types up front, so every
+  // booking that lands on this session inherits the same join URL. Failure
+  // here is non-fatal — the session still exists, just without a link.
+  let meetingUrl: string | null = null;
+  let meetingProvider: string | null = null;
+  let calendarEventId: string | null = null;
+  if (eventType.locationType === "GOOGLE_MEET") {
+    const meet = await createMeetEvent({
+      userId: user.id,
+      summary: `${eventType.title} (session)`,
+      description: `Group session for ${eventType.title}.`,
+      startUtc: start,
+      endUtc: end,
+      timeZone: user.timezone,
+      attendees: [{ email: user.email, name: user.businessName }],
+    });
+    if (meet) {
+      meetingUrl = meet.meetingUrl;
+      calendarEventId = meet.calendarEventId;
+      meetingProvider = "google";
+    }
+  } else if (eventType.locationType === "ZOOM") {
+    const meet = await createZoomMeeting({
+      userId: user.id,
+      topic: `${eventType.title} (session)`,
+      startUtc: start,
+      endUtc: end,
+      timeZone: user.timezone,
+    });
+    if (meet) {
+      meetingUrl = meet.meetingUrl;
+      calendarEventId = meet.meetingId;
+      meetingProvider = "zoom";
+    }
+  }
+
+  await prisma.session.create({
+    data: {
+      eventTypeId: eventType.id,
+      startTime: start,
+      durationMinutes: eventType.durationMinutes,
+      capacity,
+      meetingUrl,
+      meetingProvider,
+      calendarEventId,
+    },
+  });
+
+  revalidatePath(`/dashboard/event-types/${eventType.id}`);
+}
+
+// Cancel a Session and any active bookings under it. Also deletes the
+// underlying provider meeting (Meet/Zoom) if one was created. Bookings inside
+// the session flip to CANCELLED; individual invitees keep their manage token
+// so they can see the "this session was canceled" state, and the Session row
+// is retained (with `cancelled = true`) for audit — not hard-deleted, so
+// bookings still have a foreign key target.
+export async function cancelSessionAction(formData: FormData): Promise<void> {
+  const user = await getCurrentUser();
+  if (!user) throw new Error("Not authenticated");
+  const sessionId = String(formData.get("sessionId") || "");
+
+  const session = await prisma.session.findFirst({
+    where: { id: sessionId, eventType: { userId: user.id } },
+    include: { eventType: true },
+  });
+  if (!session) return;
+  if (session.cancelled) return;
+
+  // Best-effort clean-up of the provider meeting.
+  if (session.calendarEventId) {
+    if (session.meetingProvider === "zoom") {
+      await deleteZoomMeeting(user.id, session.calendarEventId);
+    } else if (session.meetingProvider === "google") {
+      await deleteMeetEvent(user.id, session.calendarEventId);
+    }
+  }
+
+  await prisma.$transaction([
+    prisma.booking.updateMany({
+      where: { sessionId: session.id, status: { in: ["CONFIRMED", "PENDING"] } },
+      data: { status: "CANCELLED" },
+    }),
+    prisma.session.update({
+      where: { id: session.id },
+      data: { cancelled: true, seatsTaken: 0 },
+    }),
+  ]);
+
+  revalidatePath(`/dashboard/event-types/${session.eventTypeId}`);
+  revalidatePath("/dashboard/bookings");
 }

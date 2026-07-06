@@ -6,6 +6,7 @@ import { isPublicBookingAllowed } from "@/lib/platform-config";
 import { isFeatureEnabled } from "@/lib/feature-flags";
 import MaintenanceNotice from "@/components/MaintenanceNotice";
 import BookingWidget from "./BookingWidget";
+import GroupBookingWidget from "./GroupBookingWidget";
 import EmbedResizer from "@/components/EmbedResizer";
 
 export default async function BookingPage({
@@ -40,7 +41,7 @@ export default async function BookingPage({
 
   return (
     <div
-      className={`mx-auto flex w-full max-w-2xl flex-col px-6 ${
+      className={`mx-auto flex w-full max-w-4xl flex-col px-6 ${
         embed ? "py-6" : "min-h-screen py-12"
       }`}
       style={{ fontFamily: brand.fontStack }}
@@ -76,12 +77,42 @@ export default async function BookingPage({
         )}
       </div>
 
-      <BookingWidget
-        eventTypeId={eventType.id}
-        timezone={user.timezone}
-        accent={brand.color}
-        questions={parseQuestions(eventType.intakeQuestions)}
-      />
+      {eventType.capacity != null ? (
+        <GroupBookingWidget
+          eventTypeId={eventType.id}
+          timezone={user.timezone}
+          accent={brand.color}
+          questions={parseQuestions(eventType.intakeQuestions)}
+          sessions={await loadUpcomingSessions(eventType.id)}
+        />
+      ) : (
+        <BookingWidget
+          eventTypeId={eventType.id}
+          timezone={user.timezone}
+          accent={brand.color}
+          questions={parseQuestions(eventType.intakeQuestions)}
+        />
+      )}
     </div>
   );
+}
+
+// Sessions the invitee can still book into: upcoming, not canceled, with at
+// least one seat left. Rendered from the server so the initial paint is real.
+async function loadUpcomingSessions(eventTypeId: string) {
+  const rows = await prisma.session.findMany({
+    where: {
+      eventTypeId,
+      cancelled: false,
+      startTime: { gte: new Date() },
+    },
+    orderBy: { startTime: "asc" },
+    select: { id: true, startTime: true, capacity: true, seatsTaken: true },
+    take: 50,
+  });
+  return rows.map((r) => ({
+    id: r.id,
+    startUtc: r.startTime.toISOString(),
+    seatsLeft: Math.max(0, r.capacity - r.seatsTaken),
+  }));
 }

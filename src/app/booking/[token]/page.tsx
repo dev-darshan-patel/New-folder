@@ -93,7 +93,7 @@ export default async function ManageBookingPage({
 
         {!canceled && !past && (
           <div className="mt-8 flex gap-3">
-            {!pending && (
+            {!pending && !booking.sessionId && (
               <Link
                 href={`/booking/${token}/reschedule`}
                 className="flex-1 rounded-lg bg-indigo-600 px-4 py-2.5 text-center text-sm font-semibold text-white hover:bg-indigo-500"
