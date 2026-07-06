@@ -268,6 +268,10 @@ model EventType {
   // fixed capacity, and many invitees can book into the same session up to that
   // capacity. null = classic 1:1 event type (unchanged behavior).
   capacity        Int?
+  // When true, invitees can book this as a WEEKLY recurring series (same
+  // weekday/time, fixed count). Only valid for classic 1:1 event types
+  // (capacity == null, SOLO). null/false = single bookings only.
+  allowRecurring  Boolean @default(false)
   // JSON array of custom intake questions: [{ label, required }].
   intakeQuestions String?
   active          Boolean        @default(true)
@@ -393,9 +397,17 @@ model Booking {
   // The provider-side meeting/event id backing this booking, so reschedule can
   // patch it and cancel can delete it. Null when no meeting was created.
   calendarEventId String?
+  // Recurring series linkage. All occurrences of one weekly series share a
+  // random seriesId (NOT a foreign key — no series table; each occurrence is a
+  // fully independent Booking row). seriesIndex/seriesTotal are 1-based for
+  // display ("Week 2 of 4"). All null for single (non-recurring) bookings.
+  seriesId     String?
+  seriesIndex  Int?
+  seriesTotal  Int?
   createdAt    DateTime      @default(now())
 
   @@index([userId, startTime])
+  @@index([seriesId])
 }
 
 enum BookingStatus {

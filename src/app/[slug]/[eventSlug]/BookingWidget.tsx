@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import {
   fetchSlotsAction,
   createBookingAction,
+  createRecurringBookingAction,
   type BookingResult,
 } from "../actions";
 import type { Slot } from "@/lib/availability";
@@ -28,11 +29,13 @@ export default function BookingWidget({
   timezone,
   accent = "#4f46e5",
   questions = [],
+  allowRecurring = false,
 }: {
   eventTypeId: string;
   timezone: string;
   accent?: string;
   questions?: IntakeQuestion[];
+  allowRecurring?: boolean;
 }) {
   // Build extra days so filtering past dates (per viewer tz) still leaves 14.
   const allDays = useMemo(() => buildDays(timezone, 21), [timezone]);
@@ -128,9 +131,14 @@ export default function BookingWidget({
         <h2 className="mt-4 text-lg font-semibold text-slate-900">
           Request received
         </h2>
-        <p className="mt-1 text-sm text-slate-600">{result.when}</p>
+        {result.series ? (
+          <SeriesDates whenList={result.series.whenList} />
+        ) : (
+          <p className="mt-1 text-sm text-slate-600">{result.when}</p>
+        )}
         <p className="mt-3 text-sm text-slate-500">
-          This booking isn&apos;t confirmed yet — we&apos;ll email you once it&apos;s approved.
+          {result.series ? "These sessions aren't" : "This booking isn't"} confirmed yet — we&apos;ll email you once
+          {result.series ? " they're" : " it's"} approved.
         </p>
         <a
           href={result.manageUrl}
@@ -152,7 +160,11 @@ export default function BookingWidget({
         <h2 className="mt-4 text-lg font-semibold text-slate-900">
           You&apos;re booked!
         </h2>
-        <p className="mt-1 text-sm text-slate-600">{result.when}</p>
+        {result.series ? (
+          <SeriesDates whenList={result.series.whenList} />
+        ) : (
+          <p className="mt-1 text-sm text-slate-600">{result.when}</p>
+        )}
         {result.meetingUrl && (
           <a
             href={result.meetingUrl}
@@ -165,14 +177,16 @@ export default function BookingWidget({
           </a>
         )}
         <p className="mt-3 text-sm text-slate-500">
-          A confirmation has been sent to your email.
+          {result.series
+            ? "A confirmation with all calendar invites has been sent to your email."
+            : "A confirmation has been sent to your email."}
         </p>
         <a
           href={result.manageUrl}
           style={{ color: accent }}
           className="mt-4 inline-block text-sm font-medium hover:underline"
         >
-          Reschedule or cancel
+          {result.series ? "Manage bookings" : "Reschedule or cancel"}
         </a>
       </div>
     );
@@ -277,8 +291,9 @@ export default function BookingWidget({
                     ? { name: match[1].trim() || undefined, email: match[2].trim() }
                     : { email: line };
                 });
+              const repeatCount = Number(fd.get("repeat") || "1");
               startSubmit(async () => {
-                const res = await createBookingAction({
+                const common = {
                   eventTypeId,
                   startUtc: selectedSlot.startUtc,
                   name: String(fd.get("name") || ""),
@@ -287,7 +302,11 @@ export default function BookingWidget({
                   viewerTimezone: viewerTz,
                   answers,
                   guests,
-                });
+                };
+                const res =
+                  allowRecurring && repeatCount > 1
+                    ? await createRecurringBookingAction({ ...common, count: repeatCount })
+                    : await createBookingAction(common);
                 if (res.ok) setResult(res);
                 else setFormError(res.error);
               });
@@ -335,6 +354,20 @@ export default function BookingWidget({
                   placeholder={q.required ? `${q.label} *` : `${q.label} (optional)`}
                 />
               ))}
+              {allowRecurring && (
+                <label className="block">
+                  <span className="text-xs font-medium text-slate-600">Repeat</span>
+                  <NativeSelect name="repeat" defaultValue="1" className="mt-1">
+                    <option value="1">Just this time</option>
+                    <option value="2">Weekly · 2 sessions</option>
+                    <option value="4">Weekly · 4 sessions</option>
+                    <option value="8">Weekly · 8 sessions</option>
+                  </NativeSelect>
+                  <span className="mt-1 block text-xs text-slate-400">
+                    Books the same weekday &amp; time each week.
+                  </span>
+                </label>
+              )}
               {formError && (
                 <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
                   {formError}
@@ -353,6 +386,21 @@ export default function BookingWidget({
         )}
       </div>
       </div>
+    </div>
+  );
+}
+
+// Compact list of a recurring series' occurrence dates, shown on the
+// confirmation card.
+function SeriesDates({ whenList }: { whenList: string[] }) {
+  return (
+    <div className="mt-2 text-sm text-slate-600">
+      <p className="font-medium">{whenList.length} weekly sessions:</p>
+      <ul className="mt-1 space-y-0.5">
+        {whenList.map((w, i) => (
+          <li key={i}>{w}</li>
+        ))}
+      </ul>
     </div>
   );
 }

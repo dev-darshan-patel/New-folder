@@ -89,6 +89,49 @@ export function utcToZonedYmd(
   return { year, month, day };
 }
 
+// Wall-clock minutes-from-midnight of a UTC instant, as seen in the timezone.
+function utcToZonedMinutes(instant: Date, timeZone: string): number {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone,
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(instant);
+  const h = Number(parts.find((p) => p.type === "hour")?.value ?? "0");
+  const m = Number(parts.find((p) => p.type === "minute")?.value ?? "0");
+  return h * 60 + m;
+}
+
+// Generate the UTC start/end instants for a WEEKLY recurring series: the same
+// weekday and wall-clock time as `firstStartUtc`, repeated `count` times, 7
+// calendar days apart, in the business timezone.
+//
+// DST-CRITICAL: we do NOT add 7*24h of milliseconds (that would shift the
+// wall-clock time by ±1h across a daylight-saving boundary). Instead we take
+// the first occurrence's wall-clock date + time, advance the *calendar date*
+// by 7 days per step, and re-convert that date+time to a UTC instant via
+// zonedToUtc — so "Tuesday 18:00" stays 18:00 local even as its UTC offset
+// changes across the DST switch.
+export function generateWeeklyOccurrences(params: {
+  firstStartUtc: Date;
+  count: number;
+  timeZone: string;
+  durationMinutes: number;
+}): { start: Date; end: Date }[] {
+  const { firstStartUtc, count, timeZone, durationMinutes } = params;
+  const minutes = utcToZonedMinutes(firstStartUtc, timeZone);
+  const firstYmd = utcToZonedYmd(firstStartUtc, timeZone);
+
+  const out: { start: Date; end: Date }[] = [];
+  for (let i = 0; i < count; i++) {
+    const ymd = addDaysCalendar(firstYmd.year, firstYmd.month, firstYmd.day, i * 7);
+    const start = zonedToUtc(ymd.year, ymd.month, ymd.day, minutes, timeZone);
+    const end = new Date(start.getTime() + durationMinutes * 60_000);
+    out.push({ start, end });
+  }
+  return out;
+}
+
 // True if this event type has already hit its weekly or monthly cap for the
 // week/month containing `date` — in which case the whole day has no slots.
 // Shared by the solo and team slot generators.

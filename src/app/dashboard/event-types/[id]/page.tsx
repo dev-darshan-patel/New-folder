@@ -73,6 +73,7 @@ export default async function EditEventTypePage({
           replyToEmail: eventType.replyToEmail ?? "",
           requiresApproval: eventType.requiresApproval,
           capacity: eventType.capacity,
+          allowRecurring: eventType.allowRecurring,
           questions: parseQuestions(eventType.intakeQuestions),
           assignmentMode: eventType.assignmentMode,
           poolMemberIds: pool.map((p) => p.teamMemberId),

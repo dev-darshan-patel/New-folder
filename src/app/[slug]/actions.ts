@@ -6,6 +6,7 @@ import {
   getTeamSlotsForDate,
   weekOrMonthCapHit,
   utcToZonedYmd,
+  generateWeeklyOccurrences,
   type Slot,
 } from "@/lib/availability";
 import { getTeamMemberBusyWindows, isFreeAt, pickRoundRobinMember } from "@/lib/team";
@@ -87,6 +88,9 @@ export type BookingResult =
       // True when the event type requires owner approval — the booking is
       // PENDING, not yet confirmed, and has no meeting link yet.
       pending?: boolean;
+      // Present when this was a recurring series booking: the count booked and
+      // each occurrence's formatted date/time (invitee's timezone).
+      series?: { total: number; whenList: string[] };
     }
   | { ok: false; error: string };
 
@@ -449,6 +453,355 @@ export async function createBookingAction(input: {
     meetingUrl,
     meetingProvider,
     redirectUrl: eventType.confirmationRedirectUrl,
+  };
+}
+
+// Allowed occurrence counts for a weekly recurring series.
+const RECURRING_COUNTS = new Set([2, 4, 8]);
+
+// Create a WEEKLY recurring series: N independent Booking rows, same weekday/
+// time, sharing a random seriesId. All-or-nothing — if ANY occurrence conflicts
+// (overlap or a per-event-type cap), zero rows are inserted and the error names
+// the offending date. Only for classic 1:1 SOLO event types that opted in.
+export async function createRecurringBookingAction(input: {
+  eventTypeId: string;
+  startUtc: string; // first occurrence
+  count: number; // 2 | 4 | 8
+  name: string;
+  email: string;
+  notes?: string;
+  viewerTimezone?: string;
+  answers?: { label: string; value: string }[];
+  guests?: Guest[];
+}): Promise<BookingResult> {
+  if (!(await rateLimit(`book:${await clientIp()}`, 10, 600_000))) {
+    return { ok: false, error: "Too many booking attempts. Please wait a few minutes." };
+  }
+  const name = input.name.trim().slice(0, 200);
+  const email = input.email.trim().toLowerCase().slice(0, 320);
+  if (!name || !email) return { ok: false, error: "Name and email are required." };
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+    return { ok: false, error: "Please enter a valid email address." };
+  }
+  if (!RECURRING_COUNTS.has(input.count)) {
+    return { ok: false, error: "Invalid recurrence length." };
+  }
+
+  const eventType = await prisma.eventType.findUnique({
+    where: { id: input.eventTypeId },
+    include: { user: true },
+  });
+  if (!eventType || !eventType.active) {
+    return { ok: false, error: "This event type is no longer available." };
+  }
+  // Recurring is only valid for opted-in, classic 1:1, SOLO event types.
+  if (!eventType.allowRecurring || eventType.capacity != null || eventType.assignmentMode !== "SOLO") {
+    return { ok: false, error: "This event type can't be booked as a series." };
+  }
+  if (eventType.user.suspended || eventType.user.deletedAt) {
+    return { ok: false, error: "This business is not currently accepting bookings." };
+  }
+
+  const first = new Date(input.startUtc);
+  if (Number.isNaN(first.getTime()) || first.getTime() < Date.now()) {
+    return { ok: false, error: "That time is no longer available." };
+  }
+
+  const businessTz = eventType.user.timezone;
+  const occurrences = generateWeeklyOccurrences({
+    firstStartUtc: first,
+    count: input.count,
+    timeZone: businessTz,
+    durationMinutes: eventType.durationMinutes,
+  });
+
+  // Validate required intake answers once (shared across occurrences).
+  const questions = parseQuestions(eventType.intakeQuestions);
+  const answers = (input.answers ?? []).slice(0, 50).map((a) => ({
+    label: String(a.label).slice(0, 500),
+    value: String(a.value ?? "").trim().slice(0, 2000),
+  }));
+  for (const q of questions) {
+    if (q.required) {
+      const a = answers.find((x) => x.label === q.label);
+      if (!a || a.value === "") {
+        return { ok: false, error: `Please answer: ${q.label}` };
+      }
+    }
+  }
+  const answersJson = answers.some((a) => a.value !== "")
+    ? JSON.stringify(answers.filter((a) => a.value !== ""))
+    : null;
+  const guests = sanitizeGuests(input.guests ?? [], email);
+  const guestsJson = guests.length ? JSON.stringify(guests) : null;
+
+  const viewerTz = safeTimezone(input.viewerTimezone) ?? businessTz;
+  const dateFmt = (d: Date) =>
+    new Intl.DateTimeFormat("en-US", { timeZone: businessTz, dateStyle: "medium" }).format(d);
+
+  // Pre-check caps per occurrence, counting this series' own earlier occurrences
+  // too (a weekly series inherently adds one booking per week/day/month). Cheap
+  // early failure before we open the transaction.
+  const seriesDayCounts = new Map<string, number>();
+  const seriesWeekMonthDates = occurrences.map((o) => utcToZonedYmd(o.start, businessTz));
+  for (let i = 0; i < occurrences.length; i++) {
+    const o = occurrences[i];
+    // Daily cap
+    if (eventType.maxPerDay != null) {
+      const dayStart = new Date(o.start);
+      dayStart.setUTCHours(0, 0, 0, 0);
+      const dayEnd = new Date(dayStart.getTime() + 86_400_000);
+      const dayKey = dayStart.toISOString();
+      const existing = await prisma.booking.count({
+        where: {
+          eventTypeId: eventType.id,
+          status: { in: BLOCKING_STATUSES },
+          startTime: { gte: dayStart, lt: dayEnd },
+        },
+      });
+      const withinSeries = seriesDayCounts.get(dayKey) ?? 0;
+      if (existing + withinSeries >= eventType.maxPerDay) {
+        return { ok: false, error: `${dateFmt(o.start)} is fully booked — the series wasn't booked.` };
+      }
+      seriesDayCounts.set(dayKey, withinSeries + 1);
+    }
+    // Weekly/monthly caps. Note: a weekly series lands one occurrence per week,
+    // so maxPerWeek is effectively a "does this event type already have a
+    // booking that week" check — the per-occurrence existing-count check handles
+    // it correctly since each occurrence is in a distinct week.
+    if (eventType.maxPerWeek != null || eventType.maxPerMonth != null) {
+      const ymd = seriesWeekMonthDates[i];
+      const capped = await weekOrMonthCapHit({
+        eventTypeId: eventType.id,
+        year: ymd.year,
+        month: ymd.month,
+        day: ymd.day,
+        timeZone: businessTz,
+        maxPerWeek: eventType.maxPerWeek,
+        maxPerMonth: eventType.maxPerMonth,
+      });
+      if (capped) {
+        return { ok: false, error: `${dateFmt(o.start)} is no longer available — the series wasn't booked.` };
+      }
+    }
+  }
+
+  const seriesId = crypto.randomUUID();
+  // One token per occurrence (preserves the 1:1 manageToken invariant).
+  const tokens = occurrences.map(() => `booked-${crypto.randomUUID()}`);
+  const status = eventType.requiresApproval ? "PENDING" : "CONFIRMED";
+
+  // Single transaction: re-check overlap for EVERY occurrence, then insert all.
+  // First conflict rolls back the whole series (all-or-nothing).
+  let createdIds: string[];
+  try {
+    createdIds = await prisma.$transaction(async (tx) => {
+      for (const o of occurrences) {
+        const conflict = await tx.booking.findFirst({
+          where: {
+            userId: eventType.userId,
+            status: { in: BLOCKING_STATUSES },
+            startTime: { lt: o.end },
+            endTime: { gt: o.start },
+          },
+        });
+        if (conflict) throw new Error(`SLOT_TAKEN:${o.start.toISOString()}`);
+      }
+      const ids: string[] = [];
+      for (let i = 0; i < occurrences.length; i++) {
+        const created = await tx.booking.create({
+          data: {
+            userId: eventType.userId,
+            eventTypeId: eventType.id,
+            inviteeName: name,
+            inviteeEmail: email,
+            notes: input.notes?.trim().slice(0, 2000) || null,
+            startTime: occurrences[i].start,
+            endTime: occurrences[i].end,
+            manageToken: tokens[i],
+            answers: answersJson,
+            guests: guestsJson,
+            status,
+            seriesId,
+            seriesIndex: i + 1,
+            seriesTotal: occurrences.length,
+          },
+        });
+        ids.push(created.id);
+      }
+      return ids;
+    });
+  } catch (err) {
+    if (err instanceof Error && err.message.startsWith("SLOT_TAKEN:")) {
+      const iso = err.message.slice("SLOT_TAKEN:".length);
+      return {
+        ok: false,
+        error: `${dateFmt(new Date(iso))} is no longer available — the series wasn't booked.`,
+      };
+    }
+    throw err;
+  }
+
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const firstManageUrl = `${baseUrl}/booking/${tokens[0]}`;
+  const whenList = occurrences.map((o) => formatWhen(o.start, viewerTz));
+
+  // Pending series: skip meeting links + full confirmation; notify both parties.
+  if (eventType.requiresApproval) {
+    try {
+      const dates = whenList.map((w) => `• ${w}`).join("\n");
+      const inviteeEmail = await renderTemplate("booking.pending.invitee", {
+        invitee_name: name,
+        business_name: eventType.user.businessName,
+        event_title: `${eventType.title} (weekly × ${occurrences.length})`,
+        when: whenList[0],
+        timezone: viewerTz,
+      });
+      await sendEmail({
+        to: email,
+        ...inviteeEmail,
+        text: `${inviteeEmail.text}\n\nAll sessions:\n${dates}`,
+        ...(eventType.replyToEmail ? { replyTo: eventType.replyToEmail } : {}),
+      });
+      const ownerEmail = await renderTemplate("booking.pending.owner", {
+        invitee_name: name,
+        invitee_email: email,
+        event_title: `${eventType.title} (weekly × ${occurrences.length})`,
+        when: formatWhen(occurrences[0].start, businessTz),
+        timezone: businessTz,
+        review_url: `${baseUrl}/dashboard/bookings`,
+      });
+      await sendEmail({ to: eventType.user.email, ...ownerEmail });
+    } catch (err) {
+      console.error("Failed to send pending recurring email", err);
+    }
+    return {
+      ok: true,
+      when: whenList[0],
+      manageUrl: firstManageUrl,
+      pending: true,
+      series: { total: occurrences.length, whenList },
+    };
+  }
+
+  // Provision a video meeting PER occurrence (each is an independent event) and
+  // build one ICS per occurrence. Best-effort — never fails the booking.
+  const icsAttachments: { filename: string; content: string; contentType: string }[] = [];
+  for (let i = 0; i < occurrences.length; i++) {
+    const o = occurrences[i];
+    const manageUrl = `${baseUrl}/booking/${tokens[i]}`;
+    let meetingUrl: string | null = null;
+    let locationText: string | null = null;
+    if (eventType.locationType === "GOOGLE_MEET") {
+      const meet = await createMeetEvent({
+        userId: eventType.userId,
+        summary: `${eventType.title} — ${name}`,
+        description: `Booking with ${eventType.user.businessName} (${i + 1}/${occurrences.length}). Manage: ${manageUrl}`,
+        startUtc: o.start,
+        endUtc: o.end,
+        timeZone: businessTz,
+        attendees: [
+          { email, name },
+          { email: eventType.user.email, name: eventType.user.businessName },
+          ...guests.map((g) => ({ email: g.email, name: g.name })),
+        ],
+      });
+      if (meet) {
+        meetingUrl = meet.meetingUrl;
+        locationText = meet.meetingUrl;
+        await prisma.booking.update({
+          where: { id: createdIds[i] },
+          data: { meetingUrl: meet.meetingUrl, calendarEventId: meet.calendarEventId, meetingProvider: "google" },
+        });
+      }
+    } else if (eventType.locationType === "ZOOM") {
+      const meet = await createZoomMeeting({
+        userId: eventType.userId,
+        topic: `${eventType.title} — ${name}`,
+        startUtc: o.start,
+        endUtc: o.end,
+        timeZone: businessTz,
+      });
+      if (meet) {
+        meetingUrl = meet.meetingUrl;
+        locationText = meet.meetingUrl;
+        await prisma.booking.update({
+          where: { id: createdIds[i] },
+          data: { meetingUrl: meet.meetingUrl, calendarEventId: meet.meetingId, meetingProvider: "zoom" },
+        });
+      }
+    } else if (eventType.locationDetail) {
+      locationText = eventType.locationDetail;
+    }
+
+    const ics = buildIcs({
+      uid: tokens[i],
+      sequence: 0,
+      method: "REQUEST",
+      start: o.start,
+      end: o.end,
+      title: `${eventType.title} — ${eventType.user.businessName}`,
+      description: `Booking with ${eventType.user.businessName} (${i + 1}/${occurrences.length}).${meetingUrl ? ` Join: ${meetingUrl}.` : ""} Manage: ${manageUrl}`,
+      organizerName: eventType.user.businessName,
+      organizerEmail: eventType.user.email,
+      attendeeName: name,
+      attendeeEmail: email,
+      extraAttendees: guests,
+      location: locationText,
+    });
+    icsAttachments.push({
+      filename: `invite-${i + 1}.ics`,
+      content: ics,
+      contentType: "text/calendar; charset=utf-8; method=REQUEST",
+    });
+  }
+
+  // One confirmation email carrying ALL occurrence invites (avoids sending N
+  // separate emails and burning send quota).
+  try {
+    const dates = whenList.map((w) => `• ${w}`).join("\n");
+    const inviteeEmail = await renderTemplate("booking.confirmed.invitee", {
+      invitee_name: name,
+      business_name: eventType.user.businessName,
+      event_title: `${eventType.title} (weekly × ${occurrences.length})`,
+      when: whenList[0],
+      timezone: viewerTz,
+      with_line: `\nAll sessions:\n${dates}`,
+      manage_url: firstManageUrl,
+    });
+    await sendEmail({
+      to: email,
+      ...inviteeEmail,
+      attachments: icsAttachments,
+      ...(eventType.replyToEmail ? { replyTo: eventType.replyToEmail } : {}),
+    });
+    for (const guest of guests) {
+      await sendEmail({
+        to: guest.email,
+        ...inviteeEmail,
+        attachments: icsAttachments,
+        ...(eventType.replyToEmail ? { replyTo: eventType.replyToEmail } : {}),
+      });
+    }
+    const ownerEmail = await renderTemplate("booking.created.owner", {
+      invitee_name: name,
+      invitee_email: email,
+      event_title: `${eventType.title} (weekly × ${occurrences.length})`,
+      when: formatWhen(occurrences[0].start, businessTz),
+      timezone: businessTz,
+      extra: `\nAll sessions:\n${dates}${input.notes ? `\nNotes: ${input.notes}` : ""}`,
+    });
+    await sendEmail({ to: eventType.user.email, ...ownerEmail, attachments: icsAttachments });
+  } catch (err) {
+    console.error("Failed to send recurring booking email", err);
+  }
+
+  return {
+    ok: true,
+    when: whenList[0],
+    manageUrl: firstManageUrl,
+    redirectUrl: eventType.confirmationRedirectUrl,
+    series: { total: occurrences.length, whenList },
   };
 }
 

@@ -91,6 +91,7 @@ export default async function BookingPage({
           timezone={user.timezone}
           accent={brand.color}
           questions={parseQuestions(eventType.intakeQuestions)}
+          allowRecurring={eventType.allowRecurring}
         />
       )}
     </div>

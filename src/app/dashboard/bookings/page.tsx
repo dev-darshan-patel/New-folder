@@ -79,6 +79,7 @@ export default async function BookingsPage() {
             manageToken={b.manageToken}
             meetingUrl={b.meetingUrl}
             meetingProvider={b.meetingProvider}
+            series={b.seriesId ? { index: b.seriesIndex ?? 0, total: b.seriesTotal ?? 0 } : null}
             with={b.teamMember?.name ?? null}
           />
         ))}
@@ -148,13 +149,21 @@ function Row(props: {
   manageToken?: string | null;
   meetingUrl?: string | null;
   meetingProvider?: string | null;
+  series?: { index: number; total: number } | null;
   with: string | null;
 }) {
   return (
     <Card className={props.muted ? "opacity-60" : ""}>
       <CardContent className="p-4">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <p className="font-medium text-slate-900">{props.title}</p>
+        <p className="font-medium text-slate-900">
+          {props.title}
+          {props.series && (
+            <span className="ml-2 rounded bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700">
+              Week {props.series.index}/{props.series.total}
+            </span>
+          )}
+        </p>
         <p className="text-sm text-slate-500">{props.when}</p>
       </div>
       <p className="mt-1 text-sm text-slate-600">

@@ -21,6 +21,7 @@ type Initial = {
   replyToEmail: string;
   requiresApproval: boolean;
   capacity: number | null;
+  allowRecurring: boolean;
   questions: IntakeQuestion[];
   assignmentMode: "SOLO" | "ROUND_ROBIN" | "COLLECTIVE";
   poolMemberIds: string[];
@@ -42,6 +43,9 @@ export default function EventTypeEditor({ initial }: { initial: Initial }) {
   const [capacity, setCapacity] = useState<string>(
     initial.capacity != null ? String(initial.capacity) : "10",
   );
+  // Group and recurring are mutually exclusive — a group event uses manually
+  // created sessions, a recurring event repeats a 1:1 slot weekly.
+  const [allowRecurring, setAllowRecurring] = useState(initial.allowRecurring);
 
   function togglePool(id: string) {
     setPool((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
@@ -246,6 +250,28 @@ export default function EventTypeEditor({ initial }: { initial: Initial }) {
             otherwise it stays null in the DB and the classic 1:1 flow runs. */}
         {isGroup && <input type="hidden" name="capacity" value={capacity} />}
       </div>
+
+      {!isGroup && (
+        <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+          <label className="flex items-start gap-2 text-sm text-slate-700">
+            <input
+              type="checkbox"
+              name="allowRecurring"
+              value="1"
+              checked={allowRecurring}
+              onChange={(e) => setAllowRecurring(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-slate-300"
+            />
+            <span>
+              Allow recurring bookings
+              <span className="block text-xs text-slate-500">
+                Invitees can book this as a weekly series (same weekday &amp; time, up to 8
+                sessions). Only for solo, non-group event types.
+              </span>
+            </span>
+          </label>
+        </div>
+      )}
 
       <div>
         <p className="text-sm font-medium text-slate-700">Location</p>

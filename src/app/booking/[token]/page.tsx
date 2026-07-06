@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { parseGuests } from "@/lib/guests";
-import { cancelBookingAction } from "./actions";
+import { cancelBookingAction, cancelRemainingSeriesAction } from "./actions";
 
 export default async function ManageBookingPage({
   params,
@@ -31,6 +31,26 @@ export default async function ManageBookingPage({
   const past = booking.startTime < new Date();
   const guests = parseGuests(booking.guests);
 
+  // For a recurring series, load its sibling occurrences to show the schedule.
+  const siblings = booking.seriesId
+    ? await prisma.booking.findMany({
+        where: { seriesId: booking.seriesId },
+        select: { id: true, startTime: true, status: true, manageToken: true, seriesIndex: true },
+        orderBy: { startTime: "asc" },
+      })
+    : [];
+  const siblingFmt = new Intl.DateTimeFormat("en-US", {
+    timeZone: booking.user.timezone,
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+  // Are there still future, active occurrences from this one onward?
+  const hasRemaining =
+    booking.seriesId != null &&
+    siblings.some(
+      (s) => s.startTime >= booking.startTime && (s.status === "CONFIRMED" || s.status === "PENDING"),
+    );
+
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-lg flex-col justify-center px-6 py-12">
       <div className="rounded-2xl border border-slate-200 bg-white p-8">
@@ -52,6 +72,12 @@ export default async function ManageBookingPage({
               value={guests.map((g) => g.name ? `${g.name} <${g.email}>` : g.email).join(", ")}
             />
           )}
+          {booking.seriesId && booking.seriesTotal && (
+            <Row
+              label="Series"
+              value={`Week ${booking.seriesIndex} of ${booking.seriesTotal}`}
+            />
+          )}
           <Row
             label="Status"
             value={
@@ -65,6 +91,42 @@ export default async function ManageBookingPage({
             }
           />
         </dl>
+
+        {siblings.length > 1 && (
+          <div className="mt-6 rounded-lg border border-slate-200 p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              All sessions in this series
+            </p>
+            <ul className="mt-2 space-y-1 text-sm">
+              {siblings.map((s) => (
+                <li key={s.id} className="flex items-center justify-between gap-3">
+                  <span
+                    className={
+                      s.status === "CANCELLED"
+                        ? "text-slate-400 line-through"
+                        : s.id === booking.id
+                          ? "font-medium text-slate-900"
+                          : "text-slate-600"
+                    }
+                  >
+                    {siblingFmt.format(s.startTime)}
+                  </span>
+                  {s.id !== booking.id && s.manageToken && s.status !== "CANCELLED" && (
+                    <Link
+                      href={`/booking/${s.manageToken}`}
+                      className="text-xs text-indigo-600 hover:underline"
+                    >
+                      Manage
+                    </Link>
+                  )}
+                  {s.status === "CANCELLED" && (
+                    <span className="text-xs text-slate-400">Canceled</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {sp.error === "too_late_to_cancel" && (
           <p className="mt-6 rounded-lg bg-amber-50 px-4 py-3 text-center text-sm text-amber-800">
@@ -93,7 +155,7 @@ export default async function ManageBookingPage({
 
         {!canceled && !past && (
           <div className="mt-8 flex gap-3">
-            {!pending && !booking.sessionId && (
+            {!pending && !booking.sessionId && !booking.seriesId && (
               <Link
                 href={`/booking/${token}/reschedule`}
                 className="flex-1 rounded-lg bg-indigo-600 px-4 py-2.5 text-center text-sm font-semibold text-white hover:bg-indigo-500"
@@ -107,10 +169,22 @@ export default async function ManageBookingPage({
                 type="submit"
                 className="w-full rounded-lg border border-red-300 px-4 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50"
               >
-                {pending ? "Withdraw request" : "Cancel booking"}
+                {pending ? "Withdraw request" : booking.seriesId ? "Cancel this session" : "Cancel booking"}
               </button>
             </form>
           </div>
+        )}
+
+        {!canceled && !past && booking.seriesId && hasRemaining && (
+          <form action={cancelRemainingSeriesAction} className="mt-3">
+            <input type="hidden" name="token" value={token} />
+            <button
+              type="submit"
+              className="w-full rounded-lg border border-red-300 px-4 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50"
+            >
+              Cancel this &amp; all remaining sessions
+            </button>
+          </form>
         )}
 
         {canceled && (

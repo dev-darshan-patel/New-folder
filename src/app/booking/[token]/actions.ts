@@ -172,6 +172,95 @@ export async function cancelBookingAction(formData: FormData) {
   revalidatePath("/dashboard/bookings");
 }
 
+// Cancel THIS occurrence plus every later occurrence of the same recurring
+// series. Only affects future, still-active occurrences (past/already-cancelled
+// ones are left as-is). Sends one ICS CANCEL per affected occurrence and
+// deletes each one's own video meeting.
+export async function cancelRemainingSeriesAction(formData: FormData) {
+  const token = String(formData.get("token") || "");
+  const anchor = await prisma.booking.findUnique({
+    where: { manageToken: token },
+    include: { eventType: true, user: true },
+  });
+  if (!anchor || !anchor.seriesId) return;
+
+  const viewer = await getCurrentUser();
+  const isOwner = viewer?.id === anchor.userId;
+
+  // All still-active occurrences from this one onward (by start time).
+  const affected = await prisma.booking.findMany({
+    where: {
+      seriesId: anchor.seriesId,
+      status: { in: ["CONFIRMED", "PENDING"] },
+      startTime: { gte: anchor.startTime },
+    },
+    include: { eventType: true, user: true },
+    orderBy: { startTime: "asc" },
+  });
+  if (affected.length === 0) return;
+
+  // Notice window applies to the nearest affected occurrence (this one). Owner
+  // bypasses, same as single cancel.
+  if (
+    !isOwner &&
+    noticeWindowPassed(anchor.startTime, anchor.eventType.minNoticeToCancelMinutes)
+  ) {
+    redirect(`/booking/${token}?error=too_late_to_cancel`);
+  }
+
+  await prisma.booking.updateMany({
+    where: { id: { in: affected.map((b) => b.id) } },
+    data: { status: "CANCELLED", sequence: { increment: 1 } },
+  });
+
+  for (const b of affected) {
+    // Delete each occurrence's own video meeting (series occurrences have
+    // independent meetings — no shared session meeting to preserve).
+    if (b.calendarEventId) {
+      if (b.meetingProvider === "zoom") {
+        await deleteZoomMeeting(b.userId, b.calendarEventId);
+      } else {
+        await deleteMeetEvent(b.userId, b.calendarEventId);
+      }
+    }
+    // Per-occurrence ICS CANCEL so each calendar event is removed.
+    const cancelIcs = bookingIcs(b, "CANCEL", b.sequence + 1, null);
+    try {
+      const when = formatWhen(b.startTime, b.user.timezone);
+      const inviteeEmail = await renderTemplate("booking.canceled.invitee", {
+        invitee_name: b.inviteeName,
+        business_name: b.user.businessName,
+        event_title: b.eventType.title,
+        when,
+      });
+      await sendEmail({
+        to: b.inviteeEmail,
+        ...inviteeEmail,
+        attachments: [cancelIcs],
+        ...(b.eventType.replyToEmail ? { replyTo: b.eventType.replyToEmail } : {}),
+      });
+    } catch (err) {
+      console.error("Failed to send series cancellation email", err);
+    }
+  }
+
+  // One summary email to the owner rather than N.
+  try {
+    const dates = affected.map((b) => `• ${formatWhen(b.startTime, anchor.user.timezone)}`).join("\n");
+    const ownerEmail = await renderTemplate("booking.canceled.owner", {
+      invitee_name: anchor.inviteeName,
+      event_title: `${anchor.eventType.title} (${affected.length} sessions)`,
+      when: dates,
+    });
+    await sendEmail({ to: anchor.user.email, ...ownerEmail });
+  } catch (err) {
+    console.error("Failed to send series owner cancellation email", err);
+  }
+
+  revalidatePath(`/booking/${token}`);
+  revalidatePath("/dashboard/bookings");
+}
+
 // Available slots for rescheduling this booking (same event type).
 export async function fetchRescheduleSlots(
   token: string,
@@ -231,6 +320,14 @@ export async function rescheduleBookingAction(input: {
     return {
       ok: false,
       error: "Group bookings can't be rescheduled — please cancel and pick another session.",
+    };
+  }
+  // Series occurrences aren't reschedulable in v1 — cancel this one and book a
+  // new time. Avoids renumbering / re-validating the whole remaining series.
+  if (booking.seriesId) {
+    return {
+      ok: false,
+      error: "Recurring bookings can't be rescheduled — cancel this occurrence and book again.",
     };
   }
 

@@ -193,6 +193,10 @@ export async function updateEventTypeAction(formData: FormData) {
   const rawCapacity = String(formData.get("capacity") || "").trim();
   const capacity = rawCapacity === "" ? null : clampInt(rawCapacity, 1, 10_000, 1);
 
+  // Recurring toggle. Mutually exclusive with group — force off when this is a
+  // group event type, regardless of what the form sent.
+  const allowRecurring = capacity == null && formData.get("allowRecurring") === "1";
+
   // Meeting location. GOOGLE_MEET/ZOOM only stick if the owner has actually
   // connected that provider; otherwise silently fall back to IN_PERSON so we
   // never promise a video link we can't create.
@@ -253,6 +257,7 @@ export async function updateEventTypeAction(formData: FormData) {
       replyToEmail,
       requiresApproval,
       capacity,
+      allowRecurring,
       intakeQuestions,
       assignmentMode,
       locationType,
