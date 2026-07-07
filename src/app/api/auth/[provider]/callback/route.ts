@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { exchangeCodeForProfile, type OAuthProvider } from "@/lib/oauth";
 import { findOrCreateOAuthUser } from "@/lib/oauth-login";
-import { createSession } from "@/lib/auth";
+import { createSession, createPending2faToken } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 const STATE_COOKIE = "oauth_state";
@@ -53,11 +53,22 @@ export async function GET(
     return fail(ERROR_MESSAGES[result.error] ?? "oauth_failed");
   }
 
-  await createSession(result.userId);
   const loggedInUser = await prisma.user.findUnique({
     where: { id: result.userId },
-    select: { adminRole: true },
+    select: { adminRole: true, totpEnabled: true },
   });
+
+  // OAuth verifies identity with the provider, but that's not the same as
+  // this account's own 2FA — an account with TOTP enabled must still pass
+  // that second factor, same as password login (src/app/(auth)/actions.ts).
+  if (loggedInUser?.totpEnabled) {
+    await createPending2faToken(result.userId);
+    const res = NextResponse.redirect(new URL("/login/2fa", req.url));
+    res.cookies.delete(STATE_COOKIE);
+    return res;
+  }
+
+  await createSession(result.userId);
   const dest = loggedInUser?.adminRole ? "/admin" : "/dashboard";
   const res = NextResponse.redirect(new URL(dest, req.url));
   res.cookies.delete(STATE_COOKIE);
