@@ -28,7 +28,12 @@ export async function makeQrDataUrl(params: {
 export function verifyTotp(storedSecret: string, code: string): boolean {
   const secret = decryptIfNeeded(storedSecret);
   const clean = code.replace(/\s/g, "");
-  const result = verifySync({ token: clean, secret });
+  // Without a tolerance window, otplib only accepts a code matching the exact
+  // current 30s time step — any clock drift between server and phone, or just
+  // the few seconds it takes to read and type the code, causes a false
+  // rejection. Allow one step (30s) before/after, the standard window used by
+  // virtually every other TOTP server implementation (Google Authenticator, etc).
+  const result = verifySync({ token: clean, secret, epochTolerance: 30 });
   return result.valid;
 }
 

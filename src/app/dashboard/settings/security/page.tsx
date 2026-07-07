@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
-import { makeQrDataUrl } from "@/lib/totp";
+import { makeQrDataUrl, decryptTotpSecret } from "@/lib/totp";
 import { beginTotpSetupAction } from "./actions";
 import EnableTotpForm from "./EnableTotpForm";
 import DisableTotpForm from "./DisableTotpForm";
@@ -12,11 +12,17 @@ export default async function SecurityPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  // Pre-compute the QR data at the top so JSX stays synchronous.
+  // Pre-compute the QR data at the top so JSX stays synchronous. totpSecret is
+  // encrypted at rest (see src/lib/crypto.ts) — it must be decrypted before
+  // it's usable as a real TOTP secret, otherwise the QR/manual-entry code
+  // encodes ciphertext and no authenticator app can ever produce a matching
+  // code.
   let qrData: { otpauth: string; qrDataUrl: string } | null = null;
+  let plainSecret: string | null = null;
   if (user.totpSecret && !user.totpEnabled) {
+    plainSecret = decryptTotpSecret(user.totpSecret);
     qrData = await makeQrDataUrl({
-      secret: user.totpSecret,
+      secret: plainSecret,
       email: user.email,
       appName: "Booking",
     });
@@ -44,9 +50,9 @@ export default async function SecurityPage() {
           </p>
           <DisableTotpForm />
         </section>
-      ) : qrData && user.totpSecret ? (
+      ) : qrData && plainSecret ? (
         <EnableTotpForm
-          secret={user.totpSecret}
+          secret={plainSecret}
           qrDataUrl={qrData.qrDataUrl}
           otpauth={qrData.otpauth}
         />
