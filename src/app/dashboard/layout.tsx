@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import LogoutButton from "@/components/LogoutButton";
 import ImpersonationBanner from "@/components/ImpersonationBanner";
+import DeletionBanner from "@/components/DeletionBanner";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
 import MobileNav from "./MobileNav";
 import { Button } from "@/components/ui/button";
@@ -34,6 +35,7 @@ export default async function DashboardLayout({
   return (
     <div className="flex min-h-screen flex-col bg-slate-50">
       <ImpersonationBanner />
+      <DeletionBanner />
       <MobileNav businessName={user.businessName} isAdmin={!!user.adminRole} />
       <div className="flex flex-1">
         <aside className="hidden w-60 flex-col border-r border-slate-200 bg-white p-5 md:flex">

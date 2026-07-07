@@ -4,8 +4,10 @@ import { getCalendarConnection, isCalendarConfigurable } from "@/lib/google-cale
 import { getZoomConnection, isZoomConfigurable } from "@/lib/zoom";
 import ProfileForm from "./ProfileForm";
 import PasswordForm from "./PasswordForm";
+import DeleteAccountForm from "./DeleteAccountForm";
 import AvatarUpload from "@/components/AvatarUpload";
 import { disconnectCalendarAction, disconnectZoomAction } from "./actions";
+import { getDeletionImpact, DELETION_GRACE_HOURS } from "@/lib/account-deletion";
 
 function initials(name: string) {
   return name
@@ -38,12 +40,13 @@ export default async function SettingsPage({
   const user = await getCurrentUser();
   if (!user) return null;
 
-  const [connection, calendarConfigurable, zoomConnection, zoomConfigurable, sp] = await Promise.all([
+  const [connection, calendarConfigurable, zoomConnection, zoomConfigurable, sp, impact] = await Promise.all([
     getCalendarConnection(user.id),
     isCalendarConfigurable(),
     getZoomConnection(user.id),
     isZoomConfigurable(),
     searchParams,
+    getDeletionImpact(user.id),
   ]);
   const calendarStatus = sp.calendar ? CALENDAR_STATUS[sp.calendar] : null;
   const zoomStatus = sp.zoom ? ZOOM_STATUS[sp.zoom] : null;
@@ -205,6 +208,24 @@ export default async function SettingsPage({
           {user.totpEnabled ? "Manage 2FA →" : "Enable 2FA →"}
         </Link>
       </section>
+
+      {!user.deletionRequestedAt && (
+        <section className="rounded-2xl border border-red-200 bg-white p-6">
+          <h2 className="font-semibold text-red-700">Danger zone</h2>
+          <p className="mt-1 text-sm text-slate-600">
+            Deleting your account deactivates your booking page after a grace period. You can
+            cancel any time before the grace period ends.
+          </p>
+          <div className="mt-4">
+            <DeleteAccountForm
+              hasPassword={Boolean(user.passwordHash)}
+              slug={user.slug}
+              graceHours={DELETION_GRACE_HOURS}
+              impact={impact}
+            />
+          </div>
+        </section>
+      )}
     </div>
   );
 }

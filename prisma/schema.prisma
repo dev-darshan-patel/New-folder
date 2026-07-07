@@ -39,7 +39,29 @@ model User {
   // Blocks login + hides the public booking page. Distinct from soft-delete.
   suspended    Boolean        @default(false)
   // Soft-delete marker. Non-null = hidden from default lists, login blocked.
+  // Set by admin hard-delete-adjacent soft-delete (restorable indefinitely) OR
+  // by the self-service deletion cron once the grace period elapses (see
+  // deletionRequestedAt below) — in the self-service case it also starts the
+  // 30-day recovery window before permanent purge.
   deletedAt    DateTime?
+  // Self-service account deletion: owner clicked "Delete my account". Account
+  // stays fully ACTIVE during this window — nothing else changes, and a
+  // dashboard banner offers instant one-click undo (no token needed, they're
+  // still logged in). A cron tick past the grace period (see
+  // src/lib/account-deletion.ts) does the actual destructive cascade (cancel
+  // Stripe, cancel bookings + notify invitees, delete video meetings) and only
+  // THEN sets deletedAt/purgeScheduledAt/recoveryToken below. Null = no
+  // deletion in progress. Distinct from admin soft-delete, which skips this
+  // grace state entirely and sets deletedAt directly.
+  deletionRequestedAt DateTime?
+  // Set once the grace period has elapsed and the destructive cascade has run.
+  // Login is blocked from this point on (existing deletedAt semantics).
+  // Recoverable via recoveryToken until purgeScheduledAt.
+  purgeScheduledAt    DateTime?
+  // One-time token emailed when deletedAt is set, letting the owner restore
+  // the account (not the cancelled bookings/subscription) within the 30-day
+  // window. Mirrors the passwordResetToken pattern below.
+  recoveryToken       String?   @unique
   // One-time token + expiry for an admin-triggered password reset.
   passwordResetToken     String?   @unique
   passwordResetExpiresAt DateTime?

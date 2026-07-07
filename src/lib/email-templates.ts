@@ -335,6 +335,39 @@ ${pre(`Your booking with {{business_name}} has been moved to {{when}} ({{timezon
       { name: "login_url", description: "Dashboard link", sample: "https://example.com/dashboard" },
     ],
   },
+  {
+    key: "account.deletion_finalized",
+    category: "ACCOUNT",
+    name: "Account deletion finalized",
+    description: "Sent when the grace period ends and the account is deactivated (subscription/bookings cancelled).",
+    subject: "Your account has been deactivated",
+    text: `Hi {{user_name}},\n\nAs requested, your account and public booking page are now deactivated. Any upcoming bookings were canceled and your subscription was stopped.\n\nChanged your mind? You can restore your account until {{purge_date}}:\n\n{{recover_url}}\n\nAfter that date, your account and all its data will be permanently deleted.`,
+    html: `<p style="margin:0 0 16px;">Hi {{user_name}},</p>
+<p style="margin:0 0 16px;">As requested, your account and public booking page are now deactivated. Any upcoming bookings were canceled and your subscription was stopped.</p>
+<p style="margin:0 0 20px;">Changed your mind? You can restore your account until <strong>{{purge_date}}</strong>:</p>
+<p style="margin:0 0 20px;">${button("{{recover_url}}", "Restore my account")}</p>
+<p style="margin:0;color:#64748b;">After that date, your account and all its data will be permanently deleted.</p>`,
+    vars: [
+      { name: "user_name", description: "Account owner's name", sample: "Darshan Patel" },
+      { name: "purge_date", description: "Formatted permanent-deletion date", sample: "August 6, 2026" },
+      { name: "recover_url", description: "Account recovery link", sample: "https://example.com/recover/tok123" },
+    ],
+  },
+  {
+    key: "account.recovered",
+    category: "ACCOUNT",
+    name: "Account recovered",
+    description: "Sent when an owner restores their account via the recovery link.",
+    subject: "Your account has been restored",
+    text: `Hi {{user_name}},\n\nYour account has been restored and you can log in again. Note that bookings and the subscription canceled during deactivation were not restored — you'll need to re-create them if needed.\n\n{{login_url}}`,
+    html: `<p style="margin:0 0 16px;">Hi {{user_name}},</p>
+<p style="margin:0 0 16px;">Your account has been restored and you can log in again. Note that bookings and the subscription canceled during deactivation were not restored &mdash; you&rsquo;ll need to re-create them if needed.</p>
+<p style="margin:0;">${button("{{login_url}}", "Log in")}</p>`,
+    vars: [
+      { name: "user_name", description: "Account owner's name", sample: "Darshan Patel" },
+      { name: "login_url", description: "Login link", sample: "https://example.com/login" },
+    ],
+  },
 ];
 
 export const CATEGORY_LABELS: Record<TemplateCategory, string> = {

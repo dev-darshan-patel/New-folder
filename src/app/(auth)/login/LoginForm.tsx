@@ -12,9 +12,18 @@ import { Label } from "@/components/ui/label";
 function OAuthError() {
   const searchParams = useSearchParams();
   const message = oauthErrorMessage(searchParams.get("error"));
-  if (!message) return null;
+  const recovered = searchParams.get("recovered") === "1";
   return (
-    <p className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{message}</p>
+    <>
+      {message && (
+        <p className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{message}</p>
+      )}
+      {recovered && (
+        <p className="mt-4 rounded-lg bg-green-50 px-3 py-2 text-sm text-green-700">
+          Your account has been restored. Log in below.
+        </p>
+      )}
+    </>
   );
 }
 

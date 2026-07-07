@@ -10,6 +10,7 @@ import {
   type UsersQuery,
 } from "@/lib/admin-users-query";
 import { AdminTable, type Column } from "@/components/admin/AdminTable";
+import { graceDeadline } from "@/lib/account-deletion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -81,6 +82,9 @@ export default async function AdminUsers({
             {u.deletedAt && (
               <Badge variant="destructive">Deleted</Badge>
             )}
+            {u.deletionRequestedAt && !u.deletedAt && (
+              <Badge variant="warning">Pending deletion</Badge>
+            )}
             {u.suspended && !u.deletedAt && (
               <Badge variant="warning">Suspended</Badge>
             )}
@@ -139,6 +143,29 @@ export default async function AdminUsers({
       align: "right",
       cellClassName: "text-slate-500",
       render: (u) => u.planCancelRequestedAt?.toLocaleDateString() ?? "—",
+    },
+    {
+      key: "deletionRequestedAt",
+      header: "Deletion",
+      align: "right",
+      cellClassName: "text-slate-500",
+      render: (u) => {
+        if (u.deletedAt) {
+          return (
+            <span className="text-red-700">
+              Purges {u.purgeScheduledAt?.toLocaleDateString() ?? "—"}
+            </span>
+          );
+        }
+        if (u.deletionRequestedAt) {
+          return (
+            <span className="text-amber-700">
+              Cascades {graceDeadline(u.deletionRequestedAt).toLocaleDateString()}
+            </span>
+          );
+        }
+        return "—";
+      },
     },
     {
       key: "eventTypes",

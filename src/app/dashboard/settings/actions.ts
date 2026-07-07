@@ -3,12 +3,13 @@
 import { revalidatePath } from "next/cache";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser, createSession } from "@/lib/auth";
+import { getCurrentUser, getImpersonator, createSession } from "@/lib/auth";
 import { slugify, RESERVED_SLUGS } from "@/lib/slug";
 import { sendEmail } from "@/lib/email";
 import { renderTemplate } from "@/lib/email-templates";
 import { disconnectGoogleCalendar } from "@/lib/google-calendar";
 import { disconnectZoom } from "@/lib/zoom";
+import { getDeletionImpact } from "@/lib/account-deletion";
 
 export type SettingsState = { ok: true; message: string } | { error: string } | null;
 
@@ -107,4 +108,82 @@ export async function changePasswordAction(
   }
 
   return { ok: true, message: "Password changed." };
+}
+
+// --- Account deletion (grace-period, self-service) --------------------------
+
+// Starts the deletion grace period. The account stays fully active — nothing
+// is cancelled yet — until a cron tick past DELETION_GRACE_HOURS runs the
+// actual destructive cascade (src/app/api/cron/account-deletion/route.ts).
+// Identity re-check: password owners must re-type their password; OAuth-only
+// owners (no passwordHash) confirm by typing their booking-page slug instead,
+// mirroring the hard-delete admin confirmation pattern.
+export async function requestAccountDeletionAction(
+  _prev: SettingsState,
+  formData: FormData,
+): Promise<SettingsState> {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated." };
+
+  // An admin impersonating this account is not the real owner — never let a
+  // support session trigger deletion on someone else's behalf.
+  if (await getImpersonator()) {
+    return { error: "Account deletion isn't available while impersonating." };
+  }
+
+  if (user.deletionRequestedAt) {
+    return { error: "Account deletion is already in progress." };
+  }
+
+  if (user.passwordHash) {
+    const password = String(formData.get("password") || "");
+    if (!(await bcrypt.compare(password, user.passwordHash))) {
+      return { error: "Password is incorrect." };
+    }
+  } else {
+    const slugConfirm = String(formData.get("slugConfirm") || "").trim().toLowerCase();
+    if (slugConfirm !== user.slug.toLowerCase()) {
+      return { error: `Type "${user.slug}" to confirm.` };
+    }
+  }
+
+  // Never let the last super-admin delete themselves out of the console.
+  if (user.adminRole === "SUPER_ADMIN") {
+    const otherSuperAdmins = await prisma.user.count({
+      where: { adminRole: "SUPER_ADMIN", id: { not: user.id }, deletedAt: null },
+    });
+    if (otherSuperAdmins === 0) {
+      return { error: "You're the only super-admin — assign another one before deleting this account." };
+    }
+  }
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { deletionRequestedAt: new Date() },
+  });
+
+  revalidatePath("/dashboard/settings");
+  revalidatePath("/dashboard");
+  return { ok: true, message: "Account deletion scheduled." };
+}
+
+// One-click undo during the grace period — no token needed, the owner is
+// still logged in and the account was never actually touched yet.
+export async function cancelDeletionRequestAction(): Promise<void> {
+  const user = await getCurrentUser();
+  if (!user) return;
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { deletionRequestedAt: null },
+  });
+
+  revalidatePath("/dashboard/settings");
+  revalidatePath("/dashboard");
+}
+
+export async function getDeletionImpactAction() {
+  const user = await getCurrentUser();
+  if (!user) return null;
+  return getDeletionImpact(user.id);
 }
