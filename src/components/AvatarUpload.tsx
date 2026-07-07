@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
 
 type Props = {
   currentUrl: string | null;
@@ -123,22 +124,26 @@ export default function AvatarUpload({ currentUrl, initials, size = 80 }: Props)
         <p className="text-sm font-medium text-slate-700">Profile photo</p>
         <p className="text-xs text-slate-500">JPEG, PNG, WebP or GIF · max 5 MB</p>
         <div className="mt-2 flex gap-3">
-          <button
+          <Button
             type="button"
+            variant="link"
+            size="sm"
             onClick={() => inputRef.current?.click()}
             disabled={uploading}
-            className="text-xs font-medium text-indigo-600 hover:underline disabled:opacity-50"
+            className="h-auto p-0 text-xs"
           >
             {url || preview ? "Change photo" : "Upload photo"}
-          </button>
+          </Button>
           {(url || preview) && !uploading && (
-            <button
+            <Button
               type="button"
+              variant="link"
+              size="sm"
               onClick={handleRemove}
-              className="text-xs font-medium text-red-500 hover:underline"
+              className="h-auto p-0 text-xs text-red-500 hover:text-red-500"
             >
               Remove
-            </button>
+            </Button>
           )}
         </div>
         {error && <p className="mt-1 text-xs text-red-600">{error}</p>}

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
+import { Check } from "lucide-react";
 import { buildDays } from "@/lib/days";
 import type { Slot } from "@/lib/availability";
 import {
@@ -50,8 +51,8 @@ export default function RescheduleWidget({
   if (result?.ok) {
     return (
       <div className="mt-10 rounded-2xl border border-green-200 bg-green-50 p-8 text-center">
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-600 text-2xl text-white">
-          ✓
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-600 text-white">
+          <Check size={22} />
         </div>
         <h2 className="mt-4 text-lg font-semibold text-slate-900">Rescheduled!</h2>
         <p className="mt-1 text-sm text-slate-600">{result.when}</p>

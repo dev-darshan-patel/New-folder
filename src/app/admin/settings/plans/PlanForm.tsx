@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { createPlanAction, updatePlanAction, type PlanFormState } from "./actions";
+import { Button } from "@/components/ui/button";
 
 type Initial = {
   id: string;
@@ -174,13 +175,9 @@ export default function PlanForm({
         <p className="rounded-lg bg-green-50 px-3 py-2 text-sm text-green-700">{state.message}</p>
       )}
 
-      <button
-        type="submit"
-        disabled={pending}
-        className="rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-500 disabled:opacity-60"
-      >
+      <Button type="submit" disabled={pending}>
         {pending ? "Saving…" : mode === "create" ? "Create plan" : "Save plan"}
-      </button>
+      </Button>
     </form>
   );
 }

@@ -1,3 +1,4 @@
+import { Check } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import { isStripeConfigured } from "@/lib/stripe";
 import { getActivePlans, getPlanConfig } from "@/lib/plans";
@@ -105,7 +106,7 @@ export default async function BillingPage({
                 <ul className="mt-4 flex-1 space-y-2 text-sm text-slate-600">
                   {plan.features.map((f) => (
                     <li key={f} className="flex gap-2">
-                      <span className="text-indigo-600">✓</span>
+                      <Check size={16} className="mt-0.5 shrink-0 text-indigo-600" />
                       {f}
                     </li>
                   ))}

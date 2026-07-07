@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
+import { Clock, Check } from "lucide-react";
 import {
   fetchSlotsAction,
   createBookingAction,
@@ -125,8 +126,8 @@ export default function BookingWidget({
   if (result?.ok && result.pending) {
     return (
       <div className="mt-10 rounded-2xl border border-amber-200 bg-amber-50 p-8 text-center">
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-amber-500 text-2xl text-white">
-          ⏳
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-amber-500 text-white">
+          <Clock size={22} />
         </div>
         <h2 className="mt-4 text-lg font-semibold text-slate-900">
           Request received
@@ -154,8 +155,8 @@ export default function BookingWidget({
   if (result?.ok) {
     return (
       <div className="mt-10 rounded-2xl border border-green-200 bg-green-50 p-8 text-center">
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-600 text-2xl text-white">
-          ✓
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-600 text-white">
+          <Check size={22} />
         </div>
         <h2 className="mt-4 text-lg font-semibold text-slate-900">
           You&apos;re booked!
@@ -316,13 +317,15 @@ export default function BookingWidget({
               <h2 className="text-sm font-semibold text-slate-700">
                 Confirm {fmtTime(selectedSlot.startUtc, viewerTz)}
               </h2>
-              <button
+              <Button
                 type="button"
+                variant="link"
+                size="sm"
                 onClick={() => setSelectedSlot(null)}
-                className="text-xs font-medium text-slate-500 hover:text-slate-900"
+                className="h-auto p-0 text-xs text-slate-500 hover:text-slate-900"
               >
                 ← Back
-              </button>
+              </Button>
             </div>
             <div className="mt-4 space-y-3">
               <Input

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useFormStatus } from "react-dom";
 import { updateEventTypeAction } from "../../actions";
 import type { IntakeQuestion } from "@/lib/intake";
+import { Button } from "@/components/ui/button";
 
 type LocationType = "IN_PERSON" | "PHONE" | "GOOGLE_MEET" | "ZOOM";
 
@@ -355,23 +356,27 @@ export default function EventTypeEditor({ initial }: { initial: Initial }) {
                 />
                 Required
               </label>
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="sm"
                 onClick={() => remove(i)}
-                className="rounded-lg px-2 py-1 text-sm text-red-600 hover:bg-red-50"
+                className="text-red-600 hover:bg-red-50 hover:text-red-600"
               >
                 Remove
-              </button>
+              </Button>
             </div>
           ))}
         </div>
-        <button
+        <Button
           type="button"
+          variant="link"
+          size="sm"
           onClick={add}
-          className="mt-2 text-sm font-medium text-indigo-600 hover:underline"
+          className="mt-2 h-auto p-0"
         >
           + Add question
-        </button>
+        </Button>
       </div>
 
       {initial.teamSchedulingEnabled && (
@@ -430,13 +435,9 @@ export default function EventTypeEditor({ initial }: { initial: Initial }) {
 function SaveButton() {
   const { pending } = useFormStatus();
   return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
-    >
+    <Button type="submit" disabled={pending}>
       {pending ? "Saving…" : "Save changes"}
-    </button>
+    </Button>
   );
 }
 

@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getTemplateDef, getEmailBrand, CATEGORY_LABELS } from "@/lib/email-templates";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { resetEmailTemplateAction, toggleEmailTemplateAction } from "../actions";
 import TemplateEditor from "./TemplateEditor";
 
@@ -63,21 +64,15 @@ export default async function EditEmailTemplatePage({
           <form action={toggleEmailTemplateAction}>
             <input type="hidden" name="key" value={def.key} />
             <input type="hidden" name="enabled" value={(!enabled).toString()} />
-            <button
-              type="submit"
-              className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
-            >
+            <Button type="submit" variant="outline" size="sm">
               {enabled ? "Disable" : "Enable"}
-            </button>
+            </Button>
           </form>
           <form action={resetEmailTemplateAction}>
             <input type="hidden" name="key" value={def.key} />
-            <button
-              type="submit"
-              className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
-            >
+            <Button type="submit" variant="outline" size="sm">
               Reset to default
-            </button>
+            </Button>
           </form>
         </div>
       </div>

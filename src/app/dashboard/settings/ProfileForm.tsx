@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { updateProfileAction, type SettingsState } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,17 +15,31 @@ type Initial = {
   timezone: string;
 };
 
-const TIMEZONES: string[] =
-  typeof Intl.supportedValuesOf === "function"
-    ? Intl.supportedValuesOf("timeZone")
-    : ["UTC"];
-
 export default function ProfileForm({ initial }: { initial: Initial }) {
   const [state, formAction, pending] = useActionState<SettingsState, FormData>(
     updateProfileAction,
     null,
   );
   const [slug, setSlug] = useState(initial.slug);
+
+  // Node's ICU data (used for SSR) can differ from the browser's, which would
+  // make the server-rendered <option> list disagree with what hydration
+  // computes and throw a hydration-mismatch error. Start with just the
+  // current timezone (identical on server and first client render) and fill
+  // in the full list client-side after mount — same pattern as the invitee
+  // timezone selector in BookingWidget.
+  const [timezones, setTimezones] = useState<string[]>([initial.timezone]);
+
+  useEffect(() => {
+    try {
+      const sv = (Intl as unknown as { supportedValuesOf?: (k: string) => string[] })
+        .supportedValuesOf;
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      if (sv) setTimezones(sv("timeZone"));
+    } catch {
+      /* not supported; keep the single-zone fallback */
+    }
+  }, []);
 
   return (
     <form action={formAction} className="mt-5 space-y-5">
@@ -84,7 +98,7 @@ export default function ProfileForm({ initial }: { initial: Initial }) {
           name="timezone"
           defaultValue={initial.timezone}
         >
-          {TIMEZONES.map((tz) => (
+          {timezones.map((tz) => (
             <option key={tz} value={tz}>
               {tz}
             </option>

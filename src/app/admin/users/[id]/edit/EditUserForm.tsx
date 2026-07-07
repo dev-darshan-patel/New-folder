@@ -2,6 +2,8 @@
 
 import { useActionState, useMemo, useState } from "react";
 import { updateUserByAdminAction, type AdminUserFormState } from "../../../actions";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 
 const INPUT_CLASSES =
   "mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100";
@@ -32,10 +34,9 @@ export default function EditUserForm({ initial }: { initial: EditUserInitial }) 
   }, [initial.timezone]);
 
   return (
-    <form
-      action={formAction}
-      className="mt-6 space-y-4 rounded-2xl border border-slate-200 bg-white p-6"
-    >
+    <Card className="mt-6">
+    <CardContent className="space-y-4 p-6">
+    <form action={formAction} className="space-y-4">
       <input type="hidden" name="id" value={initial.id} />
 
       <label className="block">
@@ -123,13 +124,11 @@ export default function EditUserForm({ initial }: { initial: EditUserInitial }) 
         </p>
       )}
 
-      <button
-        type="submit"
-        disabled={pending}
-        className="w-full rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-indigo-500 disabled:opacity-60"
-      >
+      <Button type="submit" disabled={pending} className="w-full">
         {pending ? "Saving…" : "Save changes"}
-      </button>
+      </Button>
     </form>
+    </CardContent>
+    </Card>
   );
 }

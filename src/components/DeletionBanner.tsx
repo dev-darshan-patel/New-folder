@@ -1,6 +1,6 @@
 import { getCurrentUser } from "@/lib/auth";
 import { graceDeadline } from "@/lib/account-deletion";
-import { cancelDeletionRequestAction } from "@/app/dashboard/settings/actions";
+import KeepAccountButton from "@/components/KeepAccountButton";
 
 export default async function DeletionBanner() {
   const user = await getCurrentUser();
@@ -19,14 +19,7 @@ export default async function DeletionBanner() {
         This account is scheduled for deletion on {when}. Upcoming bookings and your
         subscription will be cancelled at that time.
       </span>
-      <form action={cancelDeletionRequestAction}>
-        <button
-          type="submit"
-          className="rounded-lg bg-red-950 px-3 py-1 text-xs font-semibold text-red-50 hover:bg-red-900"
-        >
-          Keep my account
-        </button>
-      </form>
+      <KeepAccountButton />
     </div>
   );
 }

@@ -6,6 +6,7 @@ import { beginTotpSetupAction } from "./actions";
 import EnableTotpForm from "./EnableTotpForm";
 import DisableTotpForm from "./DisableTotpForm";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 
 export default async function SecurityPage() {
   const user = await getCurrentUser();
@@ -50,7 +51,8 @@ export default async function SecurityPage() {
           otpauth={qrData.otpauth}
         />
       ) : (
-        <section className="rounded-2xl border border-slate-200 bg-white p-6">
+        <Card>
+          <CardContent className="p-6">
           <p className="font-medium text-slate-900">Turn on two-factor auth</p>
           <p className="mt-1 text-sm text-slate-600">
             You&apos;ll scan a QR code in Google Authenticator, Authy, or 1Password.
@@ -62,13 +64,10 @@ export default async function SecurityPage() {
             }}
             className="mt-4"
           >
-            <Button
-              type="submit"
-            >
-              Start setup
-            </Button>
+            <Button type="submit">Start setup</Button>
           </form>
-        </section>
+          </CardContent>
+        </Card>
       )}
     </div>
   );

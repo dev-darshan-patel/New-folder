@@ -1,4 +1,6 @@
+import { cache } from "react";
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { resolveBranding } from "@/lib/branding";
 import { parseQuestions } from "@/lib/intake";
@@ -8,6 +10,30 @@ import MaintenanceNotice from "@/components/MaintenanceNotice";
 import BookingWidget from "./BookingWidget";
 import GroupBookingWidget from "./GroupBookingWidget";
 import EmbedResizer from "@/components/EmbedResizer";
+
+const getEventTypeForBooking = cache(async (slug: string, eventSlug: string) => {
+  const user = await prisma.user.findUnique({ where: { slug } });
+  if (!user || user.suspended || user.deletedAt) return null;
+  const eventType = await prisma.eventType.findUnique({
+    where: { userId_slug: { userId: user.id, slug: eventSlug } },
+  });
+  if (!eventType || !eventType.active) return null;
+  return { user, eventType };
+});
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string; eventSlug: string }>;
+}): Promise<Metadata> {
+  const { slug, eventSlug } = await params;
+  const found = await getEventTypeForBooking(slug, eventSlug);
+  if (!found) return { title: "Booking" };
+  return {
+    title: `${found.eventType.title} — ${found.user.businessName}`,
+    description: `Book a ${found.eventType.durationMinutes}-minute ${found.eventType.title} with ${found.user.businessName}.`,
+  };
+}
 
 export default async function BookingPage({
   params,
@@ -23,13 +49,9 @@ export default async function BookingPage({
   const { slug, eventSlug } = await params;
   const sp = await searchParams;
 
-  const user = await prisma.user.findUnique({ where: { slug } });
-  if (!user || user.suspended || user.deletedAt) notFound();
-
-  const eventType = await prisma.eventType.findUnique({
-    where: { userId_slug: { userId: user.id, slug: eventSlug } },
-  });
-  if (!eventType || !eventType.active) notFound();
+  const found = await getEventTypeForBooking(slug, eventSlug);
+  if (!found) notFound();
+  const { user, eventType } = found;
 
   // The embed chrome is a platform-wide kill-switchable feature. When the flag
   // is off, an ?embed=1 request degrades to the normal full booking page.

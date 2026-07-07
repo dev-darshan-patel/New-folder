@@ -1,9 +1,37 @@
+import { cache } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { isPublicBookingAllowed } from "@/lib/platform-config";
 import MaintenanceNotice from "@/components/MaintenanceNotice";
 import { Card, CardContent } from "@/components/ui/card";
+
+const getBusiness = cache(async (slug: string) => {
+  return prisma.user.findUnique({
+    where: { slug },
+    include: {
+      eventTypes: {
+        where: { active: true },
+        orderBy: { createdAt: "asc" },
+      },
+    },
+  });
+});
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const user = await getBusiness(slug);
+  if (!user || user.suspended || user.deletedAt) return { title: "Booking" };
+  return {
+    title: `Book with ${user.businessName}`,
+    description: `Select a meeting to book with ${user.businessName}.`,
+  };
+}
 
 export default async function BusinessPage({
   params,
@@ -16,15 +44,7 @@ export default async function BusinessPage({
 
   const { slug } = await params;
 
-  const user = await prisma.user.findUnique({
-    where: { slug },
-    include: {
-      eventTypes: {
-        where: { active: true },
-        orderBy: { createdAt: "asc" },
-      },
-    },
-  });
+  const user = await getBusiness(slug);
   if (!user || user.suspended || user.deletedAt) notFound();
 
   return (

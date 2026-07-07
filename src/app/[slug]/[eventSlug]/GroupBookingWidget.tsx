@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import { Check } from "lucide-react";
 import { createGroupBookingAction, type BookingResult } from "../actions";
 import type { IntakeQuestion } from "@/lib/intake";
 import { Button } from "@/components/ui/button";
@@ -87,8 +88,8 @@ export default function GroupBookingWidget({
   if (result?.ok) {
     return (
       <div className="mt-10 rounded-2xl border border-green-200 bg-green-50 p-8 text-center">
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-600 text-2xl text-white">
-          ✓
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-600 text-white">
+          <Check size={22} />
         </div>
         <h2 className="mt-4 text-lg font-semibold text-slate-900">You&apos;re in!</h2>
         <p className="mt-1 text-sm text-slate-600">{result.when}</p>
@@ -199,13 +200,15 @@ export default function GroupBookingWidget({
             <h2 className="text-sm font-semibold text-slate-700">
               Confirm {fmtSession(selected.startUtc, viewerTz)}
             </h2>
-            <button
+            <Button
               type="button"
+              variant="link"
+              size="sm"
               onClick={() => setSelected(null)}
-              className="text-xs font-medium text-slate-500 hover:text-slate-900"
+              className="h-auto p-0 text-xs text-slate-500 hover:text-slate-900"
             >
               ← Back
-            </button>
+            </Button>
           </div>
           <div className="mt-4 space-y-3">
             <Input name="name" required placeholder="Your name" />

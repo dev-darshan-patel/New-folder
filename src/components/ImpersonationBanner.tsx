@@ -1,5 +1,6 @@
 import { getImpersonator } from "@/lib/auth";
 import { stopImpersonationAction } from "@/app/admin/actions";
+import { Button } from "@/components/ui/button";
 
 export default async function ImpersonationBanner() {
   const admin = await getImpersonator();
@@ -11,12 +12,13 @@ export default async function ImpersonationBanner() {
         Viewing as this account, impersonated by {admin.email}.
       </span>
       <form action={stopImpersonationAction}>
-        <button
+        <Button
           type="submit"
-          className="rounded-lg bg-amber-950 px-3 py-1 text-xs font-semibold text-amber-50 hover:bg-amber-900"
+          size="sm"
+          className="bg-amber-950 text-amber-50 hover:bg-amber-900"
         >
           Stop impersonating
-        </button>
+        </Button>
       </form>
     </div>
   );

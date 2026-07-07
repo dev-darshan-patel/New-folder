@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { hardDeleteUserAction } from "../../actions";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 export default function HardDeleteForm({ userId, slug }: { userId: string; slug: string }) {
   const [confirmText, setConfirmText] = useState("");
@@ -15,20 +17,16 @@ export default function HardDeleteForm({ userId, slug }: { userId: string; slug:
         account and all its data.
       </p>
       <div className="flex gap-2">
-        <input
+        <Input
           name="confirmSlug"
           value={confirmText}
           onChange={(e) => setConfirmText(e.target.value)}
           placeholder={slug}
-          className="flex-1 rounded-lg border border-red-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-red-500"
+          className="flex-1 border-red-300 focus-visible:border-red-500"
         />
-        <button
-          type="submit"
-          disabled={!matches}
-          className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-40"
-        >
+        <Button type="submit" variant="destructive" disabled={!matches}>
           Delete permanently
-        </button>
+        </Button>
       </div>
     </form>
   );

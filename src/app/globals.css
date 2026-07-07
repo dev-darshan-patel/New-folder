@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 
 :root {
   --background: #ffffff;
@@ -7,7 +8,10 @@
   --card-foreground: #0f172a;
   --popover: #ffffff;
   --popover-foreground: #0f172a;
-  --primary: #0f172a;
+  /* Brand color — the single source of truth for the app's accent color.
+     Was previously hand-rolled as literal indigo-600/700 Tailwind classes in
+     ~75 places; this is now the one place that defines it. */
+  --primary: #4f46e5;
   --primary-foreground: #f8fafc;
   --secondary: #f1f5f9;
   --secondary-foreground: #0f172a;
@@ -18,7 +22,7 @@
   --destructive: #dc2626;
   --border: #e2e8f0;
   --input: #cbd5e1;
-  --ring: #94a3b8;
+  --ring: #6366f1;
   --radius: 0.5rem;
 }
 

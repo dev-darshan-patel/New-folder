@@ -7,6 +7,8 @@ import {
   sendTemplateTestAction,
   type TemplateFormState,
 } from "../actions";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 type Var = { name: string; description: string; sample: string };
 
@@ -120,13 +122,9 @@ export default function TemplateEditor({ templateKey, vars, initial, brand }: Pr
             </p>
           )}
 
-          <button
-            type="submit"
-            disabled={pending}
-            className="rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-500 disabled:opacity-60"
-          >
+          <Button type="submit" disabled={pending}>
             {pending ? "Saving…" : "Save template"}
-          </button>
+          </Button>
         </form>
 
         {/* Variable palette */}
@@ -203,25 +201,25 @@ function TestSend({ templateKey }: { templateKey: string }) {
         Sends this template filled with sample data using the active email provider.
       </p>
       <div className="mt-3 flex flex-wrap items-center gap-2">
-        <input
+        <Input
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="recipient@example.com"
           title="Test recipient email"
-          className="w-60 rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+          className="w-60"
         />
-        <button
+        <Button
           type="button"
+          variant="outline"
           disabled={pending || !email.includes("@")}
           onClick={() => {
             setResult(null);
             start(async () => setResult(await sendTemplateTestAction(templateKey, email)));
           }}
-          className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
         >
           {pending ? "Sending…" : "Send test"}
-        </button>
+        </Button>
       </div>
       {result && (
         <p className={`mt-2 text-sm font-medium ${result.ok ? "text-green-700" : "text-red-600"}`}>

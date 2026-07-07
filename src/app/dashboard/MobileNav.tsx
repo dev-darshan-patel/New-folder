@@ -3,18 +3,34 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import {
+  Menu,
+  X,
+  LayoutGrid,
+  Calendar,
+  Clock,
+  ClipboardList,
+  Users,
+  Palette,
+  Link2,
+  CreditCard,
+  Settings,
+  Shield,
+  LogOut,
+} from "lucide-react";
 import { logoutAction } from "../(auth)/actions";
+import { Button } from "@/components/ui/button";
 
 const navItems = [
-  { href: "/dashboard", label: "Overview", icon: "⊞" },
-  { href: "/dashboard/event-types", label: "Event Types", icon: "📅" },
-  { href: "/dashboard/availability", label: "Availability", icon: "🕐" },
-  { href: "/dashboard/bookings", label: "Bookings", icon: "📋" },
-  { href: "/dashboard/team", label: "Team", icon: "👥" },
-  { href: "/dashboard/branding", label: "Branding", icon: "🎨" },
-  { href: "/dashboard/embed", label: "Embed", icon: "🔗" },
-  { href: "/dashboard/billing", label: "Billing", icon: "💳" },
-  { href: "/dashboard/settings", label: "Settings", icon: "⚙️" },
+  { href: "/dashboard", label: "Overview", Icon: LayoutGrid },
+  { href: "/dashboard/event-types", label: "Event Types", Icon: Calendar },
+  { href: "/dashboard/availability", label: "Availability", Icon: Clock },
+  { href: "/dashboard/bookings", label: "Bookings", Icon: ClipboardList },
+  { href: "/dashboard/team", label: "Team", Icon: Users },
+  { href: "/dashboard/branding", label: "Branding", Icon: Palette },
+  { href: "/dashboard/embed", label: "Embed", Icon: Link2 },
+  { href: "/dashboard/billing", label: "Billing", Icon: CreditCard },
+  { href: "/dashboard/settings", label: "Settings", Icon: Settings },
 ];
 
 export default function MobileNav({
@@ -50,11 +66,7 @@ export default function MobileNav({
           className="rounded-lg p-2 text-slate-600 hover:bg-slate-100"
           aria-label="Open menu"
         >
-          <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-            <line x1="3" y1="6" x2="19" y2="6" />
-            <line x1="3" y1="11" x2="19" y2="11" />
-            <line x1="3" y1="16" x2="19" y2="16" />
-          </svg>
+          <Menu size={22} />
         </button>
       </header>
 
@@ -85,10 +97,7 @@ export default function MobileNav({
             className="rounded-lg p-2 text-slate-400 hover:bg-slate-100"
             aria-label="Close menu"
           >
-            <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <line x1="4" y1="4" x2="16" y2="16" />
-              <line x1="16" y1="4" x2="4" y2="16" />
-            </svg>
+            <X size={20} />
           </button>
         </div>
 
@@ -107,7 +116,7 @@ export default function MobileNav({
                       : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
                   }`}
                 >
-                  <span className="text-base">{item.icon}</span>
+                  <item.Icon size={18} />
                   {item.label}
                 </Link>
               );
@@ -117,7 +126,7 @@ export default function MobileNav({
                 href="/admin"
                 className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-indigo-600 hover:bg-indigo-50"
               >
-                <span className="text-base">🛡️</span>
+                <Shield size={18} />
                 Admin console
               </Link>
             )}
@@ -127,13 +136,14 @@ export default function MobileNav({
         {/* Logout */}
         <div className="border-t border-slate-200 px-3 py-4">
           <form action={logoutAction}>
-            <button
+            <Button
               type="submit"
-              className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+              variant="ghost"
+              className="w-full justify-start gap-3 rounded-xl px-4 py-3 text-sm font-medium text-slate-500 hover:text-slate-900"
             >
-              <span className="text-base">🚪</span>
+              <LogOut size={18} />
               Log out
-            </button>
+            </Button>
           </form>
         </div>
       </div>

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { Card, CardContent } from "@/components/ui/card";
 
 // Owner view: who's booked into this session, with seats-taken vs capacity.
 export default async function SessionRosterPage({
@@ -69,7 +70,8 @@ export default async function SessionRosterPage({
         </p>
       )}
 
-      <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-4">
+      <Card className="mt-8">
+      <CardContent className="p-4">
         <h2 className="text-sm font-semibold text-slate-700">Attendees</h2>
         {session.bookings.length === 0 ? (
           <p className="mt-3 text-sm text-slate-500">
@@ -95,7 +97,8 @@ export default async function SessionRosterPage({
             ))}
           </ul>
         )}
-      </div>
+      </CardContent>
+      </Card>
     </div>
   );
 }

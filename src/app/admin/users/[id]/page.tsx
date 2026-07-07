@@ -5,6 +5,8 @@ import { getCurrentUser } from "@/lib/auth";
 import { getPlanConfig, getAllPlans } from "@/lib/plans";
 import { addAdminNoteAction } from "../../actions";
 import AdminActions from "./AdminActions";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const BOOKINGS_PAGE_SIZE = 10;
@@ -255,12 +257,7 @@ export default async function AdminUserDetail({
               placeholder="Add an internal note (not visible to the user)…"
               className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500"
             />
-            <button
-              type="submit"
-              className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"
-            >
-              Add
-            </button>
+            <Button type="submit">Add</Button>
           </form>
         )}
       </Section>
@@ -277,19 +274,23 @@ export default async function AdminUserDetail({
 
 function Mini({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4">
-      <p className="text-xs text-slate-500">{label}</p>
-      <p className="mt-1 truncate font-semibold text-slate-900">{value}</p>
-    </div>
+    <Card>
+      <CardContent className="p-4">
+        <p className="text-xs text-slate-500">{label}</p>
+        <p className="mt-1 truncate font-semibold text-slate-900">{value}</p>
+      </CardContent>
+    </Card>
   );
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-5">
-      <h2 className="mb-1 text-sm font-semibold uppercase tracking-wide text-slate-500">{title}</h2>
-      {children}
-    </section>
+    <Card className="mt-6">
+      <CardContent className="p-5">
+        <h2 className="mb-1 text-sm font-semibold uppercase tracking-wide text-slate-500">{title}</h2>
+        {children}
+      </CardContent>
+    </Card>
   );
 }
 

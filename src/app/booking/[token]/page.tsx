@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { parseGuests } from "@/lib/guests";
 import { cancelBookingAction, cancelRemainingSeriesAction } from "./actions";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 
 export default async function ManageBookingPage({
   params,
@@ -53,7 +55,8 @@ export default async function ManageBookingPage({
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-lg flex-col justify-center px-6 py-12">
-      <div className="rounded-2xl border border-slate-200 bg-white p-8">
+      <Card>
+      <CardContent className="p-8">
         <p className="text-sm font-medium text-indigo-600">
           {booking.user.businessName}
         </p>
@@ -143,34 +146,29 @@ export default async function ManageBookingPage({
         )}
 
         {!canceled && !pending && !past && booking.meetingUrl && (
-          <a
-            href={booking.meetingUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-6 block w-full rounded-lg bg-indigo-600 px-4 py-2.5 text-center text-sm font-semibold text-white hover:bg-indigo-500"
-          >
-            {booking.meetingProvider === "zoom" ? "Join Zoom Meeting" : "Join Google Meet"}
-          </a>
+          <Button asChild className="mt-6 w-full">
+            <a href={booking.meetingUrl} target="_blank" rel="noopener noreferrer">
+              {booking.meetingProvider === "zoom" ? "Join Zoom Meeting" : "Join Google Meet"}
+            </a>
+          </Button>
         )}
 
         {!canceled && !past && (
           <div className="mt-8 flex gap-3">
             {!pending && !booking.sessionId && !booking.seriesId && (
-              <Link
-                href={`/booking/${token}/reschedule`}
-                className="flex-1 rounded-lg bg-indigo-600 px-4 py-2.5 text-center text-sm font-semibold text-white hover:bg-indigo-500"
-              >
-                Reschedule
-              </Link>
+              <Button asChild className="flex-1">
+                <Link href={`/booking/${token}/reschedule`}>Reschedule</Link>
+              </Button>
             )}
             <form action={cancelBookingAction} className="flex-1">
               <input type="hidden" name="token" value={token} />
-              <button
+              <Button
                 type="submit"
-                className="w-full rounded-lg border border-red-300 px-4 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50"
+                variant="outline"
+                className="w-full border-red-300 text-red-600 hover:bg-red-50"
               >
                 {pending ? "Withdraw request" : booking.seriesId ? "Cancel this session" : "Cancel booking"}
-              </button>
+              </Button>
             </form>
           </div>
         )}
@@ -178,12 +176,13 @@ export default async function ManageBookingPage({
         {!canceled && !past && booking.seriesId && hasRemaining && (
           <form action={cancelRemainingSeriesAction} className="mt-3">
             <input type="hidden" name="token" value={token} />
-            <button
+            <Button
               type="submit"
-              className="w-full rounded-lg border border-red-300 px-4 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50"
+              variant="outline"
+              className="w-full border-red-300 text-red-600 hover:bg-red-50"
             >
               Cancel this &amp; all remaining sessions
-            </button>
+            </Button>
           </form>
         )}
 
@@ -202,7 +201,8 @@ export default async function ManageBookingPage({
             This booking has already taken place.
           </p>
         )}
-      </div>
+      </CardContent>
+      </Card>
     </div>
   );
 }

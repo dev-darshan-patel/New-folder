@@ -1,7 +1,9 @@
 import { redirect } from "next/navigation";
+import { Mail } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import { logoutAction } from "@/app/(auth)/actions";
 import ResendButton from "./ResendButton";
+import { Button } from "@/components/ui/button";
 
 // "Check your inbox" pending page. This is the hard gate: unverified accounts
 // land here (redirected from the dashboard layout) and can't reach any feature
@@ -14,8 +16,8 @@ export default async function VerifyEmailPendingPage() {
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-6">
-      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-indigo-100 text-2xl">
-        ✉️
+      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-indigo-100 text-indigo-600">
+        <Mail size={22} />
       </div>
       <h1 className="mt-5 text-center text-2xl font-bold tracking-tight text-slate-900">
         Verify your email
@@ -36,12 +38,14 @@ export default async function VerifyEmailPendingPage() {
 
       <div className="mt-8 border-t border-slate-100 pt-4 text-center">
         <form action={logoutAction}>
-          <button
+          <Button
             type="submit"
-            className="text-xs font-medium text-slate-500 hover:text-slate-800 hover:underline"
+            variant="link"
+            size="sm"
+            className="h-auto p-0 text-xs text-slate-500 hover:text-slate-800"
           >
             Use a different account
-          </button>
+          </Button>
         </form>
       </div>
     </div>

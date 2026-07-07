@@ -1,13 +1,17 @@
 import Link from "next/link";
+import { Calendar, Video } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import { getCalendarConnection, isCalendarConfigurable } from "@/lib/google-calendar";
 import { getZoomConnection, isZoomConfigurable } from "@/lib/zoom";
 import ProfileForm from "./ProfileForm";
 import PasswordForm from "./PasswordForm";
 import DeleteAccountForm from "./DeleteAccountForm";
+import DisconnectButton from "./DisconnectButton";
 import AvatarUpload from "@/components/AvatarUpload";
 import { disconnectCalendarAction, disconnectZoomAction } from "./actions";
 import { getDeletionImpact, DELETION_GRACE_HOURS } from "@/lib/account-deletion";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 
 function initials(name: string) {
   return name
@@ -58,7 +62,8 @@ export default async function SettingsPage({
         <p className="mt-1 text-sm text-slate-600">Manage your profile and password.</p>
       </div>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-6">
+      <Card>
+        <CardContent className="p-6">
         <h2 className="font-semibold text-slate-900">Profile</h2>
         <p className="mt-1 text-xs text-slate-500">
           Your email is{" "}
@@ -81,14 +86,18 @@ export default async function SettingsPage({
             timezone: user.timezone,
           }}
         />
-      </section>
+        </CardContent>
+      </Card>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-6">
+      <Card>
+        <CardContent className="p-6">
         <h2 className="font-semibold text-slate-900">Password</h2>
         <PasswordForm hasPassword={Boolean(user.passwordHash)} />
-      </section>
+        </CardContent>
+      </Card>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-6">
+      <Card>
+        <CardContent className="p-6">
         <h2 className="font-semibold text-slate-900">Integrations</h2>
         <p className="mt-1 text-sm text-slate-600">
           Connect Google Calendar or Zoom to auto-generate a video link for online
@@ -109,8 +118,8 @@ export default async function SettingsPage({
 
         <div className="mt-4 flex items-center justify-between rounded-xl border border-slate-200 p-4">
           <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-lg">
-              📅
+            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-600">
+              <Calendar size={18} />
             </span>
             <div>
               <p className="text-sm font-medium text-slate-800">Google Calendar</p>
@@ -125,21 +134,11 @@ export default async function SettingsPage({
           </div>
 
           {connection ? (
-            <form action={disconnectCalendarAction}>
-              <button
-                type="submit"
-                className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-              >
-                Disconnect
-              </button>
-            </form>
+            <DisconnectButton action={disconnectCalendarAction} provider="Google Calendar" />
           ) : calendarConfigurable ? (
-            <a
-              href="/api/calendar/google/start"
-              className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500"
-            >
-              Connect
-            </a>
+            <Button asChild>
+              <a href="/api/calendar/google/start">Connect</a>
+            </Button>
           ) : (
             <span className="text-xs text-slate-400">Unavailable</span>
           )}
@@ -157,8 +156,8 @@ export default async function SettingsPage({
 
         <div className="mt-4 flex items-center justify-between rounded-xl border border-slate-200 p-4">
           <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-lg">
-              🎥
+            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-600">
+              <Video size={18} />
             </span>
             <div>
               <p className="text-sm font-medium text-slate-800">Zoom</p>
@@ -173,28 +172,20 @@ export default async function SettingsPage({
           </div>
 
           {zoomConnection ? (
-            <form action={disconnectZoomAction}>
-              <button
-                type="submit"
-                className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-              >
-                Disconnect
-              </button>
-            </form>
+            <DisconnectButton action={disconnectZoomAction} provider="Zoom" />
           ) : zoomConfigurable ? (
-            <a
-              href="/api/calendar/zoom/start"
-              className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500"
-            >
-              Connect
-            </a>
+            <Button asChild>
+              <a href="/api/calendar/zoom/start">Connect</a>
+            </Button>
           ) : (
             <span className="text-xs text-slate-400">Unavailable</span>
           )}
         </div>
-      </section>
+        </CardContent>
+      </Card>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-6">
+      <Card>
+        <CardContent className="p-6">
         <h2 className="font-semibold text-slate-900">Two-factor authentication</h2>
         <p className="mt-1 text-sm text-slate-600">
           {user.totpEnabled
@@ -207,10 +198,12 @@ export default async function SettingsPage({
         >
           {user.totpEnabled ? "Manage 2FA →" : "Enable 2FA →"}
         </Link>
-      </section>
+        </CardContent>
+      </Card>
 
       {!user.deletionRequestedAt && (
-        <section className="rounded-2xl border border-red-200 bg-white p-6">
+        <Card className="border-red-200">
+          <CardContent className="p-6">
           <h2 className="font-semibold text-red-700">Danger zone</h2>
           <p className="mt-1 text-sm text-slate-600">
             Deleting your account deactivates your booking page after a grace period. You can
@@ -224,7 +217,8 @@ export default async function SettingsPage({
               impact={impact}
             />
           </div>
-        </section>
+          </CardContent>
+        </Card>
       )}
     </div>
   );

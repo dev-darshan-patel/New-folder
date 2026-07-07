@@ -5,6 +5,7 @@ import { verifyEnableTotpAction, type SecurityState } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Card, CardContent } from "@/components/ui/card";
 
 type Props = {
   secret: string;
@@ -50,7 +51,8 @@ export default function EnableTotpForm({ secret, qrDataUrl }: Props) {
   }
 
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-6">
+    <Card>
+      <CardContent className="p-6">
       <p className="font-semibold text-slate-900">Scan this QR code</p>
       <p className="mt-1 text-sm text-slate-600">
         Use Google Authenticator, Authy, 1Password, or any other TOTP app.
@@ -99,6 +101,7 @@ export default function EnableTotpForm({ secret, qrDataUrl }: Props) {
           {pending ? "Verifying…" : "Enable 2FA"}
         </Button>
       </form>
-    </section>
+      </CardContent>
+    </Card>
   );
 }

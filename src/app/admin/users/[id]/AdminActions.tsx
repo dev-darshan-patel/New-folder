@@ -9,6 +9,8 @@ import {
   setAdminRoleAction,
 } from "../../actions";
 import HardDeleteForm from "./HardDeleteForm";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 
 const ROLES: AdminRole[] = ["SUPER_ADMIN", "SUPPORT", "READ_ONLY"];
 
@@ -28,19 +30,22 @@ export default function AdminActions({
 
   if (!canMutate) {
     return (
-      <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-5">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-          Admin actions
-        </h2>
-        <p className="mt-2 text-sm text-slate-400">
-          Your role (Read Only) can view this account but can&apos;t make changes.
-        </p>
-      </div>
+      <Card className="mt-6">
+        <CardContent className="p-5">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+            Admin actions
+          </h2>
+          <p className="mt-2 text-sm text-slate-400">
+            Your role (Read Only) can view this account but can&apos;t make changes.
+          </p>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
-    <div className="mt-6 space-y-6 rounded-2xl border border-slate-200 bg-white p-5">
+    <Card className="mt-6">
+      <CardContent className="space-y-6 p-5">
       <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
         Admin actions
       </h2>
@@ -66,9 +71,7 @@ export default function AdminActions({
             placeholder="Reason (optional)"
             className="flex-1 rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-slate-900 outline-none focus:border-indigo-500"
           />
-          <button className="rounded-lg bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-700">
-            Apply
-          </button>
+          <Button size="sm">Apply</Button>
         </form>
       </div>
 
@@ -78,34 +81,40 @@ export default function AdminActions({
         <div className="mt-2 flex flex-wrap gap-2">
           <form action={forcePasswordResetAction}>
             <input type="hidden" name="userId" value={target.id} />
-            <button className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50">
+            <Button type="submit" variant="outline" size="sm">
               Send password reset email
-            </button>
+            </Button>
           </form>
 
           <form action={setSuspendedAction}>
             <input type="hidden" name="userId" value={target.id} />
             <input type="hidden" name="suspended" value={target.suspended ? "0" : "1"} />
-            <button
-              className={`rounded-lg px-3 py-1.5 text-sm font-medium ${
+            <Button
+              type="submit"
+              variant="outline"
+              size="sm"
+              className={
                 target.suspended
-                  ? "border border-green-300 text-green-700 hover:bg-green-50"
-                  : "border border-amber-300 text-amber-700 hover:bg-amber-50"
-              }`}
+                  ? "border-green-300 text-green-700 hover:bg-green-50"
+                  : "border-amber-300 text-amber-700 hover:bg-amber-50"
+              }
             >
               {target.suspended ? "Unsuspend account" : "Suspend account"}
-            </button>
+            </Button>
           </form>
 
           {isSuperAdmin && !isSelf && (
             <form action={startImpersonationAction}>
               <input type="hidden" name="userId" value={target.id} />
-              <button
+              <Button
+                type="submit"
+                variant="outline"
+                size="sm"
                 disabled={target.suspended || !!target.deletedAt}
-                className="rounded-lg border border-indigo-300 px-3 py-1.5 text-sm font-medium text-indigo-700 hover:bg-indigo-50 disabled:cursor-not-allowed disabled:opacity-40"
+                className="border-primary/30 text-primary hover:bg-primary/5"
               >
                 View as this user
-              </button>
+              </Button>
             </form>
           )}
         </div>
@@ -129,9 +138,7 @@ export default function AdminActions({
                 </option>
               ))}
             </select>
-            <button className="rounded-lg bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-700">
-              Save role
-            </button>
+            <Button size="sm">Save role</Button>
           </form>
         </div>
       )}
@@ -144,16 +151,26 @@ export default function AdminActions({
             {target.deletedAt ? (
               <form action={restoreUserAction}>
                 <input type="hidden" name="userId" value={target.id} />
-                <button className="rounded-lg border border-green-300 px-3 py-1.5 text-sm font-medium text-green-700 hover:bg-green-50">
+                <Button
+                  type="submit"
+                  variant="outline"
+                  size="sm"
+                  className="border-green-300 text-green-700 hover:bg-green-50"
+                >
                   Restore account
-                </button>
+                </Button>
               </form>
             ) : (
               <form action={softDeleteUserAction}>
                 <input type="hidden" name="userId" value={target.id} />
-                <button className="rounded-lg border border-red-300 px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-50">
+                <Button
+                  type="submit"
+                  variant="outline"
+                  size="sm"
+                  className="border-red-300 text-red-700 hover:bg-red-50"
+                >
                   Soft delete (hide account)
-                </button>
+                </Button>
               </form>
             )}
           </div>
@@ -162,6 +179,7 @@ export default function AdminActions({
           </div>
         </div>
       )}
-    </div>
+      </CardContent>
+    </Card>
   );
 }

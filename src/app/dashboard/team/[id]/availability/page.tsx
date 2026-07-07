@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { updateMemberAvailabilityAction } from "../../actions";
+import { Button } from "@/components/ui/button";
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
@@ -72,12 +73,7 @@ export default async function MemberAvailabilityPage({
             </div>
           );
         })}
-        <button
-          type="submit"
-          className="rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-500"
-        >
-          Save hours
-        </button>
+        <Button type="submit">Save hours</Button>
       </form>
     </div>
   );

@@ -9,6 +9,7 @@ import {
 } from "@/lib/email-templates";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { toggleEmailTemplateAction } from "./actions";
 import BrandingEditor from "./BrandingEditor";
 import ImportButton from "./ImportButton";
@@ -145,12 +146,9 @@ export default async function EmailTemplatesPage({
                           <form action={toggleEmailTemplateAction}>
                             <input type="hidden" name="key" value={def.key} />
                             <input type="hidden" name="enabled" value={(!enabled).toString()} />
-                            <button
-                              type="submit"
-                              className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
-                            >
+                            <Button type="submit" variant="outline" size="sm">
                               {enabled ? "Disable" : "Enable"}
-                            </button>
+                            </Button>
                           </form>
                           <Link
                             href={`/admin/settings/email-templates/${def.key}`}
