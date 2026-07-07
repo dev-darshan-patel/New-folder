@@ -8,8 +8,11 @@ import { slugify } from "@/lib/slug";
 import { getPlanConfig } from "@/lib/plans";
 import { FONTS } from "@/lib/branding";
 import { parseQuestions } from "@/lib/intake";
+import { parseGuests } from "@/lib/guests";
 import { sendEmail } from "@/lib/email";
 import { renderTemplate } from "@/lib/email-templates";
+import { buildIcs } from "@/lib/ics";
+import { formatWhen } from "@/lib/format";
 import { rateLimit } from "@/lib/rate-limit";
 import { createMeetEvent, deleteMeetEvent } from "@/lib/google-calendar";
 import { createZoomMeeting, deleteZoomMeeting } from "@/lib/zoom";
@@ -409,6 +412,19 @@ export async function cancelSessionAction(formData: FormData): Promise<void> {
   if (!session) return;
   if (session.cancelled) return;
 
+  // Capture the active attendees BEFORE the transaction flips them to
+  // CANCELLED, so we can notify each one that their session was called off.
+  const attendees = await prisma.booking.findMany({
+    where: { sessionId: session.id, status: { in: ["CONFIRMED", "PENDING"] } },
+    select: {
+      inviteeName: true,
+      inviteeEmail: true,
+      manageToken: true,
+      sequence: true,
+      guests: true,
+    },
+  });
+
   // Best-effort clean-up of the provider meeting.
   if (session.calendarEventId) {
     if (session.meetingProvider === "zoom") {
@@ -428,6 +444,55 @@ export async function cancelSessionAction(formData: FormData): Promise<void> {
       data: { cancelled: true, seatsTaken: 0 },
     }),
   ]);
+
+  // Notify every attendee their session was canceled, with an ICS CANCEL so it
+  // drops off their calendar. Best-effort — a send failure never blocks the
+  // cancel. Reuses the generic booking-canceled template.
+  const when = formatWhen(session.startTime, user.timezone);
+  const end = new Date(session.startTime.getTime() + session.durationMinutes * 60_000);
+  for (const a of attendees) {
+    const cancelIcs = {
+      filename: "invite.ics",
+      content: buildIcs({
+        uid: a.manageToken ?? `${session.id}-${a.inviteeEmail}`,
+        sequence: a.sequence + 1,
+        method: "CANCEL" as const,
+        start: session.startTime,
+        end,
+        title: `${session.eventType.title} — ${user.businessName}`,
+        organizerName: user.businessName,
+        organizerEmail: user.email,
+        attendeeName: a.inviteeName,
+        attendeeEmail: a.inviteeEmail,
+      }),
+      contentType: "text/calendar; charset=utf-8; method=CANCEL",
+    };
+    try {
+      const mail = await renderTemplate("booking.canceled.invitee", {
+        invitee_name: a.inviteeName,
+        business_name: user.businessName,
+        event_title: session.eventType.title,
+        when,
+      });
+      await sendEmail({
+        to: a.inviteeEmail,
+        ...mail,
+        attachments: [cancelIcs],
+        ...(session.eventType.replyToEmail ? { replyTo: session.eventType.replyToEmail } : {}),
+      });
+      // Guests the attendee added get the same notice.
+      for (const g of parseGuests(a.guests)) {
+        await sendEmail({
+          to: g.email,
+          ...mail,
+          attachments: [cancelIcs],
+          ...(session.eventType.replyToEmail ? { replyTo: session.eventType.replyToEmail } : {}),
+        });
+      }
+    } catch (err) {
+      console.error("Failed to send session-cancellation email", err);
+    }
+  }
 
   revalidatePath(`/dashboard/event-types/${session.eventTypeId}`);
   revalidatePath("/dashboard/bookings");
