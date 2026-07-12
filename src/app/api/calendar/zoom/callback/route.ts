@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { connectZoom } from "@/lib/zoom";
+import logger from "@/lib/logger";
 
 const STATE_COOKIE = "zoom_oauth_state";
 
@@ -34,7 +35,7 @@ export async function GET(req: NextRequest) {
     const origin = new URL(req.url).origin;
     await connectZoom(user.id, code, origin);
   } catch (err) {
-    console.error("Zoom connect failed", err);
+    logger.error({ err, userId: user.id }, "Zoom connect failed");
     return finish("error");
   }
 

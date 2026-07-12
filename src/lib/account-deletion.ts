@@ -9,6 +9,8 @@ import { formatWhen } from "@/lib/format";
 import { deleteMeetEvent } from "@/lib/google-calendar";
 import { deleteZoomMeeting } from "@/lib/zoom";
 import { getStripe } from "@/lib/stripe";
+import { refundBookingPayment } from "@/lib/payments/refunds";
+import logger from "@/lib/logger";
 
 // How long an owner has to undo a deletion request before the destructive
 // cascade (cron Phase 6) runs. Account stays fully active the whole time.
@@ -107,6 +109,18 @@ export async function runDeletionCascade(userId: string): Promise<void> {
         await deleteMeetEvent(userId, b.calendarEventId);
       }
     }
+    // Feature 4.7: a paid booking whose funds are still HELD on the platform
+    // is refunded automatically — the tenant's account is going away, so they
+    // must never receive money for a service that (from here on) can't
+    // happen. Already-RELEASED payouts are left alone; clawing those back is
+    // a manual admin decision (see refundBookingPayment / reverseTransfer),
+    // not something the deletion cascade does unilaterally.
+    if (b.paymentStatus === "PAID" && b.payoutStatus === "HELD") {
+      const result = await refundBookingPayment(b.id);
+      if (!result.ok) {
+        logger.error({ bookingId: b.id, userId, error: result.error }, "Deletion cascade: refund failed");
+      }
+    }
     try {
       const when = formatWhen(b.startTime, user.timezone);
       const cancelIcs = {
@@ -133,7 +147,7 @@ export async function runDeletionCascade(userId: string): Promise<void> {
       });
       await sendEmail({ to: b.inviteeEmail, ...mail, attachments: [cancelIcs] });
     } catch (err) {
-      console.error("Failed to send deletion-cascade cancellation email", err);
+      logger.error({ err, bookingId: b.id, userId }, "Failed to send deletion-cascade cancellation email");
     }
   }
 
@@ -144,7 +158,7 @@ export async function runDeletionCascade(userId: string): Promise<void> {
       const stripe = await getStripe();
       if (stripe) await stripe.subscriptions.cancel(user.stripeSubscriptionId);
     } catch (err) {
-      console.error("Failed to cancel Stripe subscription during account deletion", err);
+      logger.error({ err, userId }, "Failed to cancel Stripe subscription during account deletion");
     }
   }
 
@@ -175,7 +189,7 @@ export async function runDeletionCascade(userId: string): Promise<void> {
     });
     await sendEmail({ to: user.email, ...mail });
   } catch (err) {
-    console.error("Failed to send deletion-finalized email", err);
+    logger.error({ err, userId }, "Failed to send deletion-finalized email");
   }
 }
 
@@ -206,7 +220,7 @@ export async function processDuePurges(): Promise<number> {
         const { del } = await import("@vercel/blob");
         await del(u.avatarUrl);
       } catch (err) {
-        console.error("Failed to delete avatar blob during purge", err);
+        logger.error({ err, userId: u.id }, "Failed to delete avatar blob during purge");
       }
     }
     await prisma.user.delete({ where: { id: u.id } });

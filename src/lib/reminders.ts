@@ -3,6 +3,7 @@ import { sendEmail } from "@/lib/email";
 import { isFeatureEnabled } from "@/lib/feature-flags";
 import { formatWhen } from "@/lib/format";
 import { renderTemplate } from "@/lib/email-templates";
+import logger from "@/lib/logger";
 
 const HOUR = 60 * 60 * 1000;
 
@@ -45,7 +46,7 @@ async function remind(
       });
       sent += 1;
     } catch (err) {
-      console.error(`Failed to send ${kind} reminder for booking ${b.id}`, err);
+      logger.error({ err, bookingId: b.id, kind }, "Failed to send reminder");
     }
   }
 

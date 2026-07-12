@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAdminRole } from "@/lib/admin-auth";
 import { writeAuditLog } from "@/lib/admin-audit";
 import { sendEmail } from "@/lib/email";
+import logger from "@/lib/logger";
 
 export type BroadcastState =
   | { ok: true; sent: number; failed: number }
@@ -38,7 +39,7 @@ export async function sendBroadcastAction(
       await sendEmail({ to: r.email, subject, text: `Hi ${r.name},\n\n${body}` });
       sent++;
     } catch (err) {
-      console.error(`Broadcast failed for ${r.email}`, err);
+      logger.error({ err, recipientEmail: r.email }, "Broadcast failed for recipient");
       failed++;
     }
   }

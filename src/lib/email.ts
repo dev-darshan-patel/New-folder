@@ -1,5 +1,6 @@
 import nodemailer from "nodemailer";
 import { getPlatformSettings } from "@/lib/settings";
+import logger from "@/lib/logger";
 
 type Attachment = {
   filename: string;
@@ -80,9 +81,7 @@ export async function sendEmail({ to, subject, text, html, attachments, replyTo 
     const att = attachments?.length
       ? `\n  attachments: ${attachments.map((a) => a.filename).join(", ")}`
       : "";
-    console.log(
-      `\n[email] No email provider configured — would send:\n  to: ${to}\n  subject: ${subject}${att}\n${text}\n`,
-    );
+    logger.info({ to, subject, attachments: attachments?.map((a) => a.filename) }, "No email provider configured — email not sent");
     return;
   }
 

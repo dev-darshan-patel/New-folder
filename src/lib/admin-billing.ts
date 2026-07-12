@@ -2,6 +2,7 @@ import "server-only";
 import { prisma } from "@/lib/prisma";
 import { getAllPlans, type Plan } from "@/lib/plans";
 import { getStripe } from "@/lib/stripe";
+import logger from "@/lib/logger";
 
 export type AtRiskRow = {
   id: string;
@@ -99,7 +100,7 @@ export async function getRecentInvoices(): Promise<InvoiceRow[] | null> {
         hostedInvoiceUrl: inv.hosted_invoice_url ?? null,
       }));
   } catch (err) {
-    console.error("Failed to list Stripe invoices", err);
+    logger.error({ err }, "Failed to list Stripe invoices");
     return null;
   }
 }

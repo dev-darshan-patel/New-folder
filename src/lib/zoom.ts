@@ -2,6 +2,7 @@ import "server-only";
 import { prisma } from "@/lib/prisma";
 import { getPlatformSettings } from "@/lib/settings";
 import { encryptIfConfigured, decryptIfNeeded } from "@/lib/crypto";
+import logger from "@/lib/logger";
 
 // Zoom auto-generated meeting links. Separate per-owner OAuth "connect" flow
 // (like Google Calendar) — requires its own Zoom OAuth app (marketplace.zoom.us),
@@ -158,7 +159,7 @@ export async function getValidZoomAccessToken(userId: string): Promise<string | 
       }),
     });
     if (!res.ok) {
-      console.error("Zoom token refresh failed:", await res.text());
+      logger.error({ userId, body: await res.text() }, "Zoom token refresh failed");
       return null;
     }
     const tokens = (await res.json()) as TokenResponse;
@@ -174,7 +175,7 @@ export async function getValidZoomAccessToken(userId: string): Promise<string | 
     });
     return tokens.access_token;
   } catch (err) {
-    console.error("Zoom token refresh error:", err);
+    logger.error({ err, userId }, "Zoom token refresh error");
     return null;
   }
 }
@@ -213,14 +214,14 @@ export async function createZoomMeeting(input: {
       }),
     });
     if (!res.ok) {
-      console.error("Zoom meeting create failed:", await res.text());
+      logger.error({ userId: input.userId, body: await res.text() }, "Zoom meeting create failed");
       return null;
     }
     const meeting = (await res.json()) as { id: number; join_url?: string };
     if (!meeting.join_url) return null;
     return { meetingUrl: meeting.join_url, meetingId: String(meeting.id) };
   } catch (err) {
-    console.error("Zoom meeting create error:", err);
+    logger.error({ err, userId: input.userId }, "Zoom meeting create error");
     return null;
   }
 }
@@ -253,7 +254,7 @@ export async function updateZoomMeetingTime(input: {
       }),
     });
   } catch (err) {
-    console.error("Zoom meeting update error:", err);
+    logger.error({ err, userId: input.userId, meetingId: input.meetingId }, "Zoom meeting update error");
   }
 }
 
@@ -268,6 +269,6 @@ export async function deleteZoomMeeting(userId: string, meetingId: string): Prom
       headers: { Authorization: `Bearer ${accessToken}` },
     });
   } catch (err) {
-    console.error("Zoom meeting delete error:", err);
+    logger.error({ err, userId, meetingId }, "Zoom meeting delete error");
   }
 }

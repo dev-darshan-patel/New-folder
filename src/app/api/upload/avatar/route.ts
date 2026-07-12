@@ -5,6 +5,7 @@ import path from "node:path";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { verifyCsrfOrigin } from "@/lib/csrf";
+import logger from "@/lib/logger";
 
 const MAX_BYTES = 5 * 1024 * 1024; // 5 MB
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
@@ -81,7 +82,7 @@ export async function POST(req: NextRequest) {
     return Response.json({ url });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.error("Avatar upload error:", msg);
+    logger.error({ err }, "Avatar upload error");
     return Response.json({ error: msg }, { status: 500 });
   }
 }
@@ -98,7 +99,7 @@ export async function DELETE(req: NextRequest) {
     return Response.json({ ok: true });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.error("Avatar delete error:", msg);
+    logger.error({ err }, "Avatar delete error");
     return Response.json({ error: msg }, { status: 500 });
   }
 }

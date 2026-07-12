@@ -16,6 +16,8 @@ import { formatWhen } from "@/lib/format";
 import { rateLimit } from "@/lib/rate-limit";
 import { createMeetEvent, deleteMeetEvent } from "@/lib/google-calendar";
 import { createZoomMeeting, deleteZoomMeeting } from "@/lib/zoom";
+import { pricingEligibility } from "@/lib/payments";
+import logger from "@/lib/logger";
 
 // Re-send the email-verification link to the signed-in (unverified) user.
 export async function resendVerificationAction(): Promise<{ ok: boolean; error?: string }> {
@@ -41,7 +43,7 @@ export async function resendVerificationAction(): Promise<{ ok: boolean; error?:
     });
     await sendEmail({ to: user.email, ...mail });
   } catch (err) {
-    console.error("Failed to send verification email", err);
+    logger.error({ err, userId: user.id }, "Failed to send verification email");
     return { ok: false, error: "Could not send the email. Try again later." };
   }
   return { ok: true };
@@ -70,6 +72,50 @@ export async function saveAvailabilityAction(formData: FormData) {
     }),
   ]);
 
+  revalidatePath("/dashboard/availability");
+}
+
+// Add or replace a date override for one calendar date — "block this day
+// entirely" or "use these hours instead of the weekly grid, just this once."
+export async function saveDateOverrideAction(formData: FormData): Promise<{ ok: boolean; error?: string }> {
+  const user = await getCurrentUser();
+  if (!user) return { ok: false, error: "Not authenticated" };
+
+  const date = String(formData.get("date") || "");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    return { ok: false, error: "Please pick a valid date." };
+  }
+  const type = String(formData.get("type") || "");
+  if (type !== "BLOCKED" && type !== "CUSTOM_HOURS") {
+    return { ok: false, error: "Invalid override type." };
+  }
+
+  let startMinutes: number | null = null;
+  let endMinutes: number | null = null;
+  if (type === "CUSTOM_HOURS") {
+    startMinutes = toMinutes(String(formData.get("startTime") || ""));
+    endMinutes = toMinutes(String(formData.get("endTime") || ""));
+    if (startMinutes === null || endMinutes === null || endMinutes <= startMinutes) {
+      return { ok: false, error: "Please enter a valid start and end time." };
+    }
+  }
+
+  await prisma.dateOverride.upsert({
+    where: { userId_date: { userId: user.id, date } },
+    create: { userId: user.id, date, type, startMinutes, endMinutes },
+    update: { type, startMinutes, endMinutes },
+  });
+
+  revalidatePath("/dashboard/availability");
+  return { ok: true };
+}
+
+export async function deleteDateOverrideAction(id: string): Promise<void> {
+  const user = await getCurrentUser();
+  if (!user) return;
+  // Ownership re-checked in the where clause, same pattern as every other
+  // dashboard mutation — one tenant can never touch another's rows.
+  await prisma.dateOverride.deleteMany({ where: { id, userId: user.id } });
   revalidatePath("/dashboard/availability");
 }
 
@@ -200,6 +246,43 @@ export async function updateEventTypeAction(formData: FormData) {
   // group event type, regardless of what the form sent.
   const allowRecurring = capacity == null && formData.get("allowRecurring") === "1";
 
+  // Price (Feature 4.4). null = free (unchanged behavior). A paid price is
+  // only accepted when the owner is APPROVED + onboarded on their active
+  // provider AND the event type stays inside the v1 scope fence (SOLO,
+  // non-group, non-recurring). Anything else silently drops the price so a
+  // forged form field can never sneak a paid booking through.
+  const rawPrice = String(formData.get("priceCents") || "").trim();
+  let priceCents: number | null = null;
+  let currency: string | null = null;
+  if (rawPrice !== "") {
+    const parsed = Number(rawPrice);
+    if (Number.isFinite(parsed) && parsed > 0 && parsed <= 10_000_000) {
+      priceCents = Math.round(parsed);
+    }
+  }
+  const rawAssignment = String(formData.get("assignmentMode") || "SOLO");
+  const scopeFenceOk =
+    capacity == null &&
+    !allowRecurring &&
+    (rawAssignment === "SOLO" || rawAssignment === "");
+  if (priceCents !== null && !scopeFenceOk) {
+    priceCents = null;
+  }
+  if (priceCents !== null) {
+    const eligibility = pricingEligibility({
+      paymentAccountStatus: user.paymentAccountStatus,
+      activePaymentProvider: user.activePaymentProvider,
+      country: user.country,
+      stripeConnectReady: user.stripeConnectReady,
+      razorpayConnectReady: user.razorpayConnectReady,
+    });
+    if (!eligibility.canPrice) {
+      priceCents = null;
+    } else {
+      currency = eligibility.currency;
+    }
+  }
+
   // Meeting location. GOOGLE_MEET/ZOOM only stick if the owner has actually
   // connected that provider; otherwise silently fall back to IN_PERSON so we
   // never promise a video link we can't create.
@@ -265,6 +348,8 @@ export async function updateEventTypeAction(formData: FormData) {
       assignmentMode,
       locationType,
       locationDetail,
+      priceCents,
+      currency,
     },
   });
   if (count === 0) return;
@@ -490,7 +575,7 @@ export async function cancelSessionAction(formData: FormData): Promise<void> {
         });
       }
     } catch (err) {
-      console.error("Failed to send session-cancellation email", err);
+      logger.error({ err, sessionId: session.id }, "Failed to send session-cancellation email");
     }
   }
 

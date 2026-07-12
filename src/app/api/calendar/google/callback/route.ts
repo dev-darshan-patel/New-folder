@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { connectGoogleCalendar } from "@/lib/google-calendar";
+import logger from "@/lib/logger";
 
 const STATE_COOKIE = "calendar_oauth_state";
 
@@ -34,7 +35,7 @@ export async function GET(req: NextRequest) {
     const origin = new URL(req.url).origin;
     await connectGoogleCalendar(user.id, code, origin);
   } catch (err) {
-    console.error("Google Calendar connect failed", err);
+    logger.error({ err, userId: user.id }, "Google Calendar connect failed");
     return finish("error");
   }
 

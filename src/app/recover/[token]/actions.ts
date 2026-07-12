@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/lib/email";
 import { renderTemplate } from "@/lib/email-templates";
+import logger from "@/lib/logger";
 
 export async function recoverAccountAction(token: string): Promise<void> {
   const user = await prisma.user.findUnique({ where: { recoveryToken: token } });
@@ -28,7 +29,7 @@ export async function recoverAccountAction(token: string): Promise<void> {
     });
     await sendEmail({ to: user.email, ...mail });
   } catch (err) {
-    console.error("Failed to send account-recovered email", err);
+    logger.error({ err, userId: user.id }, "Failed to send account-recovered email");
   }
 
   redirect("/login?recovered=1");

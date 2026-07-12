@@ -10,6 +10,7 @@ import { formatWhen } from "@/lib/format";
 import { createMeetEvent } from "@/lib/google-calendar";
 import { createZoomMeeting } from "@/lib/zoom";
 import { parseGuests } from "@/lib/guests";
+import logger from "@/lib/logger";
 
 // Approve a PENDING booking: confirms it, creates a video meeting if the
 // event type calls for one, and sends the invitee their real confirmation.
@@ -130,7 +131,7 @@ export async function approveBookingAction(formData: FormData) {
       });
     }
   } catch (err) {
-    console.error("Failed to send approval email", err);
+    logger.error({ err, bookingId: booking.id }, "Failed to send approval email");
   }
 
   revalidatePath("/dashboard/bookings");
@@ -160,7 +161,7 @@ export async function rejectBookingAction(formData: FormData) {
     });
     await sendEmail({ to: booking.inviteeEmail, ...inviteeEmail });
   } catch (err) {
-    console.error("Failed to send decline email", err);
+    logger.error({ err, bookingId: booking.id }, "Failed to send decline email");
   }
 
   revalidatePath("/dashboard/bookings");

@@ -13,6 +13,7 @@ import { sendEmail } from "@/lib/email";
 import { renderTemplate } from "@/lib/email-templates";
 import { getPlanMap, type Plan } from "@/lib/plans";
 import { uniqueUserSlug, RESERVED_SLUGS } from "@/lib/slug";
+import logger from "@/lib/logger";
 
 const ROLES: AdminRole[] = ["SUPER_ADMIN", "SUPPORT", "READ_ONLY"];
 
@@ -125,7 +126,7 @@ export async function setSuspendedAction(formData: FormData) {
         });
     await sendEmail({ to: target.email, ...mail });
   } catch (err) {
-    console.error("Failed to send suspend/restore email", err);
+    logger.error({ err, userId: target.id }, "Failed to send suspend/restore email");
   }
 
   await writeAuditLog({

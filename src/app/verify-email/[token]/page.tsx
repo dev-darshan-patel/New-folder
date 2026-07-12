@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/lib/email";
 import { renderTemplate } from "@/lib/email-templates";
+import logger from "@/lib/logger";
 
 function isExpired(expiresAt: Date | null): boolean {
   return !expiresAt || expiresAt.getTime() < Date.now();
@@ -44,7 +45,7 @@ export default async function VerifyEmailPage({
         });
         await sendEmail({ to: user.email, ...mail });
       } catch (err) {
-        console.error("Failed to send welcome email", err);
+        logger.error({ err, userId: user.id }, "Failed to send welcome email");
       }
     }
   }

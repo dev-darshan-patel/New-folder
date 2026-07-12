@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { processDueDeletions, processDuePurges } from "@/lib/account-deletion";
+import logger from "@/lib/logger";
 
 // Runs both halves of self-service account deletion on a schedule:
 //   1. Cascade accounts whose grace period has elapsed (cancel bookings +
@@ -22,6 +23,7 @@ async function handle(req: NextRequest) {
 
   const cascaded = await processDueDeletions();
   const purged = await processDuePurges();
+  logger.info({ cascaded, purged }, "Cron: account-deletion run complete");
   return NextResponse.json({ ok: true, cascaded, purged });
 }
 

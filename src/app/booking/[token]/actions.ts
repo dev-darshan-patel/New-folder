@@ -4,18 +4,20 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { getSlotsForDate, getTeamSlotsForDate, type Slot } from "@/lib/availability";
+import { getSlotsForDate, getTeamSlotsForDate, isBlockedByDateOverride, type Slot } from "@/lib/availability";
 import { getTeamMemberBusyWindows, isFreeAt, pickRoundRobinMember } from "@/lib/team";
 import { sendEmail } from "@/lib/email";
 import { renderTemplate } from "@/lib/email-templates";
 import { buildIcs } from "@/lib/ics";
 import { formatWhen } from "@/lib/format";
-import { updateMeetEventTime, deleteMeetEvent } from "@/lib/google-calendar";
+import { updateMeetEventTime, deleteMeetEvent, getGoogleBusyWindows } from "@/lib/google-calendar";
 import { updateZoomMeetingTime, deleteZoomMeeting } from "@/lib/zoom";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
 import { getCurrentUser } from "@/lib/auth";
 import { parseGuests } from "@/lib/guests";
 import { BLOCKING_STATUSES } from "@/lib/booking-status";
+import { refundBookingPayment } from "@/lib/payments/refunds";
+import logger from "@/lib/logger";
 
 // True if the notice window before `startTime` has already passed. The
 // business owner is never subject to this — only self-service invitee
@@ -123,6 +125,18 @@ export async function cancelBookingAction(formData: FormData) {
     });
   }
 
+  // Feature 4.7: auto-refund while the payout is still HELD on the platform —
+  // this is the "customer cancels a paid booking before it happens" case from
+  // the payments plan. Once payoutStatus is RELEASED, the money already moved
+  // to the tenant and a refund becomes a manual admin decision (see
+  // /admin/payments), not something a self-service cancel triggers.
+  if (booking.paymentStatus === "PAID" && booking.payoutStatus === "HELD") {
+    const refundResult = await refundBookingPayment(booking.id);
+    if (!refundResult.ok) {
+      logger.error({ bookingId: booking.id, error: refundResult.error }, "Cancel: refund failed");
+    }
+  }
+
   // Remove the video meeting for 1:1 bookings only. For group bookings, the
   // meeting belongs to the whole session and lives/dies with it.
   if (!booking.sessionId && booking.calendarEventId) {
@@ -165,7 +179,7 @@ export async function cancelBookingAction(formData: FormData) {
     });
     await sendEmail({ to: booking.user.email, ...ownerEmail, attachments: [cancelIcs] });
   } catch (err) {
-    console.error("Failed to send cancellation email", err);
+    logger.error({ err, bookingId: booking.id }, "Failed to send cancellation email");
   }
 
   revalidatePath(`/booking/${token}`);
@@ -240,7 +254,7 @@ export async function cancelRemainingSeriesAction(formData: FormData) {
         ...(b.eventType.replyToEmail ? { replyTo: b.eventType.replyToEmail } : {}),
       });
     } catch (err) {
-      console.error("Failed to send series cancellation email", err);
+      logger.error({ err, bookingId: b.id }, "Failed to send series cancellation email");
     }
   }
 
@@ -254,7 +268,7 @@ export async function cancelRemainingSeriesAction(formData: FormData) {
     });
     await sendEmail({ to: anchor.user.email, ...ownerEmail });
   } catch (err) {
-    console.error("Failed to send series owner cancellation email", err);
+    logger.error({ err, bookingId: anchor.id }, "Failed to send series owner cancellation email");
   }
 
   revalidatePath(`/booking/${token}`);
@@ -349,6 +363,10 @@ export async function rescheduleBookingAction(input: {
   }
   const end = new Date(start.getTime() + booking.eventType.durationMinutes * 60_000);
 
+  if (await isBlockedByDateOverride(booking.userId, start, end, booking.user.timezone)) {
+    return { ok: false, error: "That time is no longer available." };
+  }
+
   let assignedTeamMemberId: string | null = booking.teamMemberId;
 
   if (booking.eventType.assignmentMode === "SOLO") {
@@ -362,6 +380,15 @@ export async function rescheduleBookingAction(input: {
       },
     });
     if (conflict) {
+      return { ok: false, error: "Sorry, that time was just booked. Pick another." };
+    }
+    // Exclude this booking's own current window — if it has a Google Calendar
+    // event, that event is still at the OLD time until we move it below, so
+    // it can only spuriously self-block when the new time overlaps the old one.
+    const googleBusy = (await getGoogleBusyWindows(booking.userId, start, end)).filter(
+      (b) => !(b.start.getTime() === booking.startTime.getTime() && b.end.getTime() === booking.endTime.getTime()),
+    );
+    if (googleBusy.some((b) => start < b.end && end > b.start)) {
       return { ok: false, error: "Sorry, that time was just booked. Pick another." };
     }
   } else {
@@ -475,7 +502,7 @@ export async function rescheduleBookingAction(input: {
     });
     await sendEmail({ to: booking.user.email, ...ownerEmail, attachments: [updateIcs] });
   } catch (err) {
-    console.error("Failed to send reschedule email", err);
+    logger.error({ err, bookingId: booking.id }, "Failed to send reschedule email");
   }
 
   revalidatePath(`/booking/${input.token}`);

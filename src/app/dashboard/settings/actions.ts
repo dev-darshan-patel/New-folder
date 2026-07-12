@@ -7,9 +7,19 @@ import { getCurrentUser, getImpersonator, createSession } from "@/lib/auth";
 import { slugify, RESERVED_SLUGS } from "@/lib/slug";
 import { sendEmail } from "@/lib/email";
 import { renderTemplate } from "@/lib/email-templates";
-import { disconnectGoogleCalendar } from "@/lib/google-calendar";
+import { disconnectGoogleCalendar, setBusySync } from "@/lib/google-calendar";
 import { disconnectZoom } from "@/lib/zoom";
 import { getDeletionImpact } from "@/lib/account-deletion";
+import {
+  PAYMENT_ACCOUNT_STATUS,
+  PAYMENT_APPLICATION_STATUS,
+  PAYMENTS_REQUIRED_PLAN,
+  SUPPORTED_COUNTRIES,
+  tenantEligibleProviders,
+  canSwitchPaymentProvider,
+} from "@/lib/payments";
+import type { PaymentProvider } from "@/lib/payments/provider";
+import logger from "@/lib/logger";
 
 export type SettingsState = { ok: true; message: string } | { error: string } | null;
 
@@ -19,6 +29,15 @@ export async function disconnectCalendarAction() {
   const user = await getCurrentUser();
   if (!user) return;
   await disconnectGoogleCalendar(user.id);
+  revalidatePath("/dashboard/settings");
+}
+
+// Toggle whether busy times from the owner's connected Google Calendar hide
+// slots on the public booking page.
+export async function toggleBusySyncAction(enabled: boolean) {
+  const user = await getCurrentUser();
+  if (!user) return;
+  await setBusySync(user.id, enabled);
   revalidatePath("/dashboard/settings");
 }
 
@@ -104,7 +123,7 @@ export async function changePasswordAction(
     const mail = await renderTemplate("auth.password_changed", { user_name: user.name });
     await sendEmail({ to: user.email, ...mail });
   } catch (err) {
-    console.error("Failed to send password-changed email", err);
+    logger.error({ err, userId: user.id }, "Failed to send password-changed email");
   }
 
   return { ok: true, message: "Password changed." };
@@ -186,4 +205,174 @@ export async function getDeletionImpactAction() {
   const user = await getCurrentUser();
   if (!user) return null;
   return getDeletionImpact(user.id);
+}
+
+// Tenant submits a request to accept payments from their customers. This is
+// the "application" step — a SUPER_ADMIN approves before any Stripe/Razorpay
+// onboarding happens (Feature 4 fraud protection). Plan-gated to BUSINESS.
+export async function applyForPaymentsAction(
+  _prev: SettingsState,
+  formData: FormData,
+): Promise<SettingsState> {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated." };
+
+  if (user.plan !== PAYMENTS_REQUIRED_PLAN) {
+    return { error: "Accepting payments requires the Business plan." };
+  }
+  // A tenant with an active application or an approved account has nothing
+  // to apply for. SUSPENDED tenants can re-apply (admin decides).
+  if (
+    user.paymentAccountStatus === PAYMENT_ACCOUNT_STATUS.APPLIED ||
+    user.paymentAccountStatus === PAYMENT_ACCOUNT_STATUS.APPROVED
+  ) {
+    return { error: "You already have an application in progress or an approved account." };
+  }
+
+  const country = String(formData.get("country") || "").trim().toUpperCase();
+  const businessDescription = String(formData.get("businessDescription") || "").trim();
+  const expectedPriceRange = String(formData.get("expectedPriceRange") || "").trim();
+  const agreed = formData.get("agree") === "on";
+
+  if (!SUPPORTED_COUNTRIES.some((c) => c.code === country)) {
+    return { error: "Please select a supported country." };
+  }
+  if (businessDescription.length < 20) {
+    return { error: "Please describe your business in at least 20 characters." };
+  }
+  if (businessDescription.length > 1000) {
+    return { error: "Business description must be under 1000 characters." };
+  }
+  if (!expectedPriceRange || expectedPriceRange.length > 200) {
+    return { error: "Please enter your typical price range." };
+  }
+  if (!agreed) {
+    return { error: "You must agree to the payments terms before applying." };
+  }
+
+  await prisma.$transaction([
+    prisma.paymentApplication.create({
+      data: {
+        userId: user.id,
+        country,
+        businessDescription,
+        expectedPriceRange,
+        status: PAYMENT_APPLICATION_STATUS.PENDING,
+      },
+    }),
+    prisma.user.update({
+      where: { id: user.id },
+      data: {
+        country,
+        paymentAccountStatus: PAYMENT_ACCOUNT_STATUS.APPLIED,
+      },
+    }),
+  ]);
+
+  // Notify platform super-admins so applications don't rot in the queue.
+  // Same graceful-degrade pattern used everywhere else — a send failure
+  // never blocks the user's action.
+  try {
+    const superAdmins = await prisma.user.findMany({
+      where: { adminRole: "SUPER_ADMIN" },
+      select: { email: true },
+    });
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    for (const admin of superAdmins) {
+      await sendEmail({
+        to: admin.email,
+        subject: `New payments application from ${user.businessName}`,
+        text: `${user.businessName} (${user.email}) has applied to accept payments.\n\nCountry: ${country}\n\nReview: ${baseUrl}/admin/payments`,
+      });
+    }
+  } catch (err) {
+    logger.error({ err, userId: user.id }, "Failed to notify admins of new payment application");
+  }
+
+  revalidatePath("/dashboard/settings");
+  return { ok: true, message: "Application submitted. We'll email you once it's reviewed." };
+}
+
+// Pick the active payment provider once approved. Only meaningful when the
+// tenant is eligible for more than one (India + stripeForIndiaEnabled). The
+// switch is gated on "no money in flight" so an in-progress checkout is never
+// stranded on the wrong provider.
+export async function setActivePaymentProviderAction(
+  _prev: SettingsState,
+  formData: FormData,
+): Promise<SettingsState> {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated." };
+  if (user.paymentAccountStatus !== PAYMENT_ACCOUNT_STATUS.APPROVED) {
+    return { error: "You need to be approved before you can pick a provider." };
+  }
+
+  const provider = String(formData.get("provider") || "").toUpperCase();
+  if (provider !== "STRIPE" && provider !== "RAZORPAY") {
+    return { error: "Unknown provider." };
+  }
+
+  const eligible = await tenantEligibleProviders(user.country);
+  if (!eligible.includes(provider as PaymentProvider)) {
+    return { error: "Your country isn't eligible for that provider." };
+  }
+  if (user.activePaymentProvider === provider) {
+    return { ok: true, message: "That provider is already active." };
+  }
+
+  const switchGate = await canSwitchPaymentProvider(user.id);
+  if (!switchGate.ok) return { error: switchGate.reason };
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { activePaymentProvider: provider },
+  });
+
+  revalidatePath("/dashboard/settings");
+  return { ok: true, message: "Active payment provider updated." };
+}
+
+// Manually poll the provider for the tenant's onboarding status. Called from
+// the "Refresh status" button — useful when the webhook is late or when the
+// tenant returned via a different tab and never hit the return route.
+export async function refreshPaymentOnboardingAction(
+  _prev: SettingsState,
+  formData: FormData,
+): Promise<SettingsState> {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated." };
+
+  const provider = String(formData.get("provider") || "").toUpperCase();
+  if (provider !== "STRIPE" && provider !== "RAZORPAY") {
+    return { error: "Unknown provider." };
+  }
+
+  const accountId =
+    provider === "STRIPE" ? user.stripeConnectAccountId : user.razorpayLinkedAccountId;
+  if (!accountId) {
+    return { error: "You haven't started onboarding for this provider yet." };
+  }
+
+  try {
+    const { getPaymentAdapter } = await import("@/lib/payments/registry");
+    const adapter = getPaymentAdapter(provider as PaymentProvider);
+    const status = await adapter.getOnboardingStatus(accountId);
+    await prisma.user.update({
+      where: { id: user.id },
+      data:
+        provider === "STRIPE"
+          ? { stripeConnectReady: status.ready }
+          : { razorpayConnectReady: status.ready },
+    });
+    revalidatePath("/dashboard/settings");
+    return {
+      ok: true,
+      message: status.ready
+        ? "You're ready to accept payments."
+        : `Still pending${status.reason ? ` — ${status.reason}` : ""}.`,
+    };
+  } catch (err) {
+    logger.error({ err, userId: user.id, provider }, "Payments onboarding refresh failed");
+    return { error: "Couldn't reach the provider. Try again in a moment." };
+  }
 }

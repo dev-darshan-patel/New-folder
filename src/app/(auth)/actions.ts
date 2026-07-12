@@ -15,6 +15,7 @@ import { sendEmail } from "@/lib/email";
 import { renderTemplate } from "@/lib/email-templates";
 import { verifyTotp, consumeBackupCode } from "@/lib/totp";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
+import logger from "@/lib/logger";
 
 import { getPlatformConfig } from "@/lib/platform-config";
 
@@ -94,7 +95,7 @@ export async function signupAction(
     });
     await sendEmail({ to: email, ...mail });
   } catch (err) {
-    console.error("Failed to send verification email", err);
+    logger.error({ err, email }, "Failed to send verification email");
   }
 
   // Log them in but send them to the "verify your email" gate — they can't
@@ -263,7 +264,7 @@ export async function requestPasswordResetAction(
       });
       await sendEmail({ to: user.email, ...mail });
     } catch (err) {
-      console.error("Failed to send password reset email", err);
+      logger.error({ err, userId: user.id }, "Failed to send password reset email");
     }
   }
 

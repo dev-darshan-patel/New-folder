@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sendDueReminders } from "@/lib/reminders";
 import { cleanupExpiredRateLimits } from "@/lib/rate-limit";
+import { expireStalePaymentHolds } from "@/lib/payments/holds";
+import { releaseDuePayouts } from "@/lib/payments/release";
+import logger from "@/lib/logger";
 
 // Trigger reminder emails for upcoming bookings. Point a scheduler (Vercel Cron,
 // system cron, etc.) at this endpoint every few minutes.
@@ -20,7 +23,13 @@ async function handle(req: NextRequest) {
 
   const result = await sendDueReminders();
   const rateLimitCleaned = await cleanupExpiredRateLimits();
-  return NextResponse.json({ ok: true, ...result, rateLimitCleaned });
+  const holdsExpired = await expireStalePaymentHolds();
+  const payouts = await releaseDuePayouts();
+  logger.info(
+    { ...result, rateLimitCleaned, holdsExpired, payouts },
+    "Cron: reminders run complete",
+  );
+  return NextResponse.json({ ok: true, ...result, rateLimitCleaned, holdsExpired, payouts });
 }
 
 export async function GET(req: NextRequest) {

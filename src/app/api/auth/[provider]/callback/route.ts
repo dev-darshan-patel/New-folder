@@ -3,6 +3,7 @@ import { exchangeCodeForProfile, type OAuthProvider } from "@/lib/oauth";
 import { findOrCreateOAuthUser } from "@/lib/oauth-login";
 import { createSession, createPending2faToken } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import logger from "@/lib/logger";
 
 const STATE_COOKIE = "oauth_state";
 
@@ -44,7 +45,7 @@ export async function GET(
     const origin = new URL(req.url).origin;
     profile = await exchangeCodeForProfile(provider as OAuthProvider, code, origin);
   } catch (err) {
-    console.error(`OAuth callback (${provider}) failed`, err);
+    logger.error({ err, provider }, "OAuth callback failed");
     return fail("oauth_failed");
   }
 

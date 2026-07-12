@@ -7,19 +7,22 @@ import {
   weekOrMonthCapHit,
   utcToZonedYmd,
   generateWeeklyOccurrences,
+  isBlockedByDateOverride,
   type Slot,
 } from "@/lib/availability";
 import { getTeamMemberBusyWindows, isFreeAt, pickRoundRobinMember } from "@/lib/team";
 import { sendEmail } from "@/lib/email";
 import { renderTemplate } from "@/lib/email-templates";
 import { buildIcs } from "@/lib/ics";
-import { createMeetEvent } from "@/lib/google-calendar";
+import { createMeetEvent, getGoogleBusyWindows } from "@/lib/google-calendar";
 import { createZoomMeeting } from "@/lib/zoom";
 import { parseQuestions } from "@/lib/intake";
 import { sanitizeGuests, type Guest } from "@/lib/guests";
 import { BLOCKING_STATUSES } from "@/lib/booking-status";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
 import { formatWhen } from "@/lib/format";
+import { getPaymentAdapter } from "@/lib/payments/registry";
+import logger from "@/lib/logger";
 
 // Validate an IANA timezone string; returns it or null.
 function safeTimezone(tz?: string | null): string | null {
@@ -91,6 +94,10 @@ export type BookingResult =
       // Present when this was a recurring series booking: the count booked and
       // each occurrence's formatted date/time (invitee's timezone).
       series?: { total: number; whenList: string[] };
+      // Feature 4.5: when set, the caller MUST redirect the invitee to this
+      // provider-hosted checkout URL. Booking is PENDING_PAYMENT until the
+      // provider webhook confirms.
+      checkoutUrl?: string;
     }
   | { ok: false; error: string };
 
@@ -131,6 +138,10 @@ export async function createBookingAction(input: {
     return { ok: false, error: "That time is no longer available." };
   }
   const end = new Date(start.getTime() + eventType.durationMinutes * 60_000);
+
+  if (await isBlockedByDateOverride(eventType.userId, start, end, eventType.user.timezone)) {
+    return { ok: false, error: "This time is no longer available. Please pick another." };
+  }
 
   // Enforce the daily cap server-side (the slot UI also hides full days).
   if (eventType.maxPerDay != null) {
@@ -187,6 +198,16 @@ export async function createBookingAction(input: {
 
   const guests = sanitizeGuests(input.guests ?? [], email);
   const guestsJson = guests.length ? JSON.stringify(guests) : null;
+
+  // Re-check the owner's real Google Calendar right before writing — the slot
+  // UI already hid busy times, but this closes the gap between "page loaded"
+  // and "form submitted" (same reasoning as the internal overlap re-check).
+  if (eventType.assignmentMode === "SOLO") {
+    const googleBusy = await getGoogleBusyWindows(eventType.userId, start, end);
+    if (googleBusy.some((b) => start < b.end && end > b.start)) {
+      return { ok: false, error: "Sorry, that time was just booked. Pick another." };
+    }
+  }
 
   let assignedTeamMemberId: string | null = null;
   let bookingId: string;
@@ -270,6 +291,60 @@ export async function createBookingAction(input: {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
   const manageUrl = `${baseUrl}/booking/${manageToken}`;
 
+  // Paid booking (Feature 4.5). Everything above is unchanged — we still hold
+  // the slot via the same transaction — but instead of firing the confirmation
+  // email or creating a video link, we flip the booking to PENDING_PAYMENT and
+  // send the invitee to the payment provider. Webhook + return route take it
+  // from CONFIRMED there (Phase 4.6+). Approval-required event types can't
+  // also be paid (product decision — one gating flow at a time), so the
+  // requiresApproval branch below is skipped for paid bookings.
+  if (
+    eventType.priceCents != null &&
+    eventType.currency &&
+    eventType.assignmentMode === "SOLO" &&
+    eventType.user.activePaymentProvider &&
+    !eventType.requiresApproval
+  ) {
+    const provider = eventType.user.activePaymentProvider as "STRIPE" | "RAZORPAY";
+    try {
+      const adapter = getPaymentAdapter(provider);
+      const checkout = await adapter.createCheckout({
+        bookingId,
+        tenantId: eventType.userId,
+        invitee: { email, name },
+        price: { amount: eventType.priceCents, currency: eventType.currency },
+        successUrl: `${baseUrl}/booking/${manageToken}?payment=success`,
+        cancelUrl: `${baseUrl}/${eventType.user.slug}/${eventType.slug}?payment=cancelled`,
+        description: `${eventType.title} — ${eventType.user.businessName}`,
+      });
+      await prisma.booking.update({
+        where: { id: bookingId },
+        data: {
+          status: "PENDING_PAYMENT",
+          paymentProvider: provider,
+          providerPaymentId: checkout.providerPaymentId,
+          amountCents: eventType.priceCents,
+          currency: eventType.currency,
+          paymentStatus: "PENDING",
+        },
+      });
+      return {
+        ok: true,
+        when: inviteeWhen,
+        manageUrl,
+        checkoutUrl: checkout.url,
+      };
+    } catch (err) {
+      // Roll the hold back so a broken provider doesn't wedge the slot.
+      await prisma.booking.update({
+        where: { id: bookingId },
+        data: { status: "CANCELLED" },
+      });
+      logger.error({ err, bookingId, provider }, "Failed to create checkout for paid booking");
+      return { ok: false, error: "Payment provider was unreachable. Please try again." };
+    }
+  }
+
   // Pending bookings skip meeting-link creation and the full confirmation
   // email — those happen at approval time — and instead notify both parties
   // that a decision is needed.
@@ -298,7 +373,7 @@ export async function createBookingAction(input: {
       });
       await sendEmail({ to: eventType.user.email, ...ownerEmail });
     } catch (err) {
-      console.error("Failed to send pending-booking email", err);
+      logger.error({ err, eventTypeId: eventType.id }, "Failed to send pending-booking email");
     }
 
     return { ok: true, when: inviteeWhen, manageUrl, pending: true };
@@ -443,7 +518,7 @@ export async function createBookingAction(input: {
     });
     await sendEmail({ to: eventType.user.email, ...ownerEmail, attachments: [icsAttachment] });
   } catch (err) {
-    console.error("Failed to send booking email", err);
+    logger.error({ err, eventTypeId: eventType.id }, "Failed to send booking email");
   }
 
   return {
@@ -546,6 +621,9 @@ export async function createRecurringBookingAction(input: {
   const seriesWeekMonthDates = occurrences.map((o) => utcToZonedYmd(o.start, businessTz));
   for (let i = 0; i < occurrences.length; i++) {
     const o = occurrences[i];
+    if (await isBlockedByDateOverride(eventType.userId, o.start, o.end, businessTz)) {
+      return { ok: false, error: `${dateFmt(o.start)} is no longer available — the series wasn't booked.` };
+    }
     // Daily cap
     if (eventType.maxPerDay != null) {
       const dayStart = new Date(o.start);
@@ -583,6 +661,15 @@ export async function createRecurringBookingAction(input: {
       if (capped) {
         return { ok: false, error: `${dateFmt(o.start)} is no longer available — the series wasn't booked.` };
       }
+    }
+  }
+
+  // Re-check the owner's real Google Calendar for every occurrence — same
+  // reasoning as the single-booking path above.
+  for (const o of occurrences) {
+    const googleBusy = await getGoogleBusyWindows(eventType.userId, o.start, o.end);
+    if (googleBusy.some((b) => o.start < b.end && o.end > b.start)) {
+      return { ok: false, error: `${dateFmt(o.start)} is no longer available — the series wasn't booked.` };
     }
   }
 
@@ -673,7 +760,7 @@ export async function createRecurringBookingAction(input: {
       });
       await sendEmail({ to: eventType.user.email, ...ownerEmail });
     } catch (err) {
-      console.error("Failed to send pending recurring email", err);
+      logger.error({ err, eventTypeId: eventType.id }, "Failed to send pending recurring email");
     }
     return {
       ok: true,
@@ -793,7 +880,7 @@ export async function createRecurringBookingAction(input: {
     });
     await sendEmail({ to: eventType.user.email, ...ownerEmail, attachments: icsAttachments });
   } catch (err) {
-    console.error("Failed to send recurring booking email", err);
+    logger.error({ err, eventTypeId: eventType.id }, "Failed to send recurring booking email");
   }
 
   return {
@@ -996,7 +1083,7 @@ export async function createGroupBookingAction(input: {
       ...(eventType.requiresApproval ? {} : { attachments: [icsAttachment] }),
     });
   } catch (err) {
-    console.error("Failed to send group booking email", err);
+    logger.error({ err, eventTypeId: eventType.id }, "Failed to send group booking email");
   }
 
   return {
