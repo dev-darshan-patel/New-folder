@@ -40,7 +40,7 @@ export default async function DashboardLayout({
       <div className="flex flex-1">
         <aside className="hidden w-60 flex-col border-r border-slate-200 bg-white p-5 md:flex">
           <Link href="/dashboard" className="text-lg font-bold text-slate-900">
-            Booking<span className="text-indigo-600">.</span>
+            Bookify<span className="text-indigo-600">.</span>
           </Link>
 
           {/* User identity strip */}

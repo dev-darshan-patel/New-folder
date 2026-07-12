@@ -24,7 +24,7 @@ export default async function SecurityPage() {
     qrData = await makeQrDataUrl({
       secret: plainSecret,
       email: user.email,
-      appName: "Booking",
+      appName: "Bookify",
     });
   }
 

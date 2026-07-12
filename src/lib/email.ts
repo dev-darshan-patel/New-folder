@@ -36,7 +36,7 @@ async function createTransport() {
         secure: false,
         auth: { user: settings.gmailSmtpUser, pass: settings.gmailSmtpPass },
       }),
-      from: settings.gmailSmtpFrom || `Booking <${settings.gmailSmtpUser}>`,
+      from: settings.gmailSmtpFrom || `Bookify <${settings.gmailSmtpUser}>`,
     };
   }
 
@@ -53,7 +53,7 @@ async function createTransport() {
         secure: false,
         auth: { user: settings.sesSmtpUser, pass: settings.sesSmtpPass },
       }),
-      from: settings.sesFromAddress || "Booking <no-reply@example.com>",
+      from: settings.sesFromAddress || "Bookify <no-reply@example.com>",
     };
   }
 
@@ -70,7 +70,7 @@ async function createTransport() {
         ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
         : undefined,
     }),
-    from: process.env.SMTP_FROM || "Booking <no-reply@example.com>",
+    from: process.env.SMTP_FROM || "Bookify <no-reply@example.com>",
   };
 }
 

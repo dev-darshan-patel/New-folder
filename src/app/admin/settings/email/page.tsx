@@ -117,10 +117,10 @@ export default async function EmailSettingsPage() {
               <Input
                 name="gmailSmtpFrom"
                 defaultValue={settings.gmailSmtpFrom ?? ""}
-                placeholder={`Booking <you@gmail.com>`}
+                placeholder={`Bookify <you@gmail.com>`}
               />
               <p className="text-xs text-slate-400">
-                Defaults to &ldquo;Booking &lt;gmail address&gt;&rdquo; if left blank.
+                Defaults to &ldquo;Bookify &lt;gmail address&gt;&rdquo; if left blank.
               </p>
             </div>
           </CardContent>
@@ -182,7 +182,7 @@ export default async function EmailSettingsPage() {
               <Input
                 name="sesFromAddress"
                 defaultValue={settings.sesFromAddress ?? ""}
-                placeholder="Booking <no-reply@yourdomain.com>"
+                placeholder="Bookify <no-reply@yourdomain.com>"
               />
               <p className="text-xs text-slate-400">
                 Must be a verified address or domain in your SES account.

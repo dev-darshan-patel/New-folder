@@ -59,7 +59,7 @@ export default function MobileNav({
       {/* Mobile top bar */}
       <header className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3 md:hidden">
         <Link href="/dashboard" className="text-lg font-bold text-slate-900">
-          Booking<span className="text-indigo-600">.</span>
+          Bookify<span className="text-indigo-600">.</span>
         </Link>
         <button
           onClick={() => setOpen(true)}
@@ -88,7 +88,7 @@ export default function MobileNav({
         <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
           <div>
             <p className="text-lg font-bold text-slate-900">
-              Booking<span className="text-indigo-600">.</span>
+              Bookify<span className="text-indigo-600">.</span>
             </p>
             <p className="truncate text-xs text-slate-500">{businessName}</p>
           </div>

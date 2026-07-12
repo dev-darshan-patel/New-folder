@@ -29,7 +29,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug, eventSlug } = await params;
   const found = await getEventTypeForBooking(slug, eventSlug);
-  if (!found) return { title: "Booking" };
+  if (!found) return { title: "Bookify" };
   return {
     title: `${found.eventType.title} — ${found.user.businessName}`,
     description: `Book a ${found.eventType.durationMinutes}-minute ${found.eventType.title} with ${found.user.businessName}.`,

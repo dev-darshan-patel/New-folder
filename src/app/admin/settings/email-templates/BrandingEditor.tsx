@@ -49,7 +49,7 @@ export default function BrandingEditor({ initial }: { initial: Initial }) {
             name="emailBrandName"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Booking"
+            placeholder="Bookify"
             title="Brand name shown in the email header"
             className={field}
           />

@@ -13,7 +13,7 @@ export type EmailBrand = {
 };
 
 export const DEFAULT_BRAND = {
-  name: "Booking",
+  name: "Bookify",
   logoUrl: "",
   accentColor: "#4f46e5",
   footerText: "You're receiving this because you have a booking or an account with us.",

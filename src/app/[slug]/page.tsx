@@ -27,7 +27,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const user = await getBusiness(slug);
-  if (!user || user.suspended || user.deletedAt) return { title: "Booking" };
+  if (!user || user.suspended || user.deletedAt) return { title: "Bookify" };
   return {
     title: `Book with ${user.businessName}`,
     description: `Select a meeting to book with ${user.businessName}.`,

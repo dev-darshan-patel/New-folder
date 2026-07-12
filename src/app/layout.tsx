@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Booking — Scheduling for small business",
+  title: "Bookify — Scheduling for small business",
   description:
     "Create your booking page, set your hours, and let customers book you in a click.",
 };
