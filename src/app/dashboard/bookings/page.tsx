@@ -39,9 +39,14 @@ export default async function BookingsPage() {
     <div className="mx-auto max-w-3xl">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h1 className="text-2xl font-bold tracking-tight text-slate-900">Bookings</h1>
-        <Button asChild variant="outline" size="sm">
-          <a href="/dashboard/bookings/export">Export CSV</a>
-        </Button>
+        <div className="flex gap-2">
+          <Button asChild size="sm">
+            <Link href="/dashboard/bookings/new">New booking</Link>
+          </Button>
+          <Button asChild variant="outline" size="sm">
+            <a href="/dashboard/bookings/export">Export CSV</a>
+          </Button>
+        </div>
       </div>
       <p className="mt-1 text-sm text-slate-600">
         Times shown in your timezone ({user.timezone}).

@@ -111,6 +111,29 @@ model User {
   // Shown to admins in /admin/users so support can see who cancelled and when.
   planCancelRequestedAt DateTime?
 
+  // Payments (Feature 4). Set at payment-application time; required before an
+  // application can be approved because provider eligibility (Razorpay India-
+  // only, Stripe elsewhere) depends on it. Country changes after approval
+  // require re-approval.
+  country               String?
+  // NONE = tenant has not applied. APPLIED = waiting for admin review.
+  // APPROVED = can onboard with a provider and set prices. SUSPENDED = admin
+  // has revoked approval (fraud/complaint) — no new paid bookings allowed.
+  paymentAccountStatus  String    @default("NONE")
+  // Currently selected provider for new paid bookings. Historical bookings
+  // permanently keep the provider they were paid through — see Booking's own
+  // paymentProvider field. Null until the tenant picks one after approval.
+  activePaymentProvider String?
+  // Payment-provider account identifiers. Populated when the tenant starts
+  // Stripe Connect Express / Razorpay Route onboarding (Phase 4.3). The
+  // *Ready booleans reflect the provider's own "charges enabled" state — the
+  // adapter refreshes them via getOnboardingStatus() after the tenant returns
+  // from the hosted flow.
+  stripeConnectAccountId   String?
+  stripeConnectReady       Boolean @default(false)
+  razorpayLinkedAccountId  String?
+  razorpayConnectReady     Boolean @default(false)
+
   // Profile picture uploaded by the business owner (shown in dashboard + booking page).
   avatarUrl       String?
 
@@ -128,6 +151,35 @@ model User {
   couponRedemptions CouponRedemption[]
   teamMembers  TeamMember[]
   calendarConnections CalendarConnection[]
+  dateOverrides DateOverride[]
+  paymentApplications PaymentApplication[]
+}
+
+// One row per application a tenant submits to accept payments from their
+// customers. New applications are only allowed while paymentAccountStatus is
+// NONE (first time) or SUSPENDED/rejected (retry). Never edited once decided —
+// resubmission creates a new row, preserving the audit trail.
+model PaymentApplication {
+  id                  String   @id @default(cuid())
+  userId              String
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Snapshot of the tenant's declared country at application time.
+  country             String
+  // Free-text business description shown to the admin reviewer.
+  businessDescription String
+  // Free-text expected price range, e.g. "$20-$100 per session".
+  expectedPriceRange  String
+  // PENDING = awaiting review. APPROVED / REJECTED are terminal for this row.
+  status              String   @default("PENDING")
+  reviewedByEmail     String?
+  reviewedAt          DateTime?
+  // Free-text rejection reason. Shown to the tenant so they know why.
+  rejectionReason     String?
+  createdAt           DateTime @default(now())
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
 }
 
 // A business owner's connected external calendar/video account (Google,
@@ -152,6 +204,9 @@ model CalendarConnection {
   expiresAt    DateTime
   // Space-delimited granted scopes, for debugging/verification.
   scope        String?
+  // Owner opt-out for busy-time sync (google only) — default on once the
+  // connection has the required scope. Zoom connections ignore this field.
+  syncBusyTimes Boolean @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -305,6 +360,14 @@ model EventType {
   // Free-form detail: an address for IN_PERSON or a number for PHONE.
   // Unused for GOOGLE_MEET (the link is generated per booking).
   locationDetail  String?
+  // Paid bookings (Feature 4.4). null = free (unchanged behavior). Any non-null
+  // value requires the owner to be APPROVED + onboarded on their active
+  // provider; the write-time re-check in updateEventTypeAction enforces this.
+  // Currency is derived from the owner's active provider (Razorpay = INR,
+  // Stripe = country default), stored per event type so switching providers
+  // later doesn't silently re-denominate historical prices.
+  priceCents      Int?
+  currency        String?
   createdAt       DateTime  @default(now())
 
   bookings        Booking[]
@@ -372,6 +435,28 @@ model Availability {
   endMinutes   Int
 }
 
+// A one-off exception to the weekly Availability grid for a single calendar
+// date — "closed July 20" or "open 10am-2pm this one Saturday" — without
+// having to edit and restore the recurring weekly schedule.
+model DateOverride {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // YYYY-MM-DD in the owner's timezone (same wall-clock convention as
+  // Availability's weekday+minutes — timezone-naive, interpreted via
+  // utcToZonedYmd at read time).
+  date         String
+  // "BLOCKED" = no slots at all that day. "CUSTOM_HOURS" = replace the day's
+  // weekly windows with startMinutes/endMinutes for this date only.
+  type         String
+  startMinutes Int?
+  endMinutes   Int?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([userId, date])
+}
+
 // A confirmed booking made by an invitee on a user's booking page.
 model Booking {
   id           String        @id @default(cuid())
@@ -426,10 +511,49 @@ model Booking {
   seriesId     String?
   seriesIndex  Int?
   seriesTotal  Int?
+
+  // Feature 4.5: paid bookings. All null for free bookings (unchanged
+  // behavior). paymentProvider is a snapshot of which provider processed the
+  // payment — set once and never changed even if the tenant later switches
+  // providers, so refunds/reversals hit the right API. amountCents+currency
+  // are also snapshots at hold-creation time so tenant price edits mid-flight
+  // don't mis-price a payment. providerPaymentId is Stripe's checkout session
+  // id / Razorpay's payment-link id, used as the primary key for reconciling
+  // webhooks + refund calls.
+  paymentProvider     String?
+  providerPaymentId   String?
+  amountCents         Int?
+  currency            String?
+  // Money-side state, independent of the slot-side `status`. PENDING = customer
+  // is at checkout. PAID = webhook confirmed. REFUNDED = refunded to the
+  // customer (full or partial). EXPIRED = hold timed out. FAILED = webhook
+  // reported a failure.
+  paymentStatus       String?
+  // Payout-side state (Feature 4.6). Initialized to HELD when payment succeeds.
+  // Transitions: HELD → RELEASED (24h after appointment ends, cron transfers to
+  // tenant), HELD → REFUNDED (customer refund while held, Phase 4.7), RELEASED
+  // → REVERSED (post-release refund pulled back from tenant). RELEASE_FAILED is
+  // an intermediate state the release cron retries.
+  payoutStatus        String?
+  // Provider's transfer id (Stripe transfer, Razorpay transfer). Populated
+  // once payoutStatus flips to RELEASED so the reversal path can find it.
+  transferId          String?
+  releasedAt          DateTime?
+  // Fee snapshot at release time — protects historical payouts from a later
+  // paymentFeePercent change on PlatformSettings.
+  platformFeeCents    Int?
+  // Provider's error message on last release attempt, so /admin/payments can
+  // surface why it failed without opening the provider's dashboard.
+  payoutFailureReason String?
+  // Bounded retry counter for RELEASE_FAILED bookings — cron ignores rows
+  // once this hits the hard limit (currently 5) to avoid a runaway loop.
+  payoutAttempts      Int      @default(0)
   createdAt    DateTime      @default(now())
 
   @@index([userId, startTime])
   @@index([seriesId])
+  @@index([providerPaymentId])
+  @@index([paymentStatus])
 }
 
 enum BookingStatus {
@@ -438,6 +562,10 @@ enum BookingStatus {
   // slot the same as CONFIRMED so two people can't be approved into an
   // overlapping time. Becomes CONFIRMED on approval, CANCELLED on rejection.
   PENDING
+  // Feature 4.5: booking exists, slot is held, customer is at the payment
+  // provider's checkout. Becomes CONFIRMED on webhook success; CANCELLED on
+  // hold expiry (~30 min) or explicit cancel. Blocks the slot like PENDING.
+  PENDING_PAYMENT
   CANCELLED
 }
 
@@ -467,6 +595,26 @@ model PlatformSettings {
   stripeLiveWebhookSecret  String?
   stripeLivePricePro       String?
   stripeLivePriceBusiness  String?
+
+  // Payments (Feature 4). Razorpay platform-account credentials, mirroring the
+  // Stripe test/live split. Populated after a Razorpay Route platform account
+  // exists; test keys are enough to build/verify everything up to go-live.
+  // Encrypted at rest via encryptIfConfigured (see src/lib/crypto.ts) — never
+  // echoed back into the settings form (same pattern as Stripe secrets).
+  razorpayMode           String  @default("TEST")
+  razorpayTestKeyId      String?
+  razorpayTestKeySecret  String?
+  razorpayTestWebhookSecret String?
+  razorpayLiveKeyId      String?
+  razorpayLiveKeySecret  String?
+  razorpayLiveWebhookSecret String?
+  // Master switch for offering Stripe to Indian tenants. Default OFF because
+  // Stripe's Indian marketplace onboarding is restricted — flip ON only after
+  // verifying with a real test account. See Feature 4 eligibility matrix.
+  stripeForIndiaEnabled  Boolean @default(false)
+  // Percent taken from each paid booking's release amount, kept by the
+  // platform. Configurable by an admin at any time.
+  paymentFeePercent      Float   @default(0)
 
   // "Sign in with Google" OAuth app credentials.
   googleClientId     String?

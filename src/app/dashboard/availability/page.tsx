@@ -1,9 +1,11 @@
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { saveAvailabilityAction } from "../actions";
+import { saveAvailabilityAction, saveDateOverrideAction, deleteDateOverrideAction } from "../actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
+import DateOverrideForm from "./DateOverrideForm";
+import DeleteOverrideButton from "./DeleteOverrideButton";
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
@@ -19,9 +21,13 @@ export default async function AvailabilityPage() {
   const user = await getCurrentUser();
   if (!user) return null;
 
-  const windows = await prisma.availability.findMany({
-    where: { userId: user.id },
-  });
+  const [windows, overrides] = await Promise.all([
+    prisma.availability.findMany({ where: { userId: user.id } }),
+    prisma.dateOverride.findMany({
+      where: { userId: user.id, date: { gte: new Date().toISOString().slice(0, 10) } },
+      orderBy: { date: "asc" },
+    }),
+  ]);
   // Map weekday -> first window (MVP supports one window per day).
   const byDay = new Map(windows.map((w) => [w.weekday, w]));
 
@@ -78,6 +84,40 @@ export default async function AvailabilityPage() {
           Save availability
         </Button>
       </form>
+
+      <div className="mt-10">
+        <h2 className="text-lg font-semibold text-slate-900">Date overrides</h2>
+        <p className="mt-1 text-sm text-slate-600">
+          Close a specific date or set one-off hours — without touching your
+          weekly schedule above.
+        </p>
+
+        <Card className="mt-4">
+          <CardContent className="p-4">
+            <DateOverrideForm action={saveDateOverrideAction} />
+          </CardContent>
+        </Card>
+
+        {overrides.length > 0 && (
+          <div className="mt-4 space-y-2">
+            {overrides.map((o) => (
+              <Card key={o.id}>
+                <CardContent className="flex items-center justify-between p-4">
+                  <div>
+                    <p className="text-sm font-medium text-slate-800">{o.date}</p>
+                    <p className="text-xs text-slate-500">
+                      {o.type === "BLOCKED"
+                        ? "Closed all day"
+                        : `Custom hours: ${toHHMM(o.startMinutes!)}–${toHHMM(o.endMinutes!)}`}
+                    </p>
+                  </div>
+                  <DeleteOverrideButton id={o.id} action={deleteDateOverrideAction} />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

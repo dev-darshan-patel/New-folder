@@ -2,6 +2,7 @@ import { TZDate } from "@date-fns/tz";
 import { prisma } from "@/lib/prisma";
 import { getTeamMemberBusyWindows, isFreeAt } from "@/lib/team";
 import { BLOCKING_STATUSES } from "@/lib/booking-status";
+import { getGoogleBusyWindows } from "@/lib/google-calendar";
 
 export type Slot = {
   // UTC ISO string for the slot start.
@@ -162,6 +163,29 @@ export async function weekOrMonthCapHit(params: {
   return false;
 }
 
+// True if [start, end) is blocked by a date override for this owner — either
+// the whole day is closed, or it falls outside a custom-hours window for that
+// date. Used as a write-time re-check (the slot UI already hides these via
+// getSlotsForDate's own override lookup).
+export async function isBlockedByDateOverride(
+  userId: string,
+  start: Date,
+  end: Date,
+  timeZone: string,
+): Promise<boolean> {
+  const { year, month, day } = utcToZonedYmd(start, timeZone);
+  const date = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  const override = await prisma.dateOverride.findUnique({
+    where: { userId_date: { userId, date } },
+  });
+  if (!override) return false;
+  if (override.type === "BLOCKED") return true;
+  if (override.startMinutes == null || override.endMinutes == null) return false;
+  const startMin = utcToZonedMinutes(start, timeZone);
+  const endMin = utcToZonedMinutes(end, timeZone);
+  return startMin < override.startMinutes || endMin > override.endMinutes;
+}
+
 // Generate bookable slots for a single date (YYYY-MM-DD) on a user's booking page.
 export async function getSlotsForDate(params: {
   userId: string;
@@ -183,28 +207,42 @@ export async function getSlotsForDate(params: {
   const [year, month, day] = date.split("-").map(Number);
   if (!year || !month || !day) return [];
 
+  // A date override, if any, replaces the weekly grid for this one calendar
+  // date — "closed" blanks the day entirely, "custom hours" swaps in a
+  // one-off window instead of the recurring weekly Availability rows.
+  const override = await prisma.dateOverride.findUnique({
+    where: { userId_date: { userId, date } },
+  });
+  if (override?.type === "BLOCKED") return [];
+
   // Weekday of the requested date in the user's timezone (0 = Sunday).
   const weekdayProbe = new TZDate(year, month - 1, day, 12, 0, 0, 0, timeZone);
   const weekday = weekdayProbe.getDay();
 
-  const windows = await prisma.availability.findMany({
-    where: { userId, weekday },
-    orderBy: { startMinutes: "asc" },
-  });
+  const windows =
+    override?.type === "CUSTOM_HOURS" && override.startMinutes != null && override.endMinutes != null
+      ? [{ startMinutes: override.startMinutes, endMinutes: override.endMinutes }]
+      : await prisma.availability.findMany({
+          where: { userId, weekday },
+          orderBy: { startMinutes: "asc" },
+        });
   if (windows.length === 0) return [];
 
   // Bounds of the day in UTC to scope the booking query.
   const dayStartUtc = zonedToUtc(year, month, day, 0, timeZone);
   const dayEndUtc = zonedToUtc(year, month, day, 24 * 60, timeZone);
 
-  const bookings = await prisma.booking.findMany({
-    where: {
-      userId,
-      status: { in: BLOCKING_STATUSES },
-      startTime: { gte: dayStartUtc, lt: dayEndUtc },
-    },
-    select: { startTime: true, endTime: true, eventTypeId: true },
-  });
+  const [bookings, googleBusy] = await Promise.all([
+    prisma.booking.findMany({
+      where: {
+        userId,
+        status: { in: BLOCKING_STATUSES },
+        startTime: { gte: dayStartUtc, lt: dayEndUtc },
+      },
+      select: { startTime: true, endTime: true, eventTypeId: true },
+    }),
+    getGoogleBusyWindows(userId, dayStartUtc, dayEndUtc),
+  ]);
 
   // Daily cap: once this event type hits its limit for the day, no slots remain.
   if (maxPerDay != null && eventTypeId) {
@@ -245,6 +283,9 @@ export async function getSlotsForDate(params: {
         (b) => startUtc < b.endTime && endUtc > b.startTime,
       );
       if (overlaps) continue;
+
+      const busyOnGoogle = googleBusy.some((b) => startUtc < b.end && endUtc > b.start);
+      if (busyOnGoogle) continue;
 
       const hh = Math.floor(start / 60)
         .toString()

@@ -1,15 +1,27 @@
 import Link from "next/link";
 import { Calendar, Video } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
-import { getCalendarConnection, isCalendarConfigurable } from "@/lib/google-calendar";
+import { getCalendarConnection, isCalendarConfigurable, hasFreeBusyScope } from "@/lib/google-calendar";
 import { getZoomConnection, isZoomConfigurable } from "@/lib/zoom";
 import ProfileForm from "./ProfileForm";
 import PasswordForm from "./PasswordForm";
 import DeleteAccountForm from "./DeleteAccountForm";
 import DisconnectButton from "./DisconnectButton";
 import AvatarUpload from "@/components/AvatarUpload";
-import { disconnectCalendarAction, disconnectZoomAction } from "./actions";
+import { disconnectCalendarAction, disconnectZoomAction, toggleBusySyncAction } from "./actions";
+import BusySyncToggle from "./BusySyncToggle";
+import ApplyForPaymentsForm from "./ApplyForPaymentsForm";
+import ProviderPicker from "./ProviderPicker";
+import PaymentOnboardingPanel from "./PaymentOnboardingPanel";
 import { getDeletionImpact, DELETION_GRACE_HOURS } from "@/lib/account-deletion";
+import {
+  PAYMENT_ACCOUNT_STATUS,
+  PAYMENTS_REQUIRED_PLAN,
+  SUPPORTED_COUNTRIES,
+  countryName,
+  tenantEligibleProviders,
+} from "@/lib/payments";
+import { prisma } from "@/lib/prisma";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -36,24 +48,41 @@ const ZOOM_STATUS: Record<string, { text: string; tone: "ok" | "err" }> = {
   not_configured: { text: "Zoom isn't configured on this platform yet. Ask the admin to set it up.", tone: "err" },
 };
 
+const PAYMENTS_STATUS: Record<string, { text: string; tone: "ok" | "err" }> = {
+  ready: { text: "Payment provider onboarding complete — you can now set prices on event types.", tone: "ok" },
+  pending: { text: "Onboarding is still under review by the provider. Refresh the status once you're notified.", tone: "err" },
+  not_started: { text: "You haven't started payment provider onboarding yet.", tone: "err" },
+  onboarding_error: { text: "We couldn't start onboarding. Try again or contact support.", tone: "err" },
+  status_error: { text: "We couldn't reach the provider. Try again in a moment.", tone: "err" },
+  not_approved: { text: "Your payments account isn't approved yet.", tone: "err" },
+  provider_ineligible: { text: "That provider isn't available for your country.", tone: "err" },
+  invalid_provider: { text: "Unknown payment provider.", tone: "err" },
+};
+
 export default async function SettingsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ calendar?: string; zoom?: string }>;
+  searchParams: Promise<{ calendar?: string; zoom?: string; payments?: string }>;
 }) {
   const user = await getCurrentUser();
   if (!user) return null;
 
-  const [connection, calendarConfigurable, zoomConnection, zoomConfigurable, sp, impact] = await Promise.all([
+  const [connection, calendarConfigurable, zoomConnection, zoomConfigurable, sp, impact, latestPaymentApp, eligibleProvidersForUser] = await Promise.all([
     getCalendarConnection(user.id),
     isCalendarConfigurable(),
     getZoomConnection(user.id),
     isZoomConfigurable(),
     searchParams,
     getDeletionImpact(user.id),
+    prisma.paymentApplication.findFirst({
+      where: { userId: user.id },
+      orderBy: { createdAt: "desc" },
+    }),
+    tenantEligibleProviders(user.country),
   ]);
   const calendarStatus = sp.calendar ? CALENDAR_STATUS[sp.calendar] : null;
   const zoomStatus = sp.zoom ? ZOOM_STATUS[sp.zoom] : null;
+  const paymentsStatus = sp.payments ? PAYMENTS_STATUS[sp.payments] : null;
 
   return (
     <div className="mx-auto max-w-2xl space-y-8">
@@ -144,6 +173,16 @@ export default async function SettingsPage({
           )}
         </div>
 
+        {connection && hasFreeBusyScope(connection.scope) && (
+          <BusySyncToggle action={toggleBusySyncAction} initialEnabled={connection.syncBusyTimes} />
+        )}
+        {connection && !hasFreeBusyScope(connection.scope) && (
+          <p className="mt-3 text-xs text-slate-500">
+            Reconnect Google Calendar to enable busy-time sync (blocks slots when
+            you&apos;re busy elsewhere on your calendar).
+          </p>
+        )}
+
         {zoomStatus && (
           <p
             className={`mt-4 rounded-lg px-3 py-2 text-sm ${
@@ -181,6 +220,103 @@ export default async function SettingsPage({
             <span className="text-xs text-slate-400">Unavailable</span>
           )}
         </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="p-6">
+          <h2 className="font-semibold text-slate-900">Accept payments</h2>
+          <p className="mt-1 text-sm text-slate-600">
+            Charge customers when they book a paid event type. Applications are reviewed by
+            our team before your account can accept payments.
+          </p>
+
+          {user.plan !== PAYMENTS_REQUIRED_PLAN ? (
+            <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
+              <p className="text-sm font-medium text-slate-800">
+                Accepting payments is a Business plan feature.
+              </p>
+              <p className="mt-1 text-sm text-slate-600">
+                Upgrade to the Business plan to apply.
+              </p>
+              <Button asChild size="sm" className="mt-3">
+                <Link href="/dashboard/billing">See plans</Link>
+              </Button>
+            </div>
+          ) : user.paymentAccountStatus === PAYMENT_ACCOUNT_STATUS.APPROVED ? (
+            <div className="mt-4 rounded-lg border border-green-200 bg-green-50 p-4">
+              <p className="text-sm font-medium text-green-800">
+                You&apos;re approved to accept payments.
+              </p>
+              <p className="mt-1 text-sm text-green-700">
+                Country: {countryName(user.country ?? "")}.
+              </p>
+              {paymentsStatus && (
+                <p
+                  className={`mt-3 rounded-md px-3 py-2 text-sm ${
+                    paymentsStatus.tone === "ok"
+                      ? "bg-white text-green-800"
+                      : "bg-red-50 text-red-700"
+                  }`}
+                >
+                  {paymentsStatus.text}
+                </p>
+              )}
+              <ProviderPicker
+                eligible={eligibleProvidersForUser}
+                active={user.activePaymentProvider}
+              />
+              {user.activePaymentProvider === "STRIPE" && (
+                <PaymentOnboardingPanel
+                  provider="STRIPE"
+                  accountId={user.stripeConnectAccountId}
+                  ready={user.stripeConnectReady}
+                />
+              )}
+              {user.activePaymentProvider === "RAZORPAY" && (
+                <PaymentOnboardingPanel
+                  provider="RAZORPAY"
+                  accountId={user.razorpayLinkedAccountId}
+                  ready={user.razorpayConnectReady}
+                />
+              )}
+            </div>
+          ) : user.paymentAccountStatus === PAYMENT_ACCOUNT_STATUS.APPLIED ? (
+            <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4">
+              <p className="text-sm font-medium text-amber-800">
+                Application under review.
+              </p>
+              <p className="mt-1 text-sm text-amber-700">
+                We&apos;ll email you at <span className="font-medium">{user.email}</span> as
+                soon as a decision is made.
+              </p>
+            </div>
+          ) : user.paymentAccountStatus === PAYMENT_ACCOUNT_STATUS.SUSPENDED ? (
+            <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-4">
+              <p className="text-sm font-medium text-red-800">
+                Payments are suspended for your account.
+              </p>
+              <p className="mt-1 text-sm text-red-700">
+                Contact support to resolve this.
+              </p>
+            </div>
+          ) : (
+            <>
+              {latestPaymentApp?.status === "REJECTED" && (
+                <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-4">
+                  <p className="text-sm font-medium text-red-800">
+                    Your previous application was declined.
+                  </p>
+                  {latestPaymentApp.rejectionReason && (
+                    <p className="mt-1 text-sm text-red-700">
+                      Reason: {latestPaymentApp.rejectionReason}
+                    </p>
+                  )}
+                </div>
+              )}
+              <ApplyForPaymentsForm countries={SUPPORTED_COUNTRIES} />
+            </>
+          )}
         </CardContent>
       </Card>
 
