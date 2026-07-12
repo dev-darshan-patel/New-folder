@@ -8,6 +8,7 @@ const navItems = [
   { href: "/admin/users", label: "Users" },
   { href: "/admin/bookings", label: "Bookings" },
   { href: "/admin/billing", label: "Billing" },
+  { href: "/admin/payments", label: "Payments" },
   { href: "/admin/coupons", label: "Coupons" },
   { href: "/admin/announcements", label: "Announcements" },
   { href: "/admin/broadcast", label: "Broadcast" },

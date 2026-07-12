@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { isPublicBookingAllowed } from "@/lib/platform-config";
+import { formatPrice } from "@/lib/payments";
 import MaintenanceNotice from "@/components/MaintenanceNotice";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -70,7 +71,13 @@ export default async function BusinessPage({
                     <p className="mt-1 text-sm text-slate-600">{et.description}</p>
                   )}
                   <p className="mt-2 text-sm font-medium text-indigo-600">
-                    {et.durationMinutes} min →
+                    {et.durationMinutes} min
+                    {et.priceCents != null && et.currency ? (
+                      <span className="ml-2 rounded bg-indigo-50 px-2 py-0.5 text-xs">
+                        {formatPrice(et.priceCents, et.currency)}
+                      </span>
+                    ) : null}
+                    <span className="ml-1">→</span>
                   </p>
                 </CardContent>
               </Card>

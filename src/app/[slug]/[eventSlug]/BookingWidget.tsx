@@ -31,12 +31,14 @@ export default function BookingWidget({
   accent = "#4f46e5",
   questions = [],
   allowRecurring = false,
+  priceLabel = null,
 }: {
   eventTypeId: string;
   timezone: string;
   accent?: string;
   questions?: IntakeQuestion[];
   allowRecurring?: boolean;
+  priceLabel?: string | null;
 }) {
   // Build extra days so filtering past dates (per viewer tz) still leaves 14.
   const allDays = useMemo(() => buildDays(timezone, 21), [timezone]);
@@ -308,8 +310,18 @@ export default function BookingWidget({
                   allowRecurring && repeatCount > 1
                     ? await createRecurringBookingAction({ ...common, count: repeatCount })
                     : await createBookingAction(common);
-                if (res.ok) setResult(res);
-                else setFormError(res.error);
+                if (res.ok) {
+                  // Paid booking: send the customer straight to the provider's
+                  // hosted checkout. The webhook will finalize the booking
+                  // when payment succeeds.
+                  if (res.checkoutUrl) {
+                    window.location.href = res.checkoutUrl;
+                    return;
+                  }
+                  setResult(res);
+                } else {
+                  setFormError(res.error);
+                }
               });
             }}
           >
@@ -382,7 +394,13 @@ export default function BookingWidget({
                 style={{ backgroundColor: accent }}
                 className="w-full"
               >
-                {submitting ? "Booking…" : "Confirm booking"}
+                {submitting
+                  ? priceLabel
+                    ? "Redirecting to payment…"
+                    : "Booking…"
+                  : priceLabel
+                    ? `Continue to payment — ${priceLabel}`
+                    : "Confirm booking"}
               </Button>
             </div>
           </form>

@@ -6,6 +6,7 @@ import { resolveBranding } from "@/lib/branding";
 import { parseQuestions } from "@/lib/intake";
 import { isPublicBookingAllowed } from "@/lib/platform-config";
 import { isFeatureEnabled } from "@/lib/feature-flags";
+import { formatPrice } from "@/lib/payments";
 import MaintenanceNotice from "@/components/MaintenanceNotice";
 import BookingWidget from "./BookingWidget";
 import GroupBookingWidget from "./GroupBookingWidget";
@@ -90,6 +91,14 @@ export default async function BookingPage({
         </h1>
         <p className="mt-1 text-sm text-slate-500">
           {eventType.durationMinutes} min
+          {eventType.priceCents != null && eventType.currency && (
+            <>
+              {" · "}
+              <span className="font-medium text-slate-700">
+                {formatPrice(eventType.priceCents, eventType.currency)}
+              </span>
+            </>
+          )}
         </p>
         {eventType.description && (
           <p className="mt-3 text-sm text-slate-600">{eventType.description}</p>
@@ -114,6 +123,11 @@ export default async function BookingPage({
           accent={brand.color}
           questions={parseQuestions(eventType.intakeQuestions)}
           allowRecurring={eventType.allowRecurring}
+          priceLabel={
+            eventType.priceCents != null && eventType.currency
+              ? formatPrice(eventType.priceCents, eventType.currency)
+              : null
+          }
         />
       )}
     </div>

@@ -32,6 +32,12 @@ type Initial = {
   locationDetail: string;
   calendarConnected: boolean;
   zoomConnected: boolean;
+  // Paid bookings (Feature 4.4). null = free.
+  priceCents: number | null;
+  currency: string | null;
+  // Whether the tenant is currently allowed to set a paid price. Hidden reason
+  // shown to explain the disabled state (e.g. finish onboarding first).
+  pricing: { canPrice: true; currency: string } | { canPrice: false; reason: string };
 };
 
 export default function EventTypeEditor({ initial }: { initial: Initial }) {
@@ -175,6 +181,15 @@ export default function EventTypeEditor({ initial }: { initial: Initial }) {
           </select>
         </Field>
       </div>
+
+      <PriceField
+        priceCents={initial.priceCents}
+        currency={initial.currency}
+        pricing={initial.pricing}
+        isGroup={isGroup}
+        allowRecurring={allowRecurring}
+        mode={mode}
+      />
 
       <div className="grid gap-5 sm:grid-cols-2">
         <Field label="Confirmation redirect URL (optional)">
@@ -479,5 +494,67 @@ function Field({
       <span className="text-sm font-medium text-slate-700">{label}</span>
       {children}
     </label>
+  );
+}
+
+// Price input for Feature 4.4. Renders nothing when the event type is a group
+// or recurring type (the v1 scope fence — paid bookings only apply to single
+// SOLO bookings). When rendered, shows either a working input paired with the
+// tenant's active-provider currency, or a disabled explanation when the
+// tenant isn't yet approved+onboarded. Priced in cents to match how the
+// DB stores it — one place (the value) doubles as the initial + edit state.
+function PriceField({
+  priceCents,
+  currency,
+  pricing,
+  isGroup,
+  allowRecurring,
+  mode,
+}: {
+  priceCents: number | null;
+  currency: string | null;
+  pricing: { canPrice: true; currency: string } | { canPrice: false; reason: string };
+  isGroup: boolean;
+  allowRecurring: boolean;
+  mode: string;
+}) {
+  const scopeFenceOk = !isGroup && !allowRecurring && mode === "SOLO";
+  if (!scopeFenceOk) return null;
+
+  const initialDisplay =
+    priceCents != null && currency
+      ? (priceCents / 100).toFixed(2)
+      : "";
+
+  if (!pricing.canPrice) {
+    return (
+      <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+        <p className="text-sm font-medium text-slate-800">Charge for this event type</p>
+        <p className="mt-1 text-xs text-slate-600">{pricing.reason}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-lg border border-slate-200 p-4">
+      <p className="text-sm font-medium text-slate-800">Charge for this event type</p>
+      <p className="mt-1 text-xs text-slate-600">
+        Leave blank to keep it free. Amount is charged when the customer books.
+      </p>
+      <div className="mt-3 flex items-center gap-2">
+        <span className="text-sm text-slate-500">{pricing.currency}</span>
+        <input
+          name="priceCents"
+          type="number"
+          step="1"
+          min="1"
+          max="10000000"
+          defaultValue={initialDisplay ? Math.round(Number(initialDisplay) * 100) : ""}
+          placeholder="Free"
+          className={`${input} max-w-[10rem]`}
+        />
+        <span className="text-xs text-slate-500">(in smallest unit; 100 = 1.00)</span>
+      </div>
+    </div>
   );
 }

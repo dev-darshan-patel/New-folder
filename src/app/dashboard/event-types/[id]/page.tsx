@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { parseQuestions } from "@/lib/intake";
 import { getPlanConfig } from "@/lib/plans";
+import { pricingEligibility } from "@/lib/payments";
 import EventTypeEditor from "./EventTypeEditor";
 import SessionsSection from "./SessionsSection";
 
@@ -22,6 +23,13 @@ export default async function EditEventTypePage({
   if (!eventType) notFound();
 
   const teamSchedulingEnabled = (await getPlanConfig(user.plan)).teamScheduling;
+  const pricing = pricingEligibility({
+    paymentAccountStatus: user.paymentAccountStatus,
+    activePaymentProvider: user.activePaymentProvider,
+    country: user.country,
+    stripeConnectReady: user.stripeConnectReady,
+    razorpayConnectReady: user.razorpayConnectReady,
+  });
   const [teamMembers, pool, calendarConnection, zoomConnection] = await Promise.all([
     teamSchedulingEnabled
       ? prisma.teamMember.findMany({
@@ -83,6 +91,11 @@ export default async function EditEventTypePage({
           locationDetail: eventType.locationDetail ?? "",
           calendarConnected: Boolean(calendarConnection),
           zoomConnected: Boolean(zoomConnection),
+          priceCents: eventType.priceCents,
+          currency: eventType.currency,
+          pricing: pricing.canPrice
+            ? { canPrice: true, currency: pricing.currency }
+            : { canPrice: false, reason: pricing.reason },
         }}
       />
 
