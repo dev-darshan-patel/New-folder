@@ -290,6 +290,13 @@ export async function updateEventTypeAction(formData: FormData) {
   if (priceCents !== null && !scopeFenceOk) {
     priceCents = null;
   }
+  if (priceCents !== null && !has("payments")) {
+    // A downgraded tenant may already be APPROVED + onboarded from a prior
+    // plan — that's fine for bookings already using an existing price, but
+    // setting/changing a price here is "creating new" gated usage, so it's
+    // blocked regardless of payment-account state.
+    priceCents = null;
+  }
   if (priceCents !== null) {
     const eligibility = pricingEligibility({
       paymentAccountStatus: user.paymentAccountStatus,

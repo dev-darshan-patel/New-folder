@@ -25,13 +25,15 @@ export default async function EditEventTypePage({
   const planCfg = await getPlanConfig(user.plan);
   const has = (key: string) => planCfg.featureKeys.includes(key);
   const teamSchedulingEnabled = has("team_scheduling");
-  const pricing = pricingEligibility({
-    paymentAccountStatus: user.paymentAccountStatus,
-    activePaymentProvider: user.activePaymentProvider,
-    country: user.country,
-    stripeConnectReady: user.stripeConnectReady,
-    razorpayConnectReady: user.razorpayConnectReady,
-  });
+  const pricing = has("payments")
+    ? pricingEligibility({
+        paymentAccountStatus: user.paymentAccountStatus,
+        activePaymentProvider: user.activePaymentProvider,
+        country: user.country,
+        stripeConnectReady: user.stripeConnectReady,
+        razorpayConnectReady: user.razorpayConnectReady,
+      })
+    : { canPrice: false as const, reason: "Accepting payments isn't available on your current plan." };
   const [teamMembers, pool, calendarConnection, zoomConnection] = await Promise.all([
     teamSchedulingEnabled
       ? prisma.teamMember.findMany({
