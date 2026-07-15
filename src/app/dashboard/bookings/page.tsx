@@ -5,6 +5,7 @@ import { parseAnswers, type IntakeAnswer } from "@/lib/intake";
 import { parseGuests } from "@/lib/guests";
 import { cancelBookingAction } from "@/app/booking/[token]/actions";
 import { approveBookingAction, rejectBookingAction } from "./approval-actions";
+import { planHasFeature } from "@/lib/plans";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -13,7 +14,7 @@ export default async function BookingsPage() {
   if (!user) return null;
 
   const now = new Date();
-  const [bookings, pending] = await Promise.all([
+  const [bookings, pending, canManualBook, canExportCsv] = await Promise.all([
     prisma.booking.findMany({
       where: { userId: user.id, status: "CONFIRMED" },
       include: { eventType: true, teamMember: { select: { name: true } } },
@@ -24,6 +25,8 @@ export default async function BookingsPage() {
       include: { eventType: true, teamMember: { select: { name: true } } },
       orderBy: { startTime: "asc" },
     }),
+    planHasFeature(user.plan, "manual_bookings"),
+    planHasFeature(user.plan, "csv_export"),
   ]);
 
   const upcoming = bookings.filter((b) => b.startTime >= now);
@@ -40,12 +43,16 @@ export default async function BookingsPage() {
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h1 className="text-2xl font-bold tracking-tight text-slate-900">Bookings</h1>
         <div className="flex gap-2">
-          <Button asChild size="sm">
-            <Link href="/dashboard/bookings/new">New booking</Link>
-          </Button>
-          <Button asChild variant="outline" size="sm">
-            <a href="/dashboard/bookings/export">Export CSV</a>
-          </Button>
+          {canManualBook && (
+            <Button asChild size="sm">
+              <Link href="/dashboard/bookings/new">New booking</Link>
+            </Button>
+          )}
+          {canExportCsv && (
+            <Button asChild variant="outline" size="sm">
+              <a href="/dashboard/bookings/export">Export CSV</a>
+            </Button>
+          )}
         </div>
       </div>
       <p className="mt-1 text-sm text-slate-600">

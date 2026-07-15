@@ -13,11 +13,11 @@ import { getDeletionImpact } from "@/lib/account-deletion";
 import {
   PAYMENT_ACCOUNT_STATUS,
   PAYMENT_APPLICATION_STATUS,
-  PAYMENTS_REQUIRED_PLAN,
   SUPPORTED_COUNTRIES,
   tenantEligibleProviders,
   canSwitchPaymentProvider,
 } from "@/lib/payments";
+import { planHasFeature } from "@/lib/plans";
 import type { PaymentProvider } from "@/lib/payments/provider";
 import logger from "@/lib/logger";
 
@@ -217,8 +217,8 @@ export async function applyForPaymentsAction(
   const user = await getCurrentUser();
   if (!user) return { error: "Not authenticated." };
 
-  if (user.plan !== PAYMENTS_REQUIRED_PLAN) {
-    return { error: "Accepting payments requires the Business plan." };
+  if (!(await planHasFeature(user.plan, "payments"))) {
+    return { error: "Accepting payments isn't available on your current plan." };
   }
   // A tenant with an active application or an approved account has nothing
   // to apply for. SUSPENDED tenants can re-apply (admin decides).

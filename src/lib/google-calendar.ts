@@ -3,6 +3,7 @@ import { jwtVerify, createRemoteJWKSet } from "jose";
 import { prisma } from "@/lib/prisma";
 import { getPlatformSettings } from "@/lib/settings";
 import { encryptIfConfigured, decryptIfNeeded } from "@/lib/crypto";
+import { planHasFeature } from "@/lib/plans";
 import logger from "@/lib/logger";
 
 // Google Calendar integration for the business owner. This is a SEPARATE OAuth
@@ -333,8 +334,13 @@ export async function getGoogleBusyWindows(
 ): Promise<BusyWindow[]> {
   const conn = await prisma.calendarConnection.findUnique({
     where: { userId_provider: { userId, provider: "google" } },
+    include: { user: { select: { plan: true } } },
   });
   if (!conn || !conn.syncBusyTimes || !hasFreeBusyScope(conn.scope)) return [];
+  // Server-side enforcement, not just a hidden toggle: a tenant downgraded
+  // below the plan that grants calendar_busy_sync stops getting busy data
+  // even if syncBusyTimes is still true from before the downgrade.
+  if (!(await planHasFeature(conn.user.plan, "calendar_busy_sync"))) return [];
 
   const accessToken = await getValidAccessToken(userId);
   if (!accessToken) return [];

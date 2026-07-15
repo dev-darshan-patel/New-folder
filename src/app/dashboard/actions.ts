@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { slugify } from "@/lib/slug";
 import { getPlanConfig } from "@/lib/plans";
+import type { FeatureKey } from "@/lib/features";
 import { FONTS } from "@/lib/branding";
 import { parseQuestions } from "@/lib/intake";
 import { parseGuests } from "@/lib/guests";
@@ -164,7 +165,7 @@ export async function createEventTypeAction(formData: FormData) {
 }
 
 // Save booking-page branding. Values persist on any plan but only render on
-// plans where customBranding is enabled (enforced in resolveBranding).
+// plans that grant the custom_branding feature (enforced in resolveBranding).
 export async function updateBrandingAction(formData: FormData) {
   const user = await getCurrentUser();
   if (!user) throw new Error("Not authenticated");
@@ -202,22 +203,40 @@ export async function updateEventTypeAction(formData: FormData) {
   const user = await getCurrentUser();
   if (!user) throw new Error("Not authenticated");
 
+  // Fetched once and reused for every gate below — plan checks are per-request
+  // cached anyway, but this keeps the whole action to a single lookup.
+  const planCfg = await getPlanConfig(user.plan);
+  const has = (key: FeatureKey) => planCfg.featureKeys.includes(key);
+
   const id = String(formData.get("id") || "");
   const title = String(formData.get("title") || "").trim();
   const description = String(formData.get("description") || "").trim() || null;
   const duration = clampInt(formData.get("durationMinutes"), 5, 1440, 30);
-  const bufferMinutes = clampInt(formData.get("bufferMinutes"), 0, 100000, 0);
-  const rawMax = String(formData.get("maxPerDay") || "").trim();
-  const maxPerDay = rawMax === "" ? null : clampInt(rawMax, 1, 1000, 1);
-  const rawMaxWeek = String(formData.get("maxPerWeek") || "").trim();
-  const maxPerWeek = rawMaxWeek === "" ? null : clampInt(rawMaxWeek, 1, 5000, 1);
-  const rawMaxMonth = String(formData.get("maxPerMonth") || "").trim();
-  const maxPerMonth = rawMaxMonth === "" ? null : clampInt(rawMaxMonth, 1, 20000, 1);
-  const minNoticeToCancelMinutes = clampInt(formData.get("minNoticeToCancelMinutes"), 0, 100000, 0);
 
-  // Confirmation redirect must be an absolute http(s) URL, or we silently drop it
-  // rather than send invitees to a broken/unsafe destination.
-  const rawRedirect = String(formData.get("confirmationRedirectUrl") || "").trim();
+  // Scheduling limits (min notice + daily/weekly/monthly caps + cancel-notice
+  // window) are a single gated bundle — ungated tenants get the defaults
+  // (no notice requirement, no caps) regardless of what the form submitted.
+  const schedulingLimitsAllowed = has("scheduling_limits");
+  const bufferMinutes = schedulingLimitsAllowed
+    ? clampInt(formData.get("bufferMinutes"), 0, 100000, 0)
+    : 0;
+  const rawMax = String(formData.get("maxPerDay") || "").trim();
+  const maxPerDay = !schedulingLimitsAllowed || rawMax === "" ? null : clampInt(rawMax, 1, 1000, 1);
+  const rawMaxWeek = String(formData.get("maxPerWeek") || "").trim();
+  const maxPerWeek = !schedulingLimitsAllowed || rawMaxWeek === "" ? null : clampInt(rawMaxWeek, 1, 5000, 1);
+  const rawMaxMonth = String(formData.get("maxPerMonth") || "").trim();
+  const maxPerMonth = !schedulingLimitsAllowed || rawMaxMonth === "" ? null : clampInt(rawMaxMonth, 1, 20000, 1);
+  const minNoticeToCancelMinutes = schedulingLimitsAllowed
+    ? clampInt(formData.get("minNoticeToCancelMinutes"), 0, 100000, 0)
+    : 0;
+
+  // Confirmation redirect + reply-to are a single gated bundle. Redirect must
+  // also be an absolute http(s) URL, or it's silently dropped regardless of
+  // plan, rather than sending invitees to a broken/unsafe destination.
+  const redirectReplyToAllowed = has("redirect_replyto");
+  const rawRedirect = redirectReplyToAllowed
+    ? String(formData.get("confirmationRedirectUrl") || "").trim()
+    : "";
   let confirmationRedirectUrl: string | null = null;
   if (rawRedirect) {
     try {
@@ -230,21 +249,24 @@ export async function updateEventTypeAction(formData: FormData) {
     }
   }
 
-  const rawReplyTo = String(formData.get("replyToEmail") || "").trim();
+  const rawReplyTo = redirectReplyToAllowed
+    ? String(formData.get("replyToEmail") || "").trim()
+    : "";
   const replyToEmail =
     rawReplyTo && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(rawReplyTo) ? rawReplyTo : null;
 
-  const requiresApproval = formData.get("requiresApproval") === "1";
+  const requiresApproval = has("approval_flow") && formData.get("requiresApproval") === "1";
 
   // Group event type toggle. Any positive integer marks the event type as
   // GROUP (invitees book into owner-created Session rows); empty/zero = classic
-  // 1:1 (unchanged behavior).
-  const rawCapacity = String(formData.get("capacity") || "").trim();
+  // 1:1 (unchanged behavior). Gated — ungated tenants can never create one.
+  const rawCapacity = has("group_bookings") ? String(formData.get("capacity") || "").trim() : "";
   const capacity = rawCapacity === "" ? null : clampInt(rawCapacity, 1, 10_000, 1);
 
   // Recurring toggle. Mutually exclusive with group — force off when this is a
-  // group event type, regardless of what the form sent.
-  const allowRecurring = capacity == null && formData.get("allowRecurring") === "1";
+  // group event type, regardless of what the form sent. Also gated.
+  const allowRecurring =
+    has("recurring_bookings") && capacity == null && formData.get("allowRecurring") === "1";
 
   // Price (Feature 4.4). null = free (unchanged behavior). A paid price is
   // only accepted when the owner is APPROVED + onboarded on their active
@@ -283,21 +305,26 @@ export async function updateEventTypeAction(formData: FormData) {
     }
   }
 
-  // Meeting location. GOOGLE_MEET/ZOOM only stick if the owner has actually
-  // connected that provider; otherwise silently fall back to IN_PERSON so we
-  // never promise a video link we can't create.
+  // Meeting location. GOOGLE_MEET/ZOOM only stick if the plan grants
+  // video_links AND the owner has actually connected that provider;
+  // otherwise silently fall back to IN_PERSON so we never promise a video
+  // link we can't create.
   const rawLocation = String(formData.get("locationType") || "IN_PERSON");
   let locationType: "IN_PERSON" | "PHONE" | "GOOGLE_MEET" | "ZOOM" =
     rawLocation === "PHONE" || rawLocation === "GOOGLE_MEET" || rawLocation === "ZOOM"
       ? rawLocation
       : "IN_PERSON";
   if (locationType === "GOOGLE_MEET" || locationType === "ZOOM") {
-    const provider = locationType === "GOOGLE_MEET" ? "google" : "zoom";
-    const hasConnection = await prisma.calendarConnection.findUnique({
-      where: { userId_provider: { userId: user.id, provider } },
-      select: { id: true },
-    });
-    if (!hasConnection) locationType = "IN_PERSON";
+    if (!has("video_links")) {
+      locationType = "IN_PERSON";
+    } else {
+      const provider = locationType === "GOOGLE_MEET" ? "google" : "zoom";
+      const hasConnection = await prisma.calendarConnection.findUnique({
+        where: { userId_provider: { userId: user.id, provider } },
+        select: { id: true },
+      });
+      if (!hasConnection) locationType = "IN_PERSON";
+    }
   }
   const locationDetail =
     locationType === "GOOGLE_MEET" || locationType === "ZOOM"
@@ -305,12 +332,15 @@ export async function updateEventTypeAction(formData: FormData) {
       : String(formData.get("locationDetail") || "").trim().slice(0, 500) || null;
 
   // Intake questions arrive as a JSON string from the client editor.
-  const questions = parseQuestions(String(formData.get("intakeQuestions") || ""))
-    .filter((q) => q.label.trim() !== "");
+  const questions = has("intake_questions")
+    ? parseQuestions(String(formData.get("intakeQuestions") || "")).filter(
+        (q) => q.label.trim() !== "",
+      )
+    : [];
   const intakeQuestions = questions.length ? JSON.stringify(questions) : null;
 
   const rawMode = String(formData.get("assignmentMode") || "SOLO");
-  const teamSchedulingEnabled = (await getPlanConfig(user.plan)).teamScheduling;
+  const teamSchedulingEnabled = has("team_scheduling");
   const assignmentMode: "SOLO" | "ROUND_ROBIN" | "COLLECTIVE" =
     teamSchedulingEnabled && (rawMode === "ROUND_ROBIN" || rawMode === "COLLECTIVE")
       ? rawMode

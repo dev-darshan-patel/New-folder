@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { planHasFeature } from "@/lib/plans";
 
 function csvEscape(value: string): string {
   if (/[",\n]/.test(value)) return `"${value.replace(/"/g, '""')}"`;
@@ -12,6 +13,9 @@ function csvEscape(value: string): string {
 export async function GET() {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  if (!(await planHasFeature(user.plan, "csv_export"))) {
+    return NextResponse.json({ error: "CSV export isn't available on your current plan." }, { status: 403 });
+  }
 
   const bookings = await prisma.booking.findMany({
     where: { userId: user.id },

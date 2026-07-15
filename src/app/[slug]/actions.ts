@@ -22,6 +22,7 @@ import { BLOCKING_STATUSES } from "@/lib/booking-status";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
 import { formatWhen } from "@/lib/format";
 import { getPaymentAdapter } from "@/lib/payments/registry";
+import { planHasFeature } from "@/lib/plans";
 import logger from "@/lib/logger";
 
 // Validate an IANA timezone string; returns it or null.
@@ -196,7 +197,8 @@ export async function createBookingAction(input: {
     ? JSON.stringify(answers.filter((a) => a.value !== ""))
     : null;
 
-  const guests = sanitizeGuests(input.guests ?? [], email);
+  const guestInvitesAllowed = await planHasFeature(eventType.user.plan, "guest_invites");
+  const guests = guestInvitesAllowed ? sanitizeGuests(input.guests ?? [], email) : [];
   const guestsJson = guests.length ? JSON.stringify(guests) : null;
 
   // Re-check the owner's real Google Calendar right before writing — the slot
@@ -607,7 +609,8 @@ export async function createRecurringBookingAction(input: {
   const answersJson = answers.some((a) => a.value !== "")
     ? JSON.stringify(answers.filter((a) => a.value !== ""))
     : null;
-  const guests = sanitizeGuests(input.guests ?? [], email);
+  const guestInvitesAllowed = await planHasFeature(eventType.user.plan, "guest_invites");
+  const guests = guestInvitesAllowed ? sanitizeGuests(input.guests ?? [], email) : [];
   const guestsJson = guests.length ? JSON.stringify(guests) : null;
 
   const viewerTz = safeTimezone(input.viewerTimezone) ?? businessTz;

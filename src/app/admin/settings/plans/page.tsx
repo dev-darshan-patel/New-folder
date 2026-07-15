@@ -56,9 +56,9 @@ export default async function AdminPlansPage() {
                   </div>
                   <p className="mt-1 text-sm text-slate-600">
                     {p.priceLabel} ·{" "}
-                    {p.maxEventTypes === null ? "Unlimited" : p.maxEventTypes} event types
-                    {p.customBranding ? " · Branding" : ""}
-                    {p.teamScheduling ? " · Team" : ""} · {inUse} account{inUse === 1 ? "" : "s"}
+                    {p.maxEventTypes === null ? "Unlimited" : p.maxEventTypes} event types ·{" "}
+                    {p.featureKeys.length} feature{p.featureKeys.length === 1 ? "" : "s"} ·{" "}
+                    {inUse} account{inUse === 1 ? "" : "s"}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -112,8 +112,7 @@ export default async function AdminPlansPage() {
               priceLabel: "",
               priceMonthly: 0,
               maxEventTypes: null,
-              customBranding: false,
-              teamScheduling: false,
+              featureKeys: [],
               features: [],
               stripePriceId: null,
               active: true,

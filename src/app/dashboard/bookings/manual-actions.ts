@@ -15,6 +15,7 @@ import { renderTemplate } from "@/lib/email-templates";
 import { buildIcs } from "@/lib/ics";
 import { formatWhen } from "@/lib/format";
 import { BLOCKING_STATUSES } from "@/lib/booking-status";
+import { planHasFeature } from "@/lib/plans";
 import logger from "@/lib/logger";
 
 // Slots for the "New booking" picker in the dashboard. Unlike the public
@@ -26,6 +27,7 @@ import logger from "@/lib/logger";
 export async function fetchManualSlotsAction(eventTypeId: string, date: string): Promise<Slot[]> {
   const user = await getCurrentUser();
   if (!user) return [];
+  if (!(await planHasFeature(user.plan, "manual_bookings"))) return [];
 
   const eventType = await prisma.eventType.findFirst({
     where: { id: eventTypeId, userId: user.id, assignmentMode: "SOLO" },
@@ -56,6 +58,9 @@ export async function createManualBookingAction(input: {
 }): Promise<ManualBookingResult> {
   const user = await getCurrentUser();
   if (!user) return { ok: false, error: "Not authenticated." };
+  if (!(await planHasFeature(user.plan, "manual_bookings"))) {
+    return { ok: false, error: "Manual bookings aren't available on your current plan." };
+  }
 
   const eventType = await prisma.eventType.findFirst({
     where: { id: input.eventTypeId, userId: user.id },

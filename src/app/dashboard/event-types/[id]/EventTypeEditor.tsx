@@ -38,6 +38,18 @@ type Initial = {
   // Whether the tenant is currently allowed to set a paid price. Hidden reason
   // shown to explain the disabled state (e.g. finish onboarding first).
   pricing: { canPrice: true; currency: string } | { canPrice: false; reason: string };
+  // Plan feature gates (src/lib/features.ts). Hiding gated fields here is a
+  // courtesy layer only — updateEventTypeAction drops them server-side
+  // regardless of what a forged request submits.
+  features: {
+    intakeQuestions: boolean;
+    schedulingLimits: boolean;
+    videoLinks: boolean;
+    approvalFlow: boolean;
+    redirectReplyTo: boolean;
+    groupBookings: boolean;
+    recurringBookings: boolean;
+  };
 };
 
 export default function EventTypeEditor({ initial }: { initial: Initial }) {
@@ -113,74 +125,81 @@ export default function EventTypeEditor({ initial }: { initial: Initial }) {
           </select>
         </Field>
 
-        <Field label="Minimum notice">
-          <select
-            name="bufferMinutes"
-            defaultValue={String(initial.bufferMinutes)}
-            title="Minimum notice required before a booking"
-            className={input}
-          >
-            <option value="0">None</option>
-            <option value="60">1 hour</option>
-            <option value="120">2 hours</option>
-            <option value="240">4 hours</option>
-            <option value="720">12 hours</option>
-            <option value="1440">1 day</option>
-          </select>
-        </Field>
+        {initial.features.schedulingLimits && (
+          <>
+            <Field label="Minimum notice">
+              <select
+                name="bufferMinutes"
+                defaultValue={String(initial.bufferMinutes)}
+                title="Minimum notice required before a booking"
+                className={input}
+              >
+                <option value="0">None</option>
+                <option value="60">1 hour</option>
+                <option value="120">2 hours</option>
+                <option value="240">4 hours</option>
+                <option value="720">12 hours</option>
+                <option value="1440">1 day</option>
+              </select>
+            </Field>
 
-        <Field label="Max bookings / day">
-          <input
-            name="maxPerDay"
-            type="number"
-            min={1}
-            defaultValue={initial.maxPerDay ?? ""}
-            placeholder="Unlimited"
-            title="Maximum number of bookings allowed per day"
-            className={input}
-          />
-        </Field>
+            <Field label="Max bookings / day">
+              <input
+                name="maxPerDay"
+                type="number"
+                min={1}
+                defaultValue={initial.maxPerDay ?? ""}
+                placeholder="Unlimited"
+                title="Maximum number of bookings allowed per day"
+                className={input}
+              />
+            </Field>
 
-        <Field label="Max bookings / week">
-          <input
-            name="maxPerWeek"
-            type="number"
-            min={1}
-            defaultValue={initial.maxPerWeek ?? ""}
-            placeholder="Unlimited"
-            title="Maximum number of bookings allowed per calendar week"
-            className={input}
-          />
-        </Field>
+            <Field label="Max bookings / week">
+              <input
+                name="maxPerWeek"
+                type="number"
+                min={1}
+                defaultValue={initial.maxPerWeek ?? ""}
+                placeholder="Unlimited"
+                title="Maximum number of bookings allowed per calendar week"
+                className={input}
+              />
+            </Field>
 
-        <Field label="Max bookings / month">
-          <input
-            name="maxPerMonth"
-            type="number"
-            min={1}
-            defaultValue={initial.maxPerMonth ?? ""}
-            placeholder="Unlimited"
-            title="Maximum number of bookings allowed per calendar month"
-            className={input}
-          />
-        </Field>
+            <Field label="Max bookings / month">
+              <input
+                name="maxPerMonth"
+                type="number"
+                min={1}
+                defaultValue={initial.maxPerMonth ?? ""}
+                placeholder="Unlimited"
+                title="Maximum number of bookings allowed per calendar month"
+                className={input}
+              />
+            </Field>
 
-        <Field label="Cancel/reschedule notice">
-          <select
-            name="minNoticeToCancelMinutes"
-            defaultValue={String(initial.minNoticeToCancelMinutes)}
-            title="Minimum notice required for an invitee to cancel or reschedule"
-            className={input}
-          >
-            <option value="0">None</option>
-            <option value="60">1 hour</option>
-            <option value="120">2 hours</option>
-            <option value="240">4 hours</option>
-            <option value="720">12 hours</option>
-            <option value="1440">1 day</option>
-          </select>
-        </Field>
+            <Field label="Cancel/reschedule notice">
+              <select
+                name="minNoticeToCancelMinutes"
+                defaultValue={String(initial.minNoticeToCancelMinutes)}
+                title="Minimum notice required for an invitee to cancel or reschedule"
+                className={input}
+              >
+                <option value="0">None</option>
+                <option value="60">1 hour</option>
+                <option value="120">2 hours</option>
+                <option value="240">4 hours</option>
+                <option value="720">12 hours</option>
+                <option value="1440">1 day</option>
+              </select>
+            </Field>
+          </>
+        )}
       </div>
+      {!initial.features.schedulingLimits && (
+        <UpgradeNote text="Scheduling limits (minimum notice, booking caps, cancel-notice window) require a higher plan." />
+      )}
 
       <PriceField
         priceCents={initial.priceCents}
@@ -191,83 +210,93 @@ export default function EventTypeEditor({ initial }: { initial: Initial }) {
         mode={mode}
       />
 
-      <div className="grid gap-5 sm:grid-cols-2">
-        <Field label="Confirmation redirect URL (optional)">
-          <input
-            name="confirmationRedirectUrl"
-            type="url"
-            defaultValue={initial.confirmationRedirectUrl}
-            placeholder="https://example.com/thank-you"
-            title="Send invitees here instead of the built-in confirmation screen"
-            className={input}
-          />
-        </Field>
+      {initial.features.redirectReplyTo ? (
+        <div className="grid gap-5 sm:grid-cols-2">
+          <Field label="Confirmation redirect URL (optional)">
+            <input
+              name="confirmationRedirectUrl"
+              type="url"
+              defaultValue={initial.confirmationRedirectUrl}
+              placeholder="https://example.com/thank-you"
+              title="Send invitees here instead of the built-in confirmation screen"
+              className={input}
+            />
+          </Field>
 
-        <Field label="Reply-to email (optional)">
-          <input
-            name="replyToEmail"
-            type="email"
-            defaultValue={initial.replyToEmail}
-            placeholder="support@yourbusiness.com"
-            title="Replies to invitee emails go to this address instead of the default"
-            className={input}
-          />
-        </Field>
-      </div>
+          <Field label="Reply-to email (optional)">
+            <input
+              name="replyToEmail"
+              type="email"
+              defaultValue={initial.replyToEmail}
+              placeholder="support@yourbusiness.com"
+              title="Replies to invitee emails go to this address instead of the default"
+              className={input}
+            />
+          </Field>
+        </div>
+      ) : (
+        <UpgradeNote text="Custom confirmation redirect and reply-to address require a higher plan." />
+      )}
 
-      <label className="flex items-start gap-2 text-sm text-slate-700">
-        <input
-          type="checkbox"
-          name="requiresApproval"
-          value="1"
-          defaultChecked={initial.requiresApproval}
-          className="mt-0.5 h-4 w-4 rounded border-slate-300"
-        />
-        <span>
-          Require manual approval
-          <span className="block text-xs text-slate-500">
-            New bookings wait for you to approve or decline before they&apos;re confirmed.
-          </span>
-        </span>
-      </label>
-
-      <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+      {initial.features.approvalFlow ? (
         <label className="flex items-start gap-2 text-sm text-slate-700">
           <input
             type="checkbox"
-            checked={isGroup}
-            onChange={(e) => setIsGroup(e.target.checked)}
+            name="requiresApproval"
+            value="1"
+            defaultChecked={initial.requiresApproval}
             className="mt-0.5 h-4 w-4 rounded border-slate-300"
           />
           <span>
-            Group event (multiple attendees per session)
+            Require manual approval
             <span className="block text-xs text-slate-500">
-              Instead of showing time slots from your weekly availability, you create each
-              class/session manually and invitees book into a shared spot up to the seat
-              limit. Ideal for classes, webinars, and workshops.
+              New bookings wait for you to approve or decline before they&apos;re confirmed.
             </span>
           </span>
         </label>
-        {isGroup && (
-          <div className="mt-3 pl-6">
-            <Field label="Seats per session">
-              <input
-                type="number"
-                min={1}
-                value={capacity}
-                onChange={(e) => setCapacity(e.target.value)}
-                className={input}
-                title="Default seat count for new sessions of this event type"
-              />
-            </Field>
-          </div>
-        )}
-        {/* Only send `capacity` in the form payload when the group toggle is on;
-            otherwise it stays null in the DB and the classic 1:1 flow runs. */}
-        {isGroup && <input type="hidden" name="capacity" value={capacity} />}
-      </div>
+      ) : (
+        <UpgradeNote text="Manual approval requires a higher plan." />
+      )}
 
-      {!isGroup && (
+      {initial.features.groupBookings && (
+        <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+          <label className="flex items-start gap-2 text-sm text-slate-700">
+            <input
+              type="checkbox"
+              checked={isGroup}
+              onChange={(e) => setIsGroup(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-slate-300"
+            />
+            <span>
+              Group event (multiple attendees per session)
+              <span className="block text-xs text-slate-500">
+                Instead of showing time slots from your weekly availability, you create each
+                class/session manually and invitees book into a shared spot up to the seat
+                limit. Ideal for classes, webinars, and workshops.
+              </span>
+            </span>
+          </label>
+          {isGroup && (
+            <div className="mt-3 pl-6">
+              <Field label="Seats per session">
+                <input
+                  type="number"
+                  min={1}
+                  value={capacity}
+                  onChange={(e) => setCapacity(e.target.value)}
+                  className={input}
+                  title="Default seat count for new sessions of this event type"
+                />
+              </Field>
+            </div>
+          )}
+          {/* Only send `capacity` in the form payload when the group toggle is on;
+              otherwise it stays null in the DB and the classic 1:1 flow runs. */}
+          {isGroup && <input type="hidden" name="capacity" value={capacity} />}
+        </div>
+      )}
+
+      {initial.features.recurringBookings && !isGroup && (
         <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
           <label className="flex items-start gap-2 text-sm text-slate-700">
             <input
@@ -289,6 +318,18 @@ export default function EventTypeEditor({ initial }: { initial: Initial }) {
         </div>
       )}
 
+      {(!initial.features.groupBookings || !initial.features.recurringBookings) && (
+        <UpgradeNote
+          text={
+            !initial.features.groupBookings && !initial.features.recurringBookings
+              ? "Group sessions and recurring bookings require a higher plan."
+              : !initial.features.groupBookings
+                ? "Group sessions require a higher plan."
+                : "Recurring bookings require a higher plan."
+          }
+        />
+      )}
+
       <div>
         <p className="text-sm font-medium text-slate-700">Location</p>
         <p className="text-xs text-slate-500">Where this meeting takes place.</p>
@@ -302,7 +343,9 @@ export default function EventTypeEditor({ initial }: { initial: Initial }) {
               { v: "ZOOM", label: "Zoom" },
             ] as const
           ).map((opt) => {
+            const isVideo = opt.v === "GOOGLE_MEET" || opt.v === "ZOOM";
             const disabled =
+              (isVideo && !initial.features.videoLinks) ||
               (opt.v === "GOOGLE_MEET" && !initial.calendarConnected) ||
               (opt.v === "ZOOM" && !initial.zoomConnected);
             return (
@@ -312,9 +355,11 @@ export default function EventTypeEditor({ initial }: { initial: Initial }) {
                 disabled={disabled}
                 onClick={() => setLocation(opt.v)}
                 title={
-                  disabled
-                    ? `Connect ${opt.v === "GOOGLE_MEET" ? "Google Calendar" : "Zoom"} in Settings to enable ${opt.label}`
-                    : opt.label
+                  isVideo && !initial.features.videoLinks
+                    ? "Auto video links require a higher plan"
+                    : disabled
+                      ? `Connect ${opt.v === "GOOGLE_MEET" ? "Google Calendar" : "Zoom"} in Settings to enable ${opt.label}`
+                      : opt.label
                 }
                 className={`rounded-lg border px-3 py-1.5 text-sm font-medium ${
                   location === opt.v
@@ -346,53 +391,57 @@ export default function EventTypeEditor({ initial }: { initial: Initial }) {
         )}
       </div>
 
-      <div>
-        <p className="text-sm font-medium text-slate-700">Intake questions</p>
-        <p className="text-xs text-slate-500">
-          Extra questions shown on the booking form (in addition to name &amp; email).
-        </p>
-        <div className="mt-3 space-y-2">
-          {questions.map((q, i) => (
-            <div key={i} className="flex items-center gap-2">
-              <input
-                value={q.label}
-                onChange={(e) => update(i, { label: e.target.value })}
-                placeholder="e.g. Phone number"
-                title={`Intake question ${i + 1}`}
-                className={`${input} flex-1`}
-              />
-              <label className="flex items-center gap-1 text-xs text-slate-600">
+      {initial.features.intakeQuestions ? (
+        <div>
+          <p className="text-sm font-medium text-slate-700">Intake questions</p>
+          <p className="text-xs text-slate-500">
+            Extra questions shown on the booking form (in addition to name &amp; email).
+          </p>
+          <div className="mt-3 space-y-2">
+            {questions.map((q, i) => (
+              <div key={i} className="flex items-center gap-2">
                 <input
-                  type="checkbox"
-                  checked={q.required}
-                  onChange={(e) => update(i, { required: e.target.checked })}
-                  title={`Make question ${i + 1} required`}
-                  className="h-4 w-4 rounded border-slate-300"
+                  value={q.label}
+                  onChange={(e) => update(i, { label: e.target.value })}
+                  placeholder="e.g. Phone number"
+                  title={`Intake question ${i + 1}`}
+                  className={`${input} flex-1`}
                 />
-                Required
-              </label>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => remove(i)}
-                className="text-red-600 hover:bg-red-50 hover:text-red-600"
-              >
-                Remove
-              </Button>
-            </div>
-          ))}
+                <label className="flex items-center gap-1 text-xs text-slate-600">
+                  <input
+                    type="checkbox"
+                    checked={q.required}
+                    onChange={(e) => update(i, { required: e.target.checked })}
+                    title={`Make question ${i + 1} required`}
+                    className="h-4 w-4 rounded border-slate-300"
+                  />
+                  Required
+                </label>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => remove(i)}
+                  className="text-red-600 hover:bg-red-50 hover:text-red-600"
+                >
+                  Remove
+                </Button>
+              </div>
+            ))}
+          </div>
+          <Button
+            type="button"
+            variant="link"
+            size="sm"
+            onClick={add}
+            className="mt-2 h-auto p-0"
+          >
+            + Add question
+          </Button>
         </div>
-        <Button
-          type="button"
-          variant="link"
-          size="sm"
-          onClick={add}
-          className="mt-2 h-auto p-0"
-        >
-          + Add question
-        </Button>
-      </div>
+      ) : (
+        <UpgradeNote text="Custom intake questions require a higher plan." />
+      )}
 
       {initial.teamSchedulingEnabled && (
         <div>
@@ -481,6 +530,19 @@ function locationHint(location: LocationType, calendarConnected: boolean, zoomCo
 
 const input =
   "mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100";
+
+// Small inline note shown in place of a gated section — consistent, low-key
+// upgrade prompt reused across every plan-gated field in this form.
+function UpgradeNote({ text }: { text: string }) {
+  return (
+    <p className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500">
+      {text}{" "}
+      <a href="/dashboard/billing" className="font-medium text-indigo-600 hover:underline">
+        See plans
+      </a>
+    </p>
+  );
+}
 
 function Field({
   label,

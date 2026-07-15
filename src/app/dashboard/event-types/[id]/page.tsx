@@ -22,7 +22,9 @@ export default async function EditEventTypePage({
   });
   if (!eventType) notFound();
 
-  const teamSchedulingEnabled = (await getPlanConfig(user.plan)).teamScheduling;
+  const planCfg = await getPlanConfig(user.plan);
+  const has = (key: string) => planCfg.featureKeys.includes(key);
+  const teamSchedulingEnabled = has("team_scheduling");
   const pricing = pricingEligibility({
     paymentAccountStatus: user.paymentAccountStatus,
     activePaymentProvider: user.activePaymentProvider,
@@ -96,6 +98,15 @@ export default async function EditEventTypePage({
           pricing: pricing.canPrice
             ? { canPrice: true, currency: pricing.currency }
             : { canPrice: false, reason: pricing.reason },
+          features: {
+            intakeQuestions: has("intake_questions"),
+            schedulingLimits: has("scheduling_limits"),
+            videoLinks: has("video_links"),
+            approvalFlow: has("approval_flow"),
+            redirectReplyTo: has("redirect_replyto"),
+            groupBookings: has("group_bookings"),
+            recurringBookings: has("recurring_bookings"),
+          },
         }}
       />
 

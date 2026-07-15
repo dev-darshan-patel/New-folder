@@ -16,11 +16,11 @@ import PaymentOnboardingPanel from "./PaymentOnboardingPanel";
 import { getDeletionImpact, DELETION_GRACE_HOURS } from "@/lib/account-deletion";
 import {
   PAYMENT_ACCOUNT_STATUS,
-  PAYMENTS_REQUIRED_PLAN,
   SUPPORTED_COUNTRIES,
   countryName,
   tenantEligibleProviders,
 } from "@/lib/payments";
+import { planHasFeature } from "@/lib/plans";
 import { prisma } from "@/lib/prisma";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -67,7 +67,7 @@ export default async function SettingsPage({
   const user = await getCurrentUser();
   if (!user) return null;
 
-  const [connection, calendarConfigurable, zoomConnection, zoomConfigurable, sp, impact, latestPaymentApp, eligibleProvidersForUser] = await Promise.all([
+  const [connection, calendarConfigurable, zoomConnection, zoomConfigurable, sp, impact, latestPaymentApp, eligibleProvidersForUser, canAcceptPayments, canBusySync] = await Promise.all([
     getCalendarConnection(user.id),
     isCalendarConfigurable(),
     getZoomConnection(user.id),
@@ -79,6 +79,8 @@ export default async function SettingsPage({
       orderBy: { createdAt: "desc" },
     }),
     tenantEligibleProviders(user.country),
+    planHasFeature(user.plan, "payments"),
+    planHasFeature(user.plan, "calendar_busy_sync"),
   ]);
   const calendarStatus = sp.calendar ? CALENDAR_STATUS[sp.calendar] : null;
   const zoomStatus = sp.zoom ? ZOOM_STATUS[sp.zoom] : null;
@@ -173,13 +175,21 @@ export default async function SettingsPage({
           )}
         </div>
 
-        {connection && hasFreeBusyScope(connection.scope) && (
+        {connection && canBusySync && hasFreeBusyScope(connection.scope) && (
           <BusySyncToggle action={toggleBusySyncAction} initialEnabled={connection.syncBusyTimes} />
         )}
-        {connection && !hasFreeBusyScope(connection.scope) && (
+        {connection && canBusySync && !hasFreeBusyScope(connection.scope) && (
           <p className="mt-3 text-xs text-slate-500">
             Reconnect Google Calendar to enable busy-time sync (blocks slots when
             you&apos;re busy elsewhere on your calendar).
+          </p>
+        )}
+        {connection && !canBusySync && (
+          <p className="mt-3 text-xs text-slate-500">
+            Calendar busy-sync isn&apos;t available on your current plan.{" "}
+            <Link href="/dashboard/billing" className="font-medium text-indigo-600 hover:underline">
+              See plans
+            </Link>
           </p>
         )}
 
@@ -231,10 +241,10 @@ export default async function SettingsPage({
             our team before your account can accept payments.
           </p>
 
-          {user.plan !== PAYMENTS_REQUIRED_PLAN ? (
+          {!canAcceptPayments ? (
             <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
               <p className="text-sm font-medium text-slate-800">
-                Accepting payments is a Business plan feature.
+                Accepting payments isn&apos;t available on your current plan.
               </p>
               <p className="mt-1 text-sm text-slate-600">
                 Upgrade to the Business plan to apply.

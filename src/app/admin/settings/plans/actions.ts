@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireAdminRole } from "@/lib/admin-auth";
 import { writeAuditLog } from "@/lib/admin-audit";
+import { FEATURE_KEYS } from "@/lib/features";
 
 export type PlanFormState = { ok: true; message: string } | { error: string } | null;
 
@@ -14,8 +15,8 @@ function parsePlanFields(formData: FormData) {
   const priceMonthly = Math.max(0, Math.round(Number(formData.get("priceMonthly") || 0)));
   const maxRaw = String(formData.get("maxEventTypes") || "").trim();
   const maxEventTypes = maxRaw === "" ? null : Math.max(0, Math.round(Number(maxRaw)));
-  const customBranding = formData.get("customBranding") === "on";
-  const teamScheduling = formData.get("teamScheduling") === "on";
+  // One checkbox per registry entry, named "feature_<key>" (see PlanForm.tsx).
+  const featureKeys = FEATURE_KEYS.filter((key) => formData.get(`feature_${key}`) === "on");
   const features = String(formData.get("features") || "")
     .split("\n")
     .map((f) => f.trim())
@@ -28,8 +29,7 @@ function parsePlanFields(formData: FormData) {
     priceLabel,
     priceMonthly,
     maxEventTypes,
-    customBranding,
-    teamScheduling,
+    featureKeys,
     features,
     stripePriceId,
     active,

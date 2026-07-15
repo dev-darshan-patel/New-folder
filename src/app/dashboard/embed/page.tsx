@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getPlanConfig } from "@/lib/plans";
+import { planHasFeature } from "@/lib/plans";
 import { isFeatureEnabled } from "@/lib/feature-flags";
 import EmbedSnippets from "./EmbedSnippets";
 
@@ -9,11 +9,12 @@ export default async function EmbedPage() {
   const user = await getCurrentUser();
   if (!user) return null;
 
-  const [planCfg, embedEnabled] = await Promise.all([
-    getPlanConfig(user.plan),
+  // Two-layer gate: the plan entitlement (per-tenant) and the platform kill
+  // switch (global emergency off) must both be true.
+  const [canEmbedByPlan, embedEnabled] = await Promise.all([
+    planHasFeature(user.plan, "embed_widget"),
     isFeatureEnabled("embed_widget"),
   ]);
-  const canEmbedByPlan = planCfg.customBranding;
   const canEmbed = canEmbedByPlan && embedEnabled;
 
   const eventTypes = await prisma.eventType.findMany({

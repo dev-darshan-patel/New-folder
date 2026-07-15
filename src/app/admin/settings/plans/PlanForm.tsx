@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { createPlanAction, updatePlanAction, type PlanFormState } from "./actions";
 import { Button } from "@/components/ui/button";
+import { FEATURE_REGISTRY } from "@/lib/features";
 
 type Initial = {
   id: string;
@@ -10,8 +11,7 @@ type Initial = {
   priceLabel: string;
   priceMonthly: number;
   maxEventTypes: number | null;
-  customBranding: boolean;
-  teamScheduling: boolean;
+  featureKeys: string[];
   features: string[];
   stripePriceId: string | null;
   active: boolean;
@@ -147,15 +147,32 @@ export default function PlanForm({
         />
       </label>
 
+      <div>
+        <span className="text-sm font-medium text-slate-700">Features</span>
+        <p className="mt-1 text-xs text-slate-400">
+          Controls what accounts on this plan can actually do — each one has a matching
+          server-side check, so unchecking a box takes effect immediately, not just on the
+          pricing page.
+        </p>
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          {FEATURE_REGISTRY.map((f) => (
+            <label key={f.key} className="flex items-start gap-2 text-sm text-slate-700">
+              <input
+                type="checkbox"
+                name={`feature_${f.key}`}
+                defaultChecked={initial.featureKeys.includes(f.key)}
+                className="mt-0.5 h-4 w-4 rounded border-slate-300"
+              />
+              <span>
+                <span className="block font-medium">{f.label}</span>
+                <span className="block text-xs text-slate-500">{f.description}</span>
+              </span>
+            </label>
+          ))}
+        </div>
+      </div>
+
       <div className="flex flex-wrap gap-6">
-        <label className="flex items-center gap-2 text-sm text-slate-700">
-          <input type="checkbox" name="customBranding" defaultChecked={initial.customBranding} className="h-4 w-4 rounded border-slate-300" />
-          Custom branding
-        </label>
-        <label className="flex items-center gap-2 text-sm text-slate-700">
-          <input type="checkbox" name="teamScheduling" defaultChecked={initial.teamScheduling} className="h-4 w-4 rounded border-slate-300" />
-          Team scheduling
-        </label>
         <label className="flex items-center gap-2 text-sm text-slate-700">
           <input
             type="checkbox"

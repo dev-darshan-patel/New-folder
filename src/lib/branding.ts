@@ -1,5 +1,5 @@
 import type { User } from "@prisma/client";
-import { getPlanConfig } from "@/lib/plans";
+import { planHasFeature } from "@/lib/plans";
 
 export const DEFAULT_BRAND_COLOR = "#4f46e5"; // indigo-600
 export const DEFAULT_BRAND_FONT = "Geist";
@@ -43,7 +43,7 @@ export async function resolveBranding(
   >,
   overrides?: { color?: string | null; fontKey?: string | null },
 ): Promise<Branding> {
-  const allowed = (await getPlanConfig(user.plan)).customBranding;
+  const allowed = await planHasFeature(user.plan, "custom_branding");
 
   let color = allowed ? user.brandColor : DEFAULT_BRAND_COLOR;
   let fontKey = allowed ? user.brandFont : DEFAULT_BRAND_FONT;

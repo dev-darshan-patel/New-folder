@@ -138,7 +138,7 @@ model User {
   avatarUrl       String?
 
   // Branding (applied to the public booking page + embed). Custom values only
-  // take effect on plans where customBranding is enabled; otherwise defaults.
+  // take effect on plans that grant the custom_branding feature; otherwise defaults.
   brandColor      String   @default("#4f46e5")
   brandFont       String   @default("Geist")
   logoUrl         String?
@@ -294,8 +294,11 @@ model Plan {
   priceMonthly   Int      @default(0)
   // Max active event types. null = unlimited.
   maxEventTypes  Int?
-  customBranding Boolean  @default(false)
-  teamScheduling Boolean  @default(false)
+  // Which FeatureKey entries (src/lib/features.ts) this plan grants. The
+  // admin plan editor renders one checkbox per registry entry and writes the
+  // selected keys here; planHasFeature() in src/lib/plans.ts is the only
+  // reader every gate in the app should call.
+  featureKeys    String[] @default([])
   // Bullet-point feature list shown on the billing page.
   features       String[]
   // Stripe recurring Price ID this plan checks out with (null for FREE).

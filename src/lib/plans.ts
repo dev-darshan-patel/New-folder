@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { prisma } from "@/lib/prisma";
+import { isFeatureKey, type FeatureKey } from "@/lib/features";
 
 // Plans are now admin-editable rows (see the Plan model). A plan id is just a
 // string; "FREE" is the reserved system plan that always exists.
@@ -14,10 +15,9 @@ export type PlanConfig = {
   priceMonthly: number;
   // Max number of active event types. null = unlimited.
   maxEventTypes: number | null;
-  // Whether custom booking-page branding (color/font/logo) is allowed.
-  customBranding: boolean;
-  // Whether team scheduling (round-robin & collective) is available.
-  teamScheduling: boolean;
+  // Which FeatureKey entries (src/lib/features.ts) this plan grants. The
+  // admin-editable source of truth for every gate in the app.
+  featureKeys: string[];
   features: string[];
   // Stripe recurring Price ID; null for free plans.
   stripePriceId: string | null;
@@ -35,9 +35,14 @@ export const DEFAULT_PLANS: PlanConfig[] = [
     priceLabel: "$0",
     priceMonthly: 0,
     maxEventTypes: 1,
-    customBranding: false,
-    teamScheduling: false,
-    features: ["1 event type", "Unlimited bookings", "Email confirmations"],
+    featureKeys: ["custom_branding", "embed_widget"],
+    features: [
+      "1 event type",
+      "Unlimited bookings",
+      "Email confirmations",
+      "Custom booking-page branding",
+      "Embeddable booking widget",
+    ],
     stripePriceId: null,
     active: true,
     sortOrder: 0,
@@ -49,13 +54,29 @@ export const DEFAULT_PLANS: PlanConfig[] = [
     priceLabel: "$12/mo",
     priceMonthly: 12,
     maxEventTypes: 10,
-    customBranding: true,
-    teamScheduling: false,
+    featureKeys: [
+      "custom_branding",
+      "embed_widget",
+      "intake_questions",
+      "scheduling_limits",
+      "video_links",
+      "guest_invites",
+      "approval_flow",
+      "redirect_replyto",
+      "csv_export",
+      "manual_bookings",
+    ],
     features: [
       "Up to 10 event types",
       "Everything in Free",
-      "Custom booking-page branding",
-      "Embeddable booking widget",
+      "Custom intake questions",
+      "Scheduling limits & notice windows",
+      "Auto Google Meet / Zoom links",
+      "Guest invites",
+      "Manual approval",
+      "Custom redirect & reply-to",
+      "CSV export",
+      "Manual bookings",
       "Priority support",
     ],
     stripePriceId: null,
@@ -69,13 +90,31 @@ export const DEFAULT_PLANS: PlanConfig[] = [
     priceLabel: "$29/mo",
     priceMonthly: 29,
     maxEventTypes: null,
-    customBranding: true,
-    teamScheduling: true,
+    featureKeys: [
+      "custom_branding",
+      "embed_widget",
+      "intake_questions",
+      "scheduling_limits",
+      "video_links",
+      "guest_invites",
+      "approval_flow",
+      "redirect_replyto",
+      "csv_export",
+      "manual_bookings",
+      "team_scheduling",
+      "payments",
+      "group_bookings",
+      "recurring_bookings",
+      "calendar_busy_sync",
+    ],
     features: [
       "Unlimited event types",
       "Everything in Pro",
       "Team scheduling (round-robin & collective)",
-      "Calendar sync (coming soon)",
+      "Accept payments",
+      "Group sessions",
+      "Recurring bookings",
+      "Calendar busy-sync",
     ],
     stripePriceId: null,
     active: true,
@@ -90,8 +129,7 @@ function toConfig(row: {
   priceLabel: string;
   priceMonthly: number;
   maxEventTypes: number | null;
-  customBranding: boolean;
-  teamScheduling: boolean;
+  featureKeys: string[];
   features: string[];
   stripePriceId: string | null;
   active: boolean;
@@ -111,8 +149,7 @@ export async function ensurePlans(): Promise<void> {
       priceLabel: p.priceLabel,
       priceMonthly: p.priceMonthly,
       maxEventTypes: p.maxEventTypes,
-      customBranding: p.customBranding,
-      teamScheduling: p.teamScheduling,
+      featureKeys: p.featureKeys,
       features: p.features,
       stripePriceId: p.stripePriceId,
       active: p.active,
@@ -159,4 +196,15 @@ export async function getPlanConfig(id: string): Promise<PlanConfig> {
 // Plan ids in display order.
 export async function getPlanOrder(): Promise<string[]> {
   return (await getAllPlans()).map((p) => p.id);
+}
+
+// The single entry point every feature gate in the app should call. Reads
+// the admin-editable featureKeys list — never the deprecated boolean columns
+// directly. Unknown plan ids fall back to FREE's entitlements via
+// getPlanConfig(), so a deleted/renamed plan degrades safely rather than
+// granting everything.
+export async function planHasFeature(planId: string, key: FeatureKey): Promise<boolean> {
+  if (!isFeatureKey(key)) return false;
+  const cfg = await getPlanConfig(planId);
+  return cfg.featureKeys.includes(key);
 }
