@@ -209,122 +209,158 @@ export async function updateEventTypeAction(formData: FormData) {
   const has = (key: FeatureKey) => planCfg.featureKeys.includes(key);
 
   const id = String(formData.get("id") || "");
+
+  // A downgrade must never destroy data — it only blocks *creating new*
+  // gated usage. So every gated field below falls back to this row's current
+  // value (not a hardcoded default) whenever the plan no longer grants it,
+  // leaving settings from a higher plan intact until the owner is re-entitled
+  // or explicitly changes them (which still requires the gate to be open).
+  const existing = await prisma.eventType.findFirst({ where: { id, userId: user.id } });
+  if (!existing) return;
+
   const title = String(formData.get("title") || "").trim();
   const description = String(formData.get("description") || "").trim() || null;
   const duration = clampInt(formData.get("durationMinutes"), 5, 1440, 30);
 
   // Scheduling limits (min notice + daily/weekly/monthly caps + cancel-notice
-  // window) are a single gated bundle — ungated tenants get the defaults
-  // (no notice requirement, no caps) regardless of what the form submitted.
+  // window) are a single gated bundle — ungated tenants keep whatever was
+  // already saved; only an entitled tenant's form input can change it.
   const schedulingLimitsAllowed = has("scheduling_limits");
   const bufferMinutes = schedulingLimitsAllowed
     ? clampInt(formData.get("bufferMinutes"), 0, 100000, 0)
-    : 0;
+    : existing.bufferMinutes;
   const rawMax = String(formData.get("maxPerDay") || "").trim();
-  const maxPerDay = !schedulingLimitsAllowed || rawMax === "" ? null : clampInt(rawMax, 1, 1000, 1);
+  const maxPerDay = !schedulingLimitsAllowed
+    ? existing.maxPerDay
+    : rawMax === ""
+      ? null
+      : clampInt(rawMax, 1, 1000, 1);
   const rawMaxWeek = String(formData.get("maxPerWeek") || "").trim();
-  const maxPerWeek = !schedulingLimitsAllowed || rawMaxWeek === "" ? null : clampInt(rawMaxWeek, 1, 5000, 1);
+  const maxPerWeek = !schedulingLimitsAllowed
+    ? existing.maxPerWeek
+    : rawMaxWeek === ""
+      ? null
+      : clampInt(rawMaxWeek, 1, 5000, 1);
   const rawMaxMonth = String(formData.get("maxPerMonth") || "").trim();
-  const maxPerMonth = !schedulingLimitsAllowed || rawMaxMonth === "" ? null : clampInt(rawMaxMonth, 1, 20000, 1);
+  const maxPerMonth = !schedulingLimitsAllowed
+    ? existing.maxPerMonth
+    : rawMaxMonth === ""
+      ? null
+      : clampInt(rawMaxMonth, 1, 20000, 1);
   const minNoticeToCancelMinutes = schedulingLimitsAllowed
     ? clampInt(formData.get("minNoticeToCancelMinutes"), 0, 100000, 0)
-    : 0;
+    : existing.minNoticeToCancelMinutes;
 
   // Confirmation redirect + reply-to are a single gated bundle. Redirect must
   // also be an absolute http(s) URL, or it's silently dropped regardless of
   // plan, rather than sending invitees to a broken/unsafe destination.
   const redirectReplyToAllowed = has("redirect_replyto");
-  const rawRedirect = redirectReplyToAllowed
-    ? String(formData.get("confirmationRedirectUrl") || "").trim()
-    : "";
-  let confirmationRedirectUrl: string | null = null;
-  if (rawRedirect) {
-    try {
-      const parsed = new URL(rawRedirect);
-      if (parsed.protocol === "http:" || parsed.protocol === "https:") {
-        confirmationRedirectUrl = parsed.toString();
+  let confirmationRedirectUrl: string | null = existing.confirmationRedirectUrl;
+  let replyToEmail: string | null = existing.replyToEmail;
+  if (redirectReplyToAllowed) {
+    const rawRedirect = String(formData.get("confirmationRedirectUrl") || "").trim();
+    confirmationRedirectUrl = null;
+    if (rawRedirect) {
+      try {
+        const parsed = new URL(rawRedirect);
+        if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+          confirmationRedirectUrl = parsed.toString();
+        }
+      } catch {
+        // invalid URL — leave as null
       }
-    } catch {
-      // invalid URL — leave as null
     }
+
+    const rawReplyTo = String(formData.get("replyToEmail") || "").trim();
+    replyToEmail =
+      rawReplyTo && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(rawReplyTo) ? rawReplyTo : null;
   }
 
-  const rawReplyTo = redirectReplyToAllowed
-    ? String(formData.get("replyToEmail") || "").trim()
-    : "";
-  const replyToEmail =
-    rawReplyTo && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(rawReplyTo) ? rawReplyTo : null;
-
-  const requiresApproval = has("approval_flow") && formData.get("requiresApproval") === "1";
+  const requiresApproval = has("approval_flow")
+    ? formData.get("requiresApproval") === "1"
+    : existing.requiresApproval;
 
   // Group event type toggle. Any positive integer marks the event type as
   // GROUP (invitees book into owner-created Session rows); empty/zero = classic
-  // 1:1 (unchanged behavior). Gated — ungated tenants can never create one.
-  const rawCapacity = has("group_bookings") ? String(formData.get("capacity") || "").trim() : "";
-  const capacity = rawCapacity === "" ? null : clampInt(rawCapacity, 1, 10_000, 1);
+  // 1:1 (unchanged behavior). Gated — ungated tenants keep whatever capacity
+  // (or lack of one) the event type already had.
+  const capacity = has("group_bookings")
+    ? (() => {
+        const raw = String(formData.get("capacity") || "").trim();
+        return raw === "" ? null : clampInt(raw, 1, 10_000, 1);
+      })()
+    : existing.capacity;
 
   // Recurring toggle. Mutually exclusive with group — force off when this is a
-  // group event type, regardless of what the form sent. Also gated.
+  // group event type, regardless of what the form sent. Also gated: an
+  // ungated tenant keeps the existing flag (still subject to the group
+  // exclusion, since that's an invariant, not an entitlement).
   const allowRecurring =
-    has("recurring_bookings") && capacity == null && formData.get("allowRecurring") === "1";
+    capacity != null
+      ? false
+      : has("recurring_bookings")
+        ? formData.get("allowRecurring") === "1"
+        : existing.allowRecurring;
 
   // Price (Feature 4.4). null = free (unchanged behavior). A paid price is
-  // only accepted when the owner is APPROVED + onboarded on their active
-  // provider AND the event type stays inside the v1 scope fence (SOLO,
-  // non-group, non-recurring). Anything else silently drops the price so a
-  // forged form field can never sneak a paid booking through.
-  const rawPrice = String(formData.get("priceCents") || "").trim();
-  let priceCents: number | null = null;
-  let currency: string | null = null;
-  if (rawPrice !== "") {
-    const parsed = Number(rawPrice);
-    if (Number.isFinite(parsed) && parsed > 0 && parsed <= 10_000_000) {
-      priceCents = Math.round(parsed);
+  // only accepted when the plan grants "payments", the owner is APPROVED +
+  // onboarded on their active provider, AND the event type stays inside the
+  // v1 scope fence (SOLO, non-group, non-recurring). Anything else keeps
+  // whatever price already existed rather than wiping it — a downgrade or a
+  // forged form field can block *setting a new* price but never silently
+  // un-prices an event type that was already charging.
+  let priceCents: number | null = existing.priceCents;
+  let currency: string | null = existing.currency;
+  if (has("payments")) {
+    const rawPrice = String(formData.get("priceCents") || "").trim();
+    let parsedPrice: number | null = null;
+    if (rawPrice !== "") {
+      const parsed = Number(rawPrice);
+      if (Number.isFinite(parsed) && parsed > 0 && parsed <= 10_000_000) {
+        parsedPrice = Math.round(parsed);
+      }
     }
-  }
-  const rawAssignment = String(formData.get("assignmentMode") || "SOLO");
-  const scopeFenceOk =
-    capacity == null &&
-    !allowRecurring &&
-    (rawAssignment === "SOLO" || rawAssignment === "");
-  if (priceCents !== null && !scopeFenceOk) {
-    priceCents = null;
-  }
-  if (priceCents !== null && !has("payments")) {
-    // A downgraded tenant may already be APPROVED + onboarded from a prior
-    // plan — that's fine for bookings already using an existing price, but
-    // setting/changing a price here is "creating new" gated usage, so it's
-    // blocked regardless of payment-account state.
-    priceCents = null;
-  }
-  if (priceCents !== null) {
-    const eligibility = pricingEligibility({
-      paymentAccountStatus: user.paymentAccountStatus,
-      activePaymentProvider: user.activePaymentProvider,
-      country: user.country,
-      stripeConnectReady: user.stripeConnectReady,
-      razorpayConnectReady: user.razorpayConnectReady,
-    });
-    if (!eligibility.canPrice) {
+    const rawAssignment = String(formData.get("assignmentMode") || "SOLO");
+    const scopeFenceOk =
+      capacity == null && !allowRecurring && (rawAssignment === "SOLO" || rawAssignment === "");
+    if (parsedPrice !== null && scopeFenceOk) {
+      const eligibility = pricingEligibility({
+        paymentAccountStatus: user.paymentAccountStatus,
+        activePaymentProvider: user.activePaymentProvider,
+        country: user.country,
+        stripeConnectReady: user.stripeConnectReady,
+        razorpayConnectReady: user.razorpayConnectReady,
+      });
+      if (eligibility.canPrice) {
+        priceCents = parsedPrice;
+        currency = eligibility.currency;
+      }
+    }
+    // A blank price field on an entitled, scope-fenced save means the owner
+    // explicitly cleared it — honor that.
+    if (parsedPrice === null && rawPrice === "" && scopeFenceOk) {
       priceCents = null;
-    } else {
-      currency = eligibility.currency;
+      currency = null;
     }
   }
 
   // Meeting location. GOOGLE_MEET/ZOOM only stick if the plan grants
   // video_links AND the owner has actually connected that provider;
-  // otherwise silently fall back to IN_PERSON so we never promise a video
-  // link we can't create.
-  const rawLocation = String(formData.get("locationType") || "IN_PERSON");
-  let locationType: "IN_PERSON" | "PHONE" | "GOOGLE_MEET" | "ZOOM" =
-    rawLocation === "PHONE" || rawLocation === "GOOGLE_MEET" || rawLocation === "ZOOM"
-      ? rawLocation
-      : "IN_PERSON";
-  if (locationType === "GOOGLE_MEET" || locationType === "ZOOM") {
-    if (!has("video_links")) {
-      locationType = "IN_PERSON";
-    } else {
+  // otherwise fall back to whatever the event type already had (or
+  // IN_PERSON if it's newly being pointed at a video location it can't use).
+  let locationType: "IN_PERSON" | "PHONE" | "GOOGLE_MEET" | "ZOOM" = existing.locationType as
+    | "IN_PERSON"
+    | "PHONE"
+    | "GOOGLE_MEET"
+    | "ZOOM";
+  let locationDetail = existing.locationDetail;
+  if (has("video_links")) {
+    const rawLocation = String(formData.get("locationType") || "IN_PERSON");
+    locationType =
+      rawLocation === "PHONE" || rawLocation === "GOOGLE_MEET" || rawLocation === "ZOOM"
+        ? rawLocation
+        : "IN_PERSON";
+    if (locationType === "GOOGLE_MEET" || locationType === "ZOOM") {
       const provider = locationType === "GOOGLE_MEET" ? "google" : "zoom";
       const hasConnection = await prisma.calendarConnection.findUnique({
         where: { userId_provider: { userId: user.id, provider } },
@@ -332,28 +368,35 @@ export async function updateEventTypeAction(formData: FormData) {
       });
       if (!hasConnection) locationType = "IN_PERSON";
     }
+    locationDetail =
+      locationType === "GOOGLE_MEET" || locationType === "ZOOM"
+        ? null
+        : String(formData.get("locationDetail") || "").trim().slice(0, 500) || null;
   }
-  const locationDetail =
-    locationType === "GOOGLE_MEET" || locationType === "ZOOM"
-      ? null
-      : String(formData.get("locationDetail") || "").trim().slice(0, 500) || null;
 
   // Intake questions arrive as a JSON string from the client editor.
-  const questions = has("intake_questions")
-    ? parseQuestions(String(formData.get("intakeQuestions") || "")).filter(
-        (q) => q.label.trim() !== "",
-      )
-    : [];
-  const intakeQuestions = questions.length ? JSON.stringify(questions) : null;
+  const intakeQuestions = has("intake_questions")
+    ? (() => {
+        const questions = parseQuestions(String(formData.get("intakeQuestions") || "")).filter(
+          (q) => q.label.trim() !== "",
+        );
+        return questions.length ? JSON.stringify(questions) : null;
+      })()
+    : existing.intakeQuestions;
 
-  const rawMode = String(formData.get("assignmentMode") || "SOLO");
   const teamSchedulingEnabled = has("team_scheduling");
-  const assignmentMode: "SOLO" | "ROUND_ROBIN" | "COLLECTIVE" =
-    teamSchedulingEnabled && (rawMode === "ROUND_ROBIN" || rawMode === "COLLECTIVE")
-      ? rawMode
-      : "SOLO";
-  let poolMemberIds: string[] = [];
-  if (assignmentMode !== "SOLO") {
+  const assignmentMode: "SOLO" | "ROUND_ROBIN" | "COLLECTIVE" = teamSchedulingEnabled
+    ? (() => {
+        const rawMode = String(formData.get("assignmentMode") || "SOLO");
+        return rawMode === "ROUND_ROBIN" || rawMode === "COLLECTIVE" ? rawMode : "SOLO";
+      })()
+    : (existing.assignmentMode as "SOLO" | "ROUND_ROBIN" | "COLLECTIVE");
+  // Only touch the team pool when the plan actually grants team scheduling —
+  // otherwise leave existing EventTypeMember rows alone rather than wiping
+  // them because a downgraded tenant's form never submitted poolMemberIds.
+  let poolMemberIds: string[] | null = null;
+  if (teamSchedulingEnabled && assignmentMode !== "SOLO") {
+    poolMemberIds = [];
     try {
       const raw = JSON.parse(String(formData.get("poolMemberIds") || "[]"));
       if (Array.isArray(raw)) poolMemberIds = raw.filter((x) => typeof x === "string");
@@ -362,11 +405,8 @@ export async function updateEventTypeAction(formData: FormData) {
     }
   }
 
-  // Ownership enforced via the userId filter. Re-checked below before any
-  // EventTypeMember write, since that table has no userId column of its own
-  // and must never be touched based on an unverified `id` from the form.
-  const { count } = await prisma.eventType.updateMany({
-    where: { id, userId: user.id },
+  await prisma.eventType.update({
+    where: { id: existing.id },
     data: {
       ...(title ? { title } : {}),
       description,
@@ -389,10 +429,11 @@ export async function updateEventTypeAction(formData: FormData) {
       currency,
     },
   });
-  if (count === 0) return;
 
-  if (assignmentMode !== "SOLO") {
-    const validIds = poolMemberIds.length
+  if (assignmentMode !== "SOLO" && !teamSchedulingEnabled) {
+    // Preserve the existing pool untouched — see poolMemberIds comment above.
+  } else if (assignmentMode !== "SOLO") {
+    const validIds = poolMemberIds?.length
       ? (
           await prisma.teamMember.findMany({
             where: { id: { in: poolMemberIds }, userId: user.id },
