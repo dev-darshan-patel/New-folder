@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Bookify — Project Guide</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --bg-alt: #f6f7f9;
+    --bg-card: #ffffff;
+    --text: #1a1d23;
+    --text-dim: #5b6270;
+    --border: #e3e6ea;
+    --accent: #4f46e5;
+    --accent-soft: #eef0fe;
+    --code-bg: #f2f3f7;
+    --free: #64748b;
+    --pro: #4f46e5;
+    --business: #a855f7;
+    --warn-bg: #fff7e6;
+    --warn-border: #f2c94c;
+    --ok-bg: #eafaf0;
+    --ok-border: #34c77b;
+    --shadow: 0 1px 2px rgba(20,20,40,0.04), 0 1px 8px rgba(20,20,40,0.03);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14161b;
+      --bg-alt: #1b1e25;
+      --bg-card: #1c1f26;
+      --text: #e7e9ee;
+      --text-dim: #9aa1ad;
+      --border: #2b2f38;
+      --accent: #8b85f8;
+      --accent-soft: #24244a;
+      --code-bg: #20232b;
+      --free: #94a3b8;
+      --pro: #8b85f8;
+      --business: #d09cf5;
+      --warn-bg: #2a2412;
+      --warn-border: #7a6320;
+      --ok-bg: #10261a;
+      --ok-border: #1f7a4c;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 1px 8px rgba(0,0,0,0.25);
+    }
+  }
+  /* Viewer's explicit theme toggle wins over the OS media query, both ways. */
+  :root[data-theme="dark"] {
+    --bg: #14161b;
+    --bg-alt: #1b1e25;
+    --bg-card: #1c1f26;
+    --text: #e7e9ee;
+    --text-dim: #9aa1ad;
+    --border: #2b2f38;
+    --accent: #8b85f8;
+    --accent-soft: #24244a;
+    --code-bg: #20232b;
+    --free: #94a3b8;
+    --pro: #8b85f8;
+    --business: #d09cf5;
+    --warn-bg: #2a2412;
+    --warn-border: #7a6320;
+    --ok-bg: #10261a;
+    --ok-border: #1f7a4c;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 1px 8px rgba(0,0,0,0.25);
+  }
+  :root[data-theme="light"] {
+    --bg: #ffffff;
+    --bg-alt: #f6f7f9;
+    --bg-card: #ffffff;
+    --text: #1a1d23;
+    --text-dim: #5b6270;
+    --border: #e3e6ea;
+    --accent: #4f46e5;
+    --accent-soft: #eef0fe;
+    --code-bg: #f2f3f7;
+    --free: #64748b;
+    --pro: #4f46e5;
+    --business: #a855f7;
+    --warn-bg: #fff7e6;
+    --warn-border: #f2c94c;
+    --ok-bg: #eafaf0;
+    --ok-border: #34c77b;
+    --shadow: 0 1px 2px rgba(20,20,40,0.04), 0 1px 8px rgba(20,20,40,0.03);
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    font-size: 16px;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code, pre {
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.88em;
+  }
+  code {
+    background: var(--code-bg);
+    padding: 0.15em 0.4em;
+    border-radius: 4px;
+  }
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    overflow-x: auto;
+  }
+  pre code { background: none; padding: 0; }
+
+  .layout {
+    display: flex;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+  #sidebar {
+    width: 280px;
+    flex-shrink: 0;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    padding: 24px 16px;
+    border-right: 1px solid var(--border);
+    background: var(--bg-alt);
+  }
+  #sidebar .brand {
+    font-weight: 700;
+    font-size: 1.15rem;
+    padding: 0 8px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  #sidebar .brand .dot {
+    width: 10px; height: 10px; border-radius: 3px;
+    background: var(--accent);
+    display: inline-block;
+  }
+  #sidebar .group-title {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-dim);
+    padding: 16px 8px 6px;
+    font-weight: 600;
+  }
+  #sidebar a {
+    display: block;
+    padding: 6px 8px;
+    border-radius: 6px;
+    color: var(--text);
+    font-size: 0.9rem;
+  }
+  #sidebar a:hover { background: var(--accent-soft); text-decoration: none; }
+  #sidebar .toc-search {
+    width: 100%;
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    color: var(--text);
+    font-size: 0.85rem;
+    margin-bottom: 8px;
+  }
+  #content {
+    flex: 1;
+    min-width: 0;
+    padding: 40px 56px 120px;
+    max-width: 900px;
+  }
+  h1, h2, h3, h4 { line-height: 1.3; scroll-margin-top: 20px; text-wrap: balance; }
+  h1 { font-size: 2.1rem; margin: 0 0 8px; }
+  h2 {
+    font-size: 1.5rem;
+    margin: 56px 0 16px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+  }
+  section:first-of-type h2:first-child,
+  #overview h2:first-child { border-top: none; padding-top: 0; }
+  h3 { font-size: 1.15rem; margin: 28px 0 10px; }
+  h4 { font-size: 1rem; margin: 20px 0 8px; color: var(--text-dim); }
+  p { margin: 0 0 14px; }
+  ul, ol { margin: 0 0 14px; padding-left: 22px; }
+  li { margin-bottom: 4px; }
+  .lede {
+    font-size: 1.1rem;
+    color: var(--text-dim);
+    margin-bottom: 24px;
+  }
+  .subtitle { color: var(--text-dim); margin-top: 0; }
+
+  .part-divider {
+    margin: 72px 0 8px;
+    padding: 20px 0 0;
+  }
+  .part-eyebrow {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--accent);
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .part-divider h1 { margin-bottom: 6px; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0 22px;
+    font-size: 0.88rem;
+  }
+  th, td {
+    text-align: left;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+    font-variant-numeric: tabular-nums;
+  }
+  th {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--text-dim);
+    font-weight: 600;
+  }
+  tr:last-child td { border-bottom: none; }
+
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin: 16px 0;
+    box-shadow: var(--shadow);
+  }
+  .callout {
+    border-radius: 10px;
+    padding: 14px 18px;
+    margin: 18px 0;
+    border: 1px solid var(--border);
+  }
+  .callout.warn { background: var(--warn-bg); border-color: var(--warn-border); }
+  .callout.ok { background: var(--ok-bg); border-color: var(--ok-border); }
+  .callout strong { display: block; margin-bottom: 4px; }
+
+  .pill {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 100px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: white;
+  }
+  .pill.free { background: var(--free); }
+  .pill.pro { background: var(--pro); }
+  .pill.business { background: var(--business); }
+
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  @media (max-width: 720px) {
+    .grid-2 { grid-template-columns: 1fr; }
+    #sidebar { display: none; }
+    #content { padding: 24px; max-width: 100%; }
+  }
+  .feature-list { list-style: none; padding: 0; }
+  .feature-list li {
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    gap: 10px;
+    align-items: baseline;
+    flex-wrap: wrap;
+  }
+  .feature-list li:last-child { border-bottom: none; }
+  .feature-list .fname { font-weight: 600; min-width: 200px; }
+  .feature-list .fdesc { color: var(--text-dim); font-size: 0.92rem; }
+  .tier-badges { display: flex; gap: 4px; margin-left: auto; }
+
+  .toc-mobile-toggle { display: none; }
+  #back-to-top {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 100px;
+    padding: 10px 16px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    box-shadow: var(--shadow);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+  }
+  #back-to-top.show { opacity: 1; pointer-events: auto; }
+  svg text { font-family: inherit; fill: var(--text); }
+  .diagram-wrap {
+    background: var(--bg-alt);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    margin: 18px 0;
+    overflow-x: auto;
+  }
+  footer {
+    margin-top: 80px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+
+<nav id="sidebar">
+  <div class="brand"><span class="dot"></span> Bookify Guide</div>
+  <input class="toc-search" id="tocSearch" type="text" placeholder="Filter sections…" />
+  <div id="tocList">
+    <div class="group-title">Overview</div>
+    <a href="#what-is-bookify">What is Bookify</a>
+    <a href="#quick-tour">Quick tour</a>
+
+    <div class="group-title">User Guide</div>
+    <a href="#plans-features">Plans &amp; features</a>
+    <a href="#availability-events">Availability &amp; event types</a>
+    <a href="#bookings">Bookings</a>
+    <a href="#branding-embed">Branding &amp; embed</a>
+    <a href="#team-scheduling">Team scheduling</a>
+    <a href="#billing-payments">Billing &amp; payments</a>
+    <a href="#calendar-sync">Calendar sync</a>
+    <a href="#account-security">Account &amp; security</a>
+
+    <div class="group-title">Admin Guide</div>
+    <a href="#admin-roles">Admin roles</a>
+    <a href="#admin-tenants">Managing tenants</a>
+    <a href="#admin-platform">Platform settings</a>
+    <a href="#admin-danger">Danger zone</a>
+
+    <div class="group-title">Developer Guide</div>
+    <a href="#tech-stack">Tech stack</a>
+    <a href="#architecture">Architecture</a>
+    <a href="#project-structure">Project structure</a>
+    <a href="#data-model">Data model</a>
+    <a href="#route-map">Route map</a>
+    <a href="#env-vars">Environment variables</a>
+    <a href="#local-setup">Local setup</a>
+    <a href="#conventions">Conventions &amp; gotchas</a>
+    <a href="#deployment">Deployment</a>
+
+    <div class="group-title">Help</div>
+    <a href="#faq">FAQ &amp; troubleshooting</a>
+  </div>
+</nav>
+
+<main id="content">
+
+<section id="overview">
+<h1>Bookify</h1>
+<p class="lede">A multi-tenant, Calendly-style appointment booking SaaS. A business owner signs up, sets weekly availability and "event types," and shares a public link where customers self-book a time slot — no back-and-forth emails.</p>
+
+<h2 id="what-is-bookify">What is Bookify</h2>
+<p>Bookify lets a small business (a consultant, salon, coach, agency — anyone who takes appointments) run their own scheduling page without touching code. Each signup becomes an independent <strong>tenant</strong>: their own availability, their own event types, their own booking page at <code>bookify.app/{business-slug}</code>, and their own customers. Tenants pick a plan (Free / Pro / Business) that unlocks more capability as they grow — everything from custom branding to team round-robin scheduling to accepting payments.</p>
+<p>Above all tenants sits a platform <strong>super-admin console</strong> for the people running Bookify itself: user management, billing oversight, plan configuration, feature flags, and a full audit trail.</p>
+
+<div class="grid-2">
+  <div class="card">
+    <strong>For business owners</strong>
+    <p style="margin:6px 0 0">Set your hours, create a bookable event, share one link. Customers pick a slot, get a confirmation email with a calendar invite, and can reschedule or cancel themselves — you never touch it.</p>
+  </div>
+  <div class="card">
+    <strong>For developers</strong>
+    <p style="margin:6px 0 0">Next.js 16 App Router, server-first, no REST/tRPC layer — data reads happen directly in server components, mutations go through server actions. Prisma + PostgreSQL. See <a href="#architecture">Architecture</a>.</p>
+  </div>
+</div>
+
+<h2 id="quick-tour">Quick tour</h2>
+<ol>
+  <li><strong>Sign up</strong> at <code>/signup</code> (email/password, or "Sign in with Google/Microsoft"). A starter event type and default Mon–Fri 9–5 availability are created automatically.</li>
+  <li><strong>Set availability</strong> at <code>/dashboard/availability</code> — a weekly grid, plus optional one-off date overrides ("closed July 20th", "extra hours this Saturday").</li>
+  <li><strong>Create or edit an event type</strong> at <code>/dashboard/event-types</code> — duration, location (in-person/phone/video), and (on paid plans) intake questions, scheduling limits, approval flow, and more.</li>
+  <li><strong>Share the link</strong> — <code>/{your-slug}/{event-slug}</code> — on your website, in your email signature, or embedded directly via the <a href="#branding-embed">embed widget</a>.</li>
+  <li><strong>A customer books</strong> — picks a time slot (shown in their own timezone), fills in name/email (+intake questions if configured), and confirms. Both parties get an email with an <code>.ics</code> calendar invite.</li>
+  <li><strong>Manage the booking</strong> — the customer's confirmation email includes a private link (<code>/booking/{token}</code>) to reschedule or cancel with no login required. You manage all bookings from <code>/dashboard/bookings</code>.</li>
+</ol>
+
+</section>
+
+<!-- ============================================================ -->
+<div class="part-divider"><div class="part-eyebrow">Part 2</div><h1>User Guide</h1><p class="subtitle">For the business owner running their booking page.</p></div>
+<section id="user-guide">
+
+<h2 id="plans-features">Plans &amp; features</h2>
+<p>Bookify ships three default plans — <strong>Free</strong>, <strong>Pro</strong>, <strong>Business</strong> — but a platform admin can edit exactly which capabilities each plan grants (or create entirely new tiers) at any time from <code>/admin/settings/plans</code>, with changes taking effect immediately, no redeploy. The table below reflects the shipped defaults.</p>
+
+<table>
+<tr><th>Plan</th><th>Price</th><th>Event types</th><th>Notes</th></tr>
+<tr><td><span class="pill free">FREE</span></td><td>$0</td><td>1</td><td>Custom branding + embed widget included</td></tr>
+<tr><td><span class="pill pro">PRO</span></td><td>$12/mo</td><td>10</td><td>Adds intake questions, scheduling limits, video links, guest invites, approval flow, redirect/reply-to, CSV export, manual bookings</td></tr>
+<tr><td><span class="pill business">BUSINESS</span></td><td>$29/mo</td><td>Unlimited</td><td>Everything in Pro, plus team scheduling, payments, group sessions, recurring bookings, calendar busy-sync</td></tr>
+</table>
+
+<div class="callout ok">
+  <strong>Downgrading never destroys your data.</strong>
+  If you move to a lower plan, anything you already configured (intake questions, a group event, a custom redirect URL, an existing price) keeps working exactly as before. The plan only stops you from <em>creating new</em> things that need the higher tier — e.g. you can't add a second group event type on Free, but an existing one keeps taking bookings.
+</div>
+
+<h3>Full capability list</h3>
+<ul class="feature-list">
+  <li><span class="fname">Custom branding</span><span class="fdesc">Accent color, font, logo, and welcome message on your booking page.</span><span class="tier-badges"><span class="pill free">FREE</span></span></li>
+  <li><span class="fname">Embeddable widget</span><span class="fdesc">Embed your booking page directly on your own website.</span><span class="tier-badges"><span class="pill free">FREE</span></span></li>
+  <li><span class="fname">Custom intake questions</span><span class="fdesc">Collect extra info from invitees when they book.</span><span class="tier-badges"><span class="pill pro">PRO</span></span></li>
+  <li><span class="fname">Scheduling limits</span><span class="fdesc">Minimum notice + daily/weekly/monthly booking caps.</span><span class="tier-badges"><span class="pill pro">PRO</span></span></li>
+  <li><span class="fname">Auto video links</span><span class="fdesc">Auto-generate Google Meet or Zoom links for online meetings.</span><span class="tier-badges"><span class="pill pro">PRO</span></span></li>
+  <li><span class="fname">Guest invites</span><span class="fdesc">Let invitees add extra guests to a booking.</span><span class="tier-badges"><span class="pill pro">PRO</span></span></li>
+  <li><span class="fname">Manual approval</span><span class="fdesc">Require your approval before a booking is confirmed.</span><span class="tier-badges"><span class="pill pro">PRO</span></span></li>
+  <li><span class="fname">Custom redirect &amp; reply-to</span><span class="fdesc">Redirect invitees after booking; set a custom reply-to address.</span><span class="tier-badges"><span class="pill pro">PRO</span></span></li>
+  <li><span class="fname">CSV export</span><span class="fdesc">Export your bookings to a CSV file.</span><span class="tier-badges"><span class="pill pro">PRO</span></span></li>
+  <li><span class="fname">Manual bookings</span><span class="fdesc">Create bookings yourself for phone/walk-in customers.</span><span class="tier-badges"><span class="pill pro">PRO</span></span></li>
+  <li><span class="fname">Team scheduling</span><span class="fdesc">Round-robin and collective scheduling across a team.</span><span class="tier-badges"><span class="pill business">BUSINESS</span></span></li>
+  <li><span class="fname">Accept payments</span><span class="fdesc">Charge customers when they book a paid event type (Stripe or Razorpay).</span><span class="tier-badges"><span class="pill business">BUSINESS</span></span></li>
+  <li><span class="fname">Group sessions</span><span class="fdesc">Let multiple invitees book into the same session up to a capacity.</span><span class="tier-badges"><span class="pill business">BUSINESS</span></span></li>
+  <li><span class="fname">Recurring bookings</span><span class="fdesc">Let invitees book a weekly recurring series.</span><span class="tier-badges"><span class="pill business">BUSINESS</span></span></li>
+  <li><span class="fname">Calendar busy-sync</span><span class="fdesc">Block slots when you're busy on your connected Google Calendar.</span><span class="tier-badges"><span class="pill business">BUSINESS</span></span></li>
+</ul>
+
+<h2 id="availability-events">Availability &amp; event types</h2>
+<h3>Availability</h3>
+<p>Set a recurring weekly schedule (e.g. Mon–Fri, 9:00–17:00) at <code>/dashboard/availability</code>. Add one-off <strong>date overrides</strong> for exceptions — mark a specific date fully closed, or replace its hours just for that day — without touching your regular weekly grid.</p>
+
+<h3>Event types</h3>
+<p>An event type is a bookable meeting (e.g. "30 Minute Intro Call"). Configure per event type:</p>
+<ul>
+  <li><strong>Duration</strong> and <strong>location</strong> (in-person, phone, or auto-generated Google Meet / Zoom link)</li>
+  <li><strong>Minimum notice</strong> and <strong>daily/weekly/monthly booking caps</strong> <span class="pill pro">PRO</span></li>
+  <li><strong>Intake questions</strong> shown on the booking form <span class="pill pro">PRO</span></li>
+  <li><strong>Manual approval</strong> — bookings wait for your OK before they're confirmed <span class="pill pro">PRO</span></li>
+  <li><strong>Confirmation redirect URL</strong> and a custom <strong>reply-to</strong> email <span class="pill pro">PRO</span></li>
+  <li><strong>Group sessions</strong> — a fixed-capacity class/webinar many people can book into <span class="pill business">BUSINESS</span></li>
+  <li><strong>Recurring</strong> — invitees book a weekly series up to 8 occurrences at once <span class="pill business">BUSINESS</span></li>
+  <li><strong>Team assignment</strong> — solo, round-robin, or collective across your team <span class="pill business">BUSINESS</span></li>
+  <li><strong>Price</strong> — charge for the booking, once payments are approved and connected <span class="pill business">BUSINESS</span></li>
+</ul>
+<p>Slots are always shown to the customer in <em>their own</em> detected timezone, converted from your business timezone automatically.</p>
+
+<h2 id="bookings">Bookings</h2>
+
+<div class="diagram-wrap">
+<svg viewBox="0 0 820 220" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;max-width:820px">
+  <defs>
+    <marker id="arrow2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="var(--text-dim)"/>
+    </marker>
+  </defs>
+  <style>
+    .box2 { fill: var(--bg-card); stroke: var(--border); stroke-width: 1.5; rx: 8; }
+    .boxlabel2 { font-size: 12.5px; font-weight: 600; }
+    .boxsub2 { font-size: 10.5px; fill: var(--text-dim); }
+    .edge2 { stroke: var(--text-dim); stroke-width: 1.5; fill: none; marker-end: url(#arrow2); }
+  </style>
+
+  <rect class="box2" x="10" y="70" width="130" height="70"/>
+  <text class="boxlabel2" x="22" y="98">Owner sets</text>
+  <text class="boxlabel2" x="22" y="113">availability +</text>
+  <text class="boxlabel2" x="22" y="128">event type</text>
+
+  <rect class="box2" x="170" y="70" width="130" height="70"/>
+  <text class="boxlabel2" x="182" y="98">Public link</text>
+  <text class="boxsub2" x="182" y="115">/{slug}/{eventSlug}</text>
+  <text class="boxsub2" x="182" y="128">slots shown in</text>
+  <text class="boxsub2" x="182" y="140">invitee's timezone</text>
+
+  <rect class="box2" x="330" y="70" width="140" height="70"/>
+  <text class="boxlabel2" x="342" y="98">Customer picks</text>
+  <text class="boxlabel2" x="342" y="113">a slot &amp; submits</text>
+  <text class="boxsub2" x="342" y="128">+ intake answers</text>
+
+  <rect class="box2" x="500" y="10" width="160" height="70"/>
+  <text class="boxlabel2" x="512" y="35">Overlap + limit</text>
+  <text class="boxlabel2" x="512" y="50">re-check</text>
+  <text class="boxsub2" x="512" y="65">atomic UPDATE before insert</text>
+
+  <rect class="box2" x="500" y="130" width="160" height="70"/>
+  <text class="boxlabel2" x="512" y="155">Booking row</text>
+  <text class="boxsub2" x="512" y="172">stored in UTC</text>
+  <text class="boxsub2" x="512" y="185">status: CONFIRMED / PENDING</text>
+
+  <rect class="box2" x="700" y="10" width="110" height="70"/>
+  <text class="boxlabel2" x="712" y="35">Email +</text>
+  <text class="boxlabel2" x="712" y="50">.ics invite</text>
+  <text class="boxsub2" x="712" y="65">both parties</text>
+
+  <rect class="box2" x="700" y="130" width="110" height="70"/>
+  <text class="boxlabel2" x="712" y="155">Manage link</text>
+  <text class="boxsub2" x="712" y="172">/booking/{token}</text>
+  <text class="boxsub2" x="712" y="185">reschedule / cancel</text>
+
+  <path class="edge2" d="M140,105 L170,105"/>
+  <path class="edge2" d="M300,105 L330,105"/>
+  <path class="edge2" d="M470,95 L500,60"/>
+  <path class="edge2" d="M470,115 L500,150"/>
+  <path class="edge2" d="M660,45 L700,45"/>
+  <path class="edge2" d="M660,165 L700,165"/>
+  <path class="edge2" d="M580,80 L580,130"/>
+</svg>
+</div>
+
+<p>See every upcoming and past booking at <code>/dashboard/bookings</code>. From here you can:</p>
+<ul>
+  <li><strong>Approve or decline</strong> pending bookings (if the event type requires approval)</li>
+  <li><strong>Create a manual booking</strong> for a phone/walk-in customer <span class="pill pro">PRO</span></li>
+  <li><strong>Export to CSV</strong> <span class="pill pro">PRO</span></li>
+</ul>
+<p>Customers manage their own bookings via a private link in their confirmation email (<code>/booking/{token}</code>) — no login needed. They can reschedule (re-checked against your live availability) or cancel, which instantly frees the slot for someone else. Every booking email includes a standard <code>.ics</code> calendar attachment that updates or removes itself in the customer's calendar app when you reschedule or cancel it.</p>
+
+<h2 id="branding-embed">Branding &amp; embed</h2>
+<p>Customize your public booking page at <code>/dashboard/branding</code>: accent color, font, logo, and a welcome message. <span class="pill free">FREE</span></p>
+<p>Embed your booking page directly into your own website at <code>/dashboard/embed</code> — a small copy-paste script tag (<code>/public/embed.js</code>) that injects an iframe or popup and auto-resizes to fit its content. Accent color and font overrides can be passed as script-tag attributes. <span class="pill free">FREE</span></p>
+
+<h2 id="team-scheduling">Team scheduling</h2>
+<p><span class="pill business">BUSINESS</span> Add team members at <code>/dashboard/team</code>, each with their own availability. Assign an event type to:</p>
+<ul>
+  <li><strong>Solo</strong> — just you (default)</li>
+  <li><strong>Round-robin</strong> — bookings rotate evenly across the assigned team members</li>
+  <li><strong>Collective</strong> — a slot only shows as available when every assigned member is free</li>
+</ul>
+
+<h2 id="billing-payments">Billing &amp; payments</h2>
+<h3>Your subscription</h3>
+<p>Manage your Bookify plan at <code>/dashboard/billing</code> — upgrade, downgrade, or open the Stripe customer portal to update your card or cancel. Your plan can be set to cancel at the end of the current billing period instead of immediately.</p>
+<h3>Accepting payments from your customers</h3>
+<p><span class="pill business">BUSINESS</span> To charge customers for a booking: apply for payments approval in <code>/dashboard/settings</code>, wait for admin review, then connect a provider (Stripe Connect or Razorpay Route, depending on your country) through a short hosted onboarding flow. Once connected, you can set a price on any solo (non-group, non-recurring) event type. Payment holds for 24 hours after the appointment before releasing to you, so a same-day refund is always possible.</p>
+
+<h2 id="calendar-sync">Calendar sync</h2>
+<p>Connect your Google Calendar or Zoom account at <code>/dashboard/settings</code>:</p>
+<ul>
+  <li><strong>Google Calendar</strong> — auto-generates a Google Meet link per booking, and (optionally) blocks your Bookify availability whenever you're busy on that calendar <span class="pill business">BUSINESS for busy-sync</span></li>
+  <li><strong>Zoom</strong> — auto-generates a unique Zoom meeting link per booking <span class="pill pro">PRO</span></li>
+</ul>
+<div class="callout warn"><strong>Not built yet</strong> Outlook/Microsoft 365 calendar sync (busy-time blocking or event creation) isn't implemented — Microsoft OAuth today is only used for account sign-in.</div>
+
+<h2 id="account-security">Account &amp; security</h2>
+<ul>
+  <li><strong>Two-factor authentication</strong> — enable TOTP (any authenticator app) plus one-time backup codes at <code>/dashboard/settings/security</code>.</li>
+  <li><strong>Sign in with Google/Microsoft</strong> — link a social login to your existing account, or sign up fresh with one.</li>
+  <li><strong>Account deletion</strong> — request deletion any time; you get a grace window with a one-click "keep my account" undo before anything is actually removed. Once the grace period lapses, there's still a 30-day recovery window via an emailed link before permanent purge.</li>
+</ul>
+
+</section>
+
+<!-- ============================================================ -->
+<div class="part-divider"><div class="part-eyebrow">Part 3</div><h1>Admin Guide</h1><p class="subtitle">For platform operators — the people running Bookify itself, at <code>/admin</code>.</p></div>
+<section id="admin-guide">
+
+<h2 id="admin-roles">Admin roles</h2>
+<p>Access to <code>/admin</code> is granted per-account via <code>adminRole</code> (never self-serve — set directly in the database). Non-admins get a plain 404 on any <code>/admin</code> route, so the console's existence isn't revealed.</p>
+<table>
+<tr><th>Role</th><th>Can do</th></tr>
+<tr><td><code>SUPER_ADMIN</code></td><td>Everything below, including impersonation and permanent account deletion</td></tr>
+<tr><td><code>SUPPORT</code></td><td>Day-to-day operations: view/search users &amp; bookings, notes, most mutating actions except the most destructive ones</td></tr>
+<tr><td><code>READ_ONLY</code></td><td>View everything, change nothing</td></tr>
+</table>
+<p>Every mutating admin action is checked server-side (never just hidden in the UI) and writes an entry to the append-only audit log at <code>/admin/audit</code>.</p>
+
+<h2 id="admin-tenants">Managing tenants</h2>
+<ul>
+  <li><strong><code>/admin/users</code></strong> — search/filter/sort/paginate every tenant; CSV export. Click into a user for their branding preview, weekly availability, booking history, Stripe customer link, and internal admin notes (never shown to the tenant).</li>
+  <li><strong><code>/admin/bookings</code></strong> — cross-tenant bookings explorer with search/status/business/date filters, a stats strip (cancellation rate, reschedule rate), CSV export, and inline moderation (suspend a business directly from a row).</li>
+  <li><strong><code>/admin</code> overview</strong> — a full analytics dashboard (signups, bookings, approximate MRR-over-time) over a 7/30/90-day range.</li>
+  <li><strong>Coupons, announcements, broadcast</strong> — promo codes for billing, a dashboard banner tenants see, and one-off broadcast messaging.</li>
+</ul>
+
+<h2 id="admin-platform">Platform settings</h2>
+<table>
+<tr><th>Page</th><th>Configures</th></tr>
+<tr><td><code>/admin/settings</code></td><td>Stripe billing credentials (TEST + LIVE, with a mode switch), platform payment fee %</td></tr>
+<tr><td><code>/admin/settings/auth</code></td><td>Google / Microsoft "Sign in with…" OAuth app credentials</td></tr>
+<tr><td><code>/admin/settings/platform</code></td><td>Maintenance mode, signups on/off, support email</td></tr>
+<tr><td><code>/admin/settings/plans</code></td><td>Create/edit subscription plans — the feature checkbox grid described in <a href="#plans-features">Plans &amp; features</a></td></tr>
+<tr><td><code>/admin/settings/flags</code></td><td>Global kill-switches for specific capabilities (emergency off, independent of plan)</td></tr>
+<tr><td><code>/admin/settings/email</code></td><td>Email delivery provider (Gmail SMTP, Amazon SES, or fallback env vars) + global email branding</td></tr>
+<tr><td><code>/admin/settings/email-templates</code></td><td>Edit the HTML/text of every transactional email, with live preview; each has a hardcoded fallback so editing here can never break delivery</td></tr>
+</table>
+<p>All settings changes take effect immediately against the live database — nothing here requires a redeploy.</p>
+
+<h2 id="admin-danger">Danger zone</h2>
+<ul>
+  <li><strong>Impersonation</strong> <span class="pill business">SUPER_ADMIN only</span> — log in as a tenant to see exactly what they see, with a visible banner and one-click "stop impersonating."</li>
+  <li><strong>Suspend / unsuspend</strong> — blocks login and hides the tenant's public booking pages.</li>
+  <li><strong>Soft delete</strong> — hides the account (restorable indefinitely).</li>
+  <li><strong>Hard delete</strong> <span class="pill business">SUPER_ADMIN only</span> — permanent, requires typing the account's slug to confirm.</li>
+  <li><strong>Force password reset</strong> — emails the tenant a one-time reset link.</li>
+</ul>
+
+</section>
+
+<!-- ============================================================ -->
+<div class="part-divider"><div class="part-eyebrow">Part 4</div><h1>Developer Guide</h1><p class="subtitle">Architecture, setup, and conventions for working in this codebase.</p></div>
+<section id="dev-guide">
+
+<h2 id="tech-stack">Tech stack</h2>
+<table>
+<tr><th>Layer</th><th>Choice</th></tr>
+<tr><td>Framework</td><td>Next.js 16 (App Router, Turbopack)</td></tr>
+<tr><td>UI</td><td>React 19, Tailwind CSS 4, Radix UI primitives, <code>lucide-react</code> icons, <code>sonner</code> toasts</td></tr>
+<tr><td>Database</td><td>PostgreSQL (Neon / Vercel Postgres) via Prisma 6</td></tr>
+<tr><td>Auth</td><td>Custom JWT sessions (<code>jose</code>) in an httpOnly cookie; <code>bcryptjs</code> for password hashing; hand-rolled OIDC for Google/Microsoft sign-in</td></tr>
+<tr><td>2FA</td><td><code>otplib</code> (TOTP) + <code>qrcode</code> for the setup QR</td></tr>
+<tr><td>Billing / payments</td><td><code>stripe</code> SDK + a Razorpay adapter behind a shared provider interface</td></tr>
+<tr><td>Email</td><td><code>nodemailer</code> (SMTP or Gmail/SES), degrades to console logging with no config</td></tr>
+<tr><td>File storage</td><td><code>@vercel/blob</code> (avatar uploads)</td></tr>
+<tr><td>Logging</td><td><code>pino</code> (structured), <code>pino-pretty</code> in dev</td></tr>
+<tr><td>Dates/timezones</td><td><code>date-fns</code> + <code>@date-fns/tz</code></td></tr>
+</table>
+
+<h3>npm scripts</h3>
+<table>
+<tr><th>Command</th><th>Does</th></tr>
+<tr><td><code>npm run dev</code></td><td>Dev server on <code>localhost:3000</code> (Turbopack)</td></tr>
+<tr><td><code>npm run build</code></td><td>Production build (also runs TypeScript checks)</td></tr>
+<tr><td><code>npm run lint</code></td><td>ESLint (<code>eslint-config-next</code>)</td></tr>
+<tr><td><code>npm run db:migrate</code></td><td><code>prisma migrate dev</code> — create/apply a migration locally</td></tr>
+<tr><td><code>npm run db:deploy</code></td><td><code>prisma migrate deploy</code> — apply pending migrations in production</td></tr>
+<tr><td><code>npm run db:seed</code></td><td>Seed a demo account</td></tr>
+<tr><td><code>npm run db:studio</code></td><td>Prisma Studio GUI</td></tr>
+<tr><td><code>npx tsc --noEmit</code></td><td>Type-check only, no build</td></tr>
+</table>
+
+<h2 id="architecture">Architecture</h2>
+
+<h3>Server-first, no API layer</h3>
+<p>Data is read directly in async server components via Prisma. Mutations go through <strong>server actions</strong> — there is intentionally no REST or tRPC layer. The only client components are the ones that genuinely need interactivity (auth forms, the copy-link button, the booking widget).</p>
+
+<div class="diagram-wrap">
+<svg viewBox="0 0 760 260" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;max-width:760px">
+  <defs>
+    <marker id="arrow1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="var(--text-dim)"/>
+    </marker>
+  </defs>
+  <style>
+    .box { fill: var(--bg-card); stroke: var(--border); stroke-width: 1.5; rx: 8; }
+    .boxlabel { font-size: 13px; font-weight: 600; }
+    .boxsub { font-size: 11px; fill: var(--text-dim); }
+    .edge { stroke: var(--text-dim); stroke-width: 1.5; fill: none; marker-end: url(#arrow1); }
+    .edgelabel { font-size: 11px; fill: var(--text-dim); }
+  </style>
+  <rect class="box" x="20" y="30" width="150" height="60"/>
+  <text class="boxlabel" x="35" y="55">Browser</text>
+  <text class="boxsub" x="35" y="72">tenant / customer / admin</text>
+
+  <rect class="box" x="230" y="20" width="190" height="80"/>
+  <text class="boxlabel" x="245" y="45">Next.js App Router</text>
+  <text class="boxsub" x="245" y="62">Server Components</text>
+  <text class="boxsub" x="245" y="76">(read via Prisma directly)</text>
+
+  <rect class="box" x="230" y="150" width="190" height="80"/>
+  <text class="boxlabel" x="245" y="175">Server Actions</text>
+  <text class="boxsub" x="245" y="192">(mutations, "use server")</text>
+  <text class="boxsub" x="245" y="206">ownership re-checked per call</text>
+
+  <rect class="box" x="500" y="80" width="150" height="60"/>
+  <text class="boxlabel" x="515" y="105">Prisma Client</text>
+  <text class="boxsub" x="515" y="122">row-level tenant scoping</text>
+
+  <rect class="box" x="500" y="180" width="150" height="60"/>
+  <text class="boxlabel" x="515" y="205">JWT session</text>
+  <text class="boxsub" x="515" y="222">httpOnly cookie</text>
+
+  <path class="edge" d="M170,60 L230,60"/>
+  <path class="edge" d="M170,70 Q200,150 230,180"/>
+  <text class="edgelabel" x="175" y="130">GET (read)</text>
+  <text class="edgelabel" x="175" y="205">POST form action</text>
+
+  <path class="edge" d="M420,60 L500,100"/>
+  <path class="edge" d="M420,190 L500,120"/>
+
+  <path class="edge" d="M420,80 Q460,140 500,190"/>
+</svg>
+</div>
+
+<h3>Multi-tenancy</h3>
+<p>Multi-tenancy is row-level by <code>userId</code>. Every <code>EventType</code>, <code>Availability</code>, and <code>Booking</code> belongs to a tenant. The public site keys off <code>User.slug</code>; every dashboard action re-checks ownership (<code>where: { id, userId: user.id }</code>) so one tenant can never touch another's rows. <code>/admin</code> is the one deliberate exception, reading across every tenant.</p>
+
+<h3>Auth</h3>
+<p>Sessions are never delegated to a third party, even when a user authenticates via Google or Microsoft. A signed JWT (<code>src/lib/auth.ts</code>) is issued and stored in an httpOnly <code>session</code> cookie regardless of login method. Passwords are bcrypt-hashed; OAuth-only accounts simply have no password hash and password login is rejected for them. "Sign in with Google/Microsoft" is a hand-rolled Authorization Code flow — not a library — that verifies the returned <code>id_token</code>'s signature against the provider's real JWKS, and links to an existing account by <em>verified</em> email (never auto-links an unverified one).</p>
+
+<h3>Scheduling engine</h3>
+<p>The most delicate code in the app: availability is stored <strong>timezone-naively</strong> (a weekday + minutes-from-midnight), while bookings are stored in <strong>UTC</strong>. Slot generation converts the business's wall-clock availability into a UTC instant using the owner's IANA timezone, then filters out past slots and anything overlapping an existing booking. Double-booking is prevented twice: once when generating slots (booked times are hidden) and again at write time with an atomic overlap check immediately before insert.</p>
+
+<h3>Feature entitlements</h3>
+<p>A code registry (<code>src/lib/features.ts</code>) defines every gateable <code>FeatureKey</code>; the admin-editable <code>Plan.featureKeys</code> array is the actual source of truth for what each plan grants. <code>planHasFeature(planId, key)</code> in <code>src/lib/plans.ts</code> is the single read path every gate in the app calls — never a raw plan-name comparison. Downgrades never destroy existing data; gates only block <em>creating new</em> gated things (see the callout in <a href="#plans-features">Plans &amp; features</a>).</p>
+
+<h3>Email</h3>
+<p>Sends via SMTP if configured, otherwise logs the message to the server console — the app runs with zero email config out of the box. A booking always succeeds even if the confirmation email fails to send.</p>
+
+<h2 id="project-structure">Project structure</h2>
+<pre><code>src/
+  app/               Next.js App Router — routes, layouts, server actions
+    (auth)/          Route group: /login, /signup, /forgot-password
+    dashboard/        Protected tenant area
+    admin/            Protected platform-admin area
+    [slug]/           Public tenant page + [eventSlug] booking widget
+    booking/[token]/  Invitee self-manage (reschedule/cancel), no login
+    api/              Only for things that must be non-page HTTP: OAuth
+                       callbacks, webhooks, cron endpoints, file upload/CSV
+  components/         Shared UI: shadcn/Radix-based ui/, admin/ tables+charts,
+                       banners (Announcement/Deletion/Impersonation/Maintenance)
+  lib/                Server-only logic — see grouping below
+</code></pre>
+
+<h4><code>src/lib/</code> by concern</h4>
+<table>
+<tr><th>Concern</th><th>Files</th></tr>
+<tr><td>Auth &amp; security</td><td><code>auth.ts</code>, <code>oauth.ts</code>, <code>oauth-login.ts</code>, <code>totp.ts</code>, <code>crypto.ts</code>, <code>csrf.ts</code>, <code>rate-limit.ts</code></td></tr>
+<tr><td>Scheduling</td><td><code>availability.ts</code>, <code>days.ts</code>, <code>booking-status.ts</code>, <code>team.ts</code>, <code>guests.ts</code>, <code>intake.ts</code>, <code>ics.ts</code></td></tr>
+<tr><td>Billing &amp; payments</td><td><code>stripe.ts</code>, <code>razorpay.ts</code>, <code>payments.ts</code>, <code>plans.ts</code>, <code>coupons.ts</code>, <code>payments/</code> (adapters, holds, releases, refunds)</td></tr>
+<tr><td>Admin</td><td><code>admin-auth.ts</code>, <code>admin-audit.ts</code>, <code>admin-billing.ts</code>, <code>admin-metrics.ts</code>, <code>admin-users-query.ts</code>, <code>admin-bookings-query.ts</code></td></tr>
+<tr><td>Email &amp; notifications</td><td><code>email.ts</code>, <code>email-render.ts</code>, <code>email-templates.ts</code>, <code>reminders.ts</code></td></tr>
+<tr><td>Integrations</td><td><code>google-calendar.ts</code>, <code>zoom.ts</code></td></tr>
+<tr><td>Product config</td><td><code>features.ts</code>, <code>feature-flags.ts</code>, <code>platform-config.ts</code>, <code>settings.ts</code>, <code>branding.ts</code></td></tr>
+<tr><td>Misc</td><td><code>prisma.ts</code> (client singleton), <code>slug.ts</code>, <code>format.ts</code>, <code>utils.ts</code>, <code>logger.ts</code>, <code>account-deletion.ts</code></td></tr>
+</table>
+
+<h2 id="data-model">Data model</h2>
+<p>PostgreSQL via Prisma, defined in <code>prisma/schema.prisma</code>.</p>
+<table>
+<tr><th>Model</th><th>Purpose</th></tr>
+<tr><td><code>User</code></td><td>A tenant business owner account: profile, plan/billing state, security (2FA, lockout), branding, payment-provider connection state</td></tr>
+<tr><td><code>PaymentApplication</code></td><td>A tenant's application to accept payments (admin-reviewed)</td></tr>
+<tr><td><code>CalendarConnection</code></td><td>A connected Google or Zoom account (OAuth tokens, scopes, busy-sync opt-in)</td></tr>
+<tr><td><code>TeamMember</code></td><td>A member of a tenant's team, for round-robin/collective scheduling</td></tr>
+<tr><td><code>EventTypeMember</code></td><td>Join table: which team members are assigned to an event type</td></tr>
+<tr><td><code>AdminAuditLog</code></td><td>Append-only record of every admin mutation</td></tr>
+<tr><td><code>AdminNote</code></td><td>Internal note left by an admin on a tenant's account (never shown to the tenant)</td></tr>
+<tr><td><code>Plan</code></td><td>An admin-editable subscription tier: price, event-type limit, granted <code>featureKeys</code>, marketing bullet list</td></tr>
+<tr><td><code>EventType</code></td><td>A bookable meeting type: duration, location, limits, intake questions, price, assignment mode</td></tr>
+<tr><td><code>Session</code></td><td>One concrete occurrence of a GROUP event type (a class/webinar with a capacity)</td></tr>
+<tr><td><code>Availability</code></td><td>A weekly recurring availability window (weekday + minutes-from-midnight)</td></tr>
+<tr><td><code>DateOverride</code></td><td>A one-off exception to the weekly availability grid for a specific date</td></tr>
+<tr><td><code>Booking</code></td><td>A confirmed/pending/cancelled booking — invitee info, timing, payment &amp; payout state, recurring-series linkage</td></tr>
+<tr><td><code>PlatformSettings</code></td><td>Singleton row: Stripe/Razorpay credentials (test+live), OAuth app credentials, email provider config, maintenance mode</td></tr>
+<tr><td><code>FeatureFlag</code></td><td>A global on/off kill-switch for a capability, independent of plan</td></tr>
+<tr><td><code>EmailTemplate</code></td><td>Admin-editable HTML/text for one transactional email send-site</td></tr>
+<tr><td><code>Coupon</code> / <code>CouponRedemption</code></td><td>Billing promo codes and their redemptions</td></tr>
+<tr><td><code>Announcement</code></td><td>A dashboard banner shown to tenants</td></tr>
+<tr><td><code>RateLimit</code></td><td>Sliding-window rate-limit counters, shared across serverless instances</td></tr>
+</table>
+<p><strong>Enums:</strong> <code>AssignmentMode</code> (SOLO/ROUND_ROBIN/COLLECTIVE), <code>AdminRole</code> (SUPER_ADMIN/SUPPORT/READ_ONLY), <code>LocationType</code> (IN_PERSON/PHONE/GOOGLE_MEET/ZOOM), <code>BookingStatus</code> (CONFIRMED/PENDING/PENDING_PAYMENT/CANCELLED), <code>StripeMode</code> (TEST/LIVE), <code>CouponType</code> (TRIAL/STRIPE_PROMO).</p>
+
+<h2 id="route-map">Route map</h2>
+<p>Static routes (<code>/dashboard</code>, <code>/login</code>, <code>/signup</code>) take precedence over the dynamic <code>/[slug]</code> — a business slug must never collide with a reserved word.</p>
+
+<h4>Public</h4>
+<table>
+<tr><td><code>/</code></td><td>Marketing landing</td></tr>
+<tr><td><code>/[slug]</code></td><td>A business's public page listing its event types</td></tr>
+<tr><td><code>/[slug]/[eventSlug]</code></td><td>The public booking page (renders the booking widget)</td></tr>
+<tr><td><code>/booking/[token]</code>, <code>/booking/[token]/reschedule</code></td><td>Invitee self-manage, no login</td></tr>
+<tr><td><code>/recover/[token]</code></td><td>Restore a self-deleted account within its recovery window</td></tr>
+<tr><td><code>/reset-password/[token]</code></td><td>One-time password reset link</td></tr>
+<tr><td><code>/verify-email</code>, <code>/verify-email/[token]</code></td><td>Email verification</td></tr>
+</table>
+
+<h4>Auth (route group)</h4>
+<table>
+<tr><td><code>/login</code>, <code>/login/2fa</code></td><td>Sign in (+ TOTP step)</td></tr>
+<tr><td><code>/signup</code></td><td>Create a tenant account</td></tr>
+<tr><td><code>/forgot-password</code></td><td>Request a reset link</td></tr>
+</table>
+
+<h4>Dashboard (tenant-facing)</h4>
+<table>
+<tr><td><code>/dashboard</code></td><td>Overview</td></tr>
+<tr><td><code>/dashboard/event-types</code>, <code>/dashboard/event-types/[id]</code></td><td>List / edit event types</td></tr>
+<tr><td><code>/dashboard/event-types/[id]/sessions/[sessionId]</code></td><td>Manage one group-event session</td></tr>
+<tr><td><code>/dashboard/availability</code></td><td>Weekly hours + date overrides</td></tr>
+<tr><td><code>/dashboard/bookings</code>, <code>/dashboard/bookings/new</code>, <code>/dashboard/bookings/export</code></td><td>Bookings list, manual booking, CSV export</td></tr>
+<tr><td><code>/dashboard/team</code>, <code>/dashboard/team/[id]/availability</code></td><td>Team members + per-member hours</td></tr>
+<tr><td><code>/dashboard/billing</code></td><td>Subscription management</td></tr>
+<tr><td><code>/dashboard/branding</code>, <code>/dashboard/embed</code></td><td>Branding + embed snippet generator</td></tr>
+<tr><td><code>/dashboard/settings</code>, <code>/dashboard/settings/security</code></td><td>Account settings, 2FA, payments application, calendar connections</td></tr>
+</table>
+
+<h4>Admin (platform)</h4>
+<table>
+<tr><td><code>/admin</code></td><td>Analytics overview</td></tr>
+<tr><td><code>/admin/users</code>, <code>/admin/users/[id]</code>, <code>/admin/users/[id]/edit</code>, <code>/admin/users/new</code>, <code>/admin/users/export</code></td><td>Tenant management</td></tr>
+<tr><td><code>/admin/bookings</code>, <code>/admin/bookings/export</code></td><td>Cross-tenant bookings explorer</td></tr>
+<tr><td><code>/admin/billing</code>, <code>/admin/payments</code></td><td>Platform billing &amp; payments oversight</td></tr>
+<tr><td><code>/admin/coupons</code>, <code>/admin/announcements</code>, <code>/admin/broadcast</code></td><td>Promo codes, banners, broadcast messages</td></tr>
+<tr><td><code>/admin/audit</code></td><td>Append-only admin action log</td></tr>
+<tr><td><code>/admin/settings</code>, <code>/admin/settings/auth</code>, <code>/admin/settings/platform</code>, <code>/admin/settings/plans</code>, <code>/admin/settings/plans/[id]</code>, <code>/admin/settings/flags</code>, <code>/admin/settings/email</code>, <code>/admin/settings/email-templates</code>, <code>/admin/settings/email-templates/[key]</code>, <code>/admin/settings/email-templates/export</code></td><td>Platform configuration (see <a href="#admin-platform">Platform settings</a>)</td></tr>
+</table>
+
+<h4>API routes</h4>
+<p>Reserved for things that genuinely can't be a page: OAuth callbacks, webhooks, cron, and binary/file responses.</p>
+<table>
+<tr><td><code>/api/auth/[provider]/start</code>, <code>/api/auth/[provider]/callback</code></td><td>Google/Microsoft "Sign in with…" dance</td></tr>
+<tr><td><code>/api/calendar/google/start</code>, <code>/api/calendar/google/callback</code></td><td>Google Calendar "Connect" flow</td></tr>
+<tr><td><code>/api/calendar/zoom/start</code>, <code>/api/calendar/zoom/callback</code></td><td>Zoom "Connect" flow</td></tr>
+<tr><td><code>/api/avatar/[userId]</code>, <code>/api/upload/avatar</code></td><td>Avatar file serve/upload</td></tr>
+<tr><td><code>/api/stripe/webhook</code>, <code>/api/payments/webhook/[provider]</code></td><td>Payment provider webhooks</td></tr>
+<tr><td><code>/api/payments/onboarding/[provider]/start</code>, <code>/api/payments/onboarding/[provider]/return</code></td><td>Payment provider Connect onboarding</td></tr>
+<tr><td><code>/api/cron/reminders</code>, <code>/api/cron/account-deletion</code></td><td>Scheduled jobs — see <a href="#deployment">Deployment</a></td></tr>
+</table>
+
+<h2 id="env-vars">Environment variables</h2>
+<table>
+<tr><th>Variable</th><th>Purpose</th></tr>
+<tr><td><code>DATABASE_URL</code></td><td>Pooled Postgres connection string — used at runtime</td></tr>
+<tr><td><code>DIRECT_URL</code></td><td>Unpooled connection — used only by <code>prisma migrate</code></td></tr>
+<tr><td><code>AUTH_SECRET</code></td><td>Long random string signing session JWTs</td></tr>
+<tr><td><code>NEXT_PUBLIC_APP_URL</code></td><td>Base URL used in public links and email content</td></tr>
+<tr><td><code>SMTP_HOST</code> / <code>SMTP_PORT</code> / <code>SMTP_USER</code> / <code>SMTP_PASS</code> / <code>SMTP_FROM</code></td><td>Outgoing email; leave <code>SMTP_HOST</code> blank to log emails to the console instead</td></tr>
+<tr><td><code>STRIPE_SECRET_KEY</code> / <code>STRIPE_WEBHOOK_SECRET</code> / <code>STRIPE_PRICE_PRO</code> / <code>STRIPE_PRICE_BUSINESS</code></td><td>Zero-config <strong>TEST-mode-only</strong> fallback — ignored once a key is set in <code>/admin/settings</code></td></tr>
+<tr><td><code>CRON_SECRET</code></td><td>Bearer token protecting <code>/api/cron/*</code> endpoints</td></tr>
+<tr><td><code>LOG_LEVEL</code></td><td>Pino verbosity: fatal/error/warn/info/debug/trace (defaults: debug in dev, info in prod)</td></tr>
+</table>
+
+<h2 id="local-setup">Local setup</h2>
+<pre><code>git clone &lt;repo&gt;
+cd bookify
+npm install                 # postinstall runs `prisma generate`
+cp .env.example .env        # fill in DATABASE_URL / DIRECT_URL / AUTH_SECRET
+npm run db:migrate          # apply schema to your Postgres DB
+npm run db:seed             # optional: seed a demo account
+npm run dev                 # http://localhost:3000
+</code></pre>
+<p>Postgres is required even for local dev (SQLite was retired) — a free Neon or Vercel Postgres database takes about two minutes to provision; see <a href="#deployment">Deployment</a>.</p>
+<p>Before committing: <code>npx tsc --noEmit</code> (type-check) and <code>npm run build</code> (full production build, also type-checks) are the two checks worth running.</p>
+
+<h2 id="conventions">Conventions &amp; gotchas</h2>
+<div class="callout warn">
+  <strong>This is not the Next.js you know</strong>
+  The project's own <code>AGENTS.md</code> flags that this Next.js version has breaking changes from what most training data assumes. Check <code>node_modules/next/dist/docs/</code> before using an unfamiliar API.
+</div>
+<ul>
+  <li><strong>Server actions only, never a REST layer</strong> — new mutations belong in an <code>actions.ts</code> file next to the page that uses them, marked <code>"use server"</code>.</li>
+  <li><strong>Always re-check ownership server-side</strong> — every dashboard mutation filters by <code>userId: user.id</code>, never trusting an ID from the client alone.</li>
+  <li><strong>Store UTC, interpret in the owner's timezone</strong> — never change this invariant in <code>src/lib/availability.ts</code> without preserving both directions.</li>
+  <li><strong>Feature gates: downgrade never destroys data</strong> — when adding a new gated field, make the "not entitled" branch fall back to the existing DB value, not a hardcoded default (see <code>updateEventTypeAction</code> in <code>src/app/dashboard/actions.ts</code> for the pattern).</li>
+  <li><strong>Stripe/Razorpay test vs. live never mix</strong> — <code>getActiveStripeConfig()</code> reads only the active mode's fields, with no fallback to the other mode.</li>
+  <li><strong>The <code>manageToken</code> pattern</strong> — any "do this without logging in" flow (booking manage, password reset, account recovery) uses a random, single-purpose, unguessable token embedded in an email link, not a login session.</li>
+  <li><strong>UI hiding is a courtesy layer only</strong> — every gate hidden in a form must also be enforced in the server action that receives the submission.</li>
+</ul>
+
+<h2 id="deployment">Deployment</h2>
+<h3>Vercel + Neon/Vercel Postgres</h3>
+<ol>
+  <li>Provision a Postgres database (Vercel Postgres via the dashboard, or Neon directly) — you'll get a pooled and an unpooled connection string.</li>
+  <li>Set project env vars on Vercel: <code>DATABASE_URL</code>, <code>DIRECT_URL</code>, a fresh production <code>AUTH_SECRET</code>, <code>NEXT_PUBLIC_APP_URL</code>, a fresh <code>CRON_SECRET</code>. <code>SMTP_*</code>/<code>STRIPE_*</code> are optional fallbacks — real config lives in <code>/admin/settings</code> once deployed.</li>
+  <li>Push to your Git remote and import the repo in Vercel.</li>
+  <li>After the first deploy, run <code>npx prisma migrate deploy</code> once against the production database to create the schema.</li>
+  <li>Visit <code>/admin/settings</code> and <code>/admin/settings/email</code> to configure Stripe and email credentials live — no redeploy needed.</li>
+  <li>Manually promote your own account: connect to the production DB (e.g. <code>npx prisma studio</code> with production env vars) and set <code>adminRole = SUPER_ADMIN</code> on your row. There's no self-serve path for this by design.</li>
+</ol>
+
+<h3>Reminder cron</h3>
+<p>Booking reminders (24h + 1h before) are pull-based — nothing fires on its own. Something must hit <code>/api/cron/reminders</code> every few minutes, authenticated with <code>CRON_SECRET</code> as a bearer token or <code>?secret=</code> query param. The endpoint is idempotent, so overlapping calls are safe.</p>
+<div class="callout warn"><strong>Vercel Hobby plan limitation</strong> Hobby only allows once-daily cron schedules. The 10-minute schedule in <code>vercel.json</code> requires Vercel Pro. On Hobby, use a free external pinger (cron-job.org, UptimeRobot, a GitHub Actions <code>schedule</code>) hitting the same endpoint every few minutes instead.</div>
+
+</section>
+
+<!-- ============================================================ -->
+<div class="part-divider"><div class="part-eyebrow">Part 5</div><h1>FAQ &amp; Troubleshooting</h1></div>
+<section id="faq-section">
+<h2 id="faq">Common issues</h2>
+
+<h4>Booking confirmation emails aren't arriving</h4>
+<p>Check whether <code>SMTP_HOST</code> (or the DB-backed provider at <code>/admin/settings/email</code>) is actually configured. With no email config at all, Bookify logs the email content to the server console instead of sending it — this is by design for zero-config local dev, but means "silently not sending" in production if nobody set it up.</p>
+
+<h4>"Sign in with Google/Microsoft" fails after changing the deployment URL</h4>
+<p>The OAuth redirect URI is registered separately on each provider's own developer console and does not update automatically when <code>NEXT_PUBLIC_APP_URL</code> changes. Update it on Google Cloud Console / Azure AD to match your current domain.</p>
+
+<h4>Embed widget or booking links show an old domain</h4>
+<p>Links and embed snippets are built from <code>NEXT_PUBLIC_APP_URL</code> at request time — update the env var on your hosting platform and redeploy.</p>
+
+<h4>Stripe payments behave differently than expected</h4>
+<p>Check <code>stripeMode</code> at <code>/admin/settings</code> — TEST and LIVE credentials are stored separately and never mixed. Confirm you're looking at the Stripe dashboard in the matching mode.</p>
+
+<h4>Reminder emails never send</h4>
+<p>Nothing triggers them on its own — confirm a scheduler (Vercel Cron or an external pinger) is actually hitting <code>/api/cron/reminders</code> and that <code>CRON_SECRET</code> matches. See <a href="#deployment">Deployment</a>.</p>
+
+<h4>A tenant lost access to a feature after I changed their plan</h4>
+<p>Expected if the new plan doesn't grant that <code>FeatureKey</code> — check <code>/admin/settings/plans</code>. Any data they already created should keep working; only creating <em>new</em> instances of the gated thing is blocked.</p>
+
+<footer>
+  Generated as a point-in-time snapshot of the codebase. Regenerate by asking Claude Code to refresh this doc against the current source.
+</footer>
+</section>
+
+</main>
+</div>
+
+<button id="back-to-top" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑ Top</button>
+
+<script>
+  // Back-to-top visibility
+  window.addEventListener('scroll', function () {
+    var btn = document.getElementById('back-to-top');
+    if (window.scrollY > 600) btn.classList.add('show');
+    else btn.classList.remove('show');
+  });
+
+  // Sidebar filter
+  var searchInput = document.getElementById('tocSearch');
+  searchInput.addEventListener('input', function () {
+    var q = this.value.trim().toLowerCase();
+    var links = document.querySelectorAll('#tocList a');
+    var groups = document.querySelectorAll('#tocList .group-title');
+    links.forEach(function (a) {
+      a.style.display = a.textContent.toLowerCase().includes(q) ? '' : 'none';
+    });
+    groups.forEach(function (g) {
+      var next = g.nextElementSibling;
+      var anyVisible = false;
+      while (next && !next.classList.contains('group-title')) {
+        if (next.tagName === 'A' && next.style.display !== 'none') anyVisible = true;
+        next = next.nextElementSibling;
+      }
+      g.style.display = (q === '' || anyVisible) ? '' : 'none';
+    });
+  });
+
+  // Highlight active sidebar link on scroll
+  var sections = Array.from(document.querySelectorAll('h2[id]'));
+  var navLinks = Array.from(document.querySelectorAll('#tocList a'));
+  function onScroll() {
+    var pos = window.scrollY + 100;
+    var current = null;
+    sections.forEach(function (s) {
+      if (s.offsetTop <= pos) current = s.id;
+    });
+    navLinks.forEach(function (a) {
+      a.style.background = (current && a.getAttribute('href') === '#' + current) ? 'var(--accent-soft)' : '';
+      a.style.fontWeight = (current && a.getAttribute('href') === '#' + current) ? '600' : '';
+    });
+  }
+  document.addEventListener('scroll', onScroll);
+  onScroll();
+</script>
+</body>
+</html>
