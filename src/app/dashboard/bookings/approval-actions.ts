@@ -36,7 +36,6 @@ export async function approveBookingAction(formData: FormData) {
   // Create the video meeting now (deferred from request time, since we don't
   // want a calendar event for a request that might get declined).
   let meetingUrl: string | null = null;
-  let meetingProvider: string | null = null;
   let locationText: string | null = null;
   if (booking.eventType.locationType === "GOOGLE_MEET") {
     const meet = await createMeetEvent({
@@ -54,7 +53,6 @@ export async function approveBookingAction(formData: FormData) {
     });
     if (meet) {
       meetingUrl = meet.meetingUrl;
-      meetingProvider = "google";
       locationText = meet.meetingUrl;
       await prisma.booking.update({
         where: { id: booking.id },
@@ -71,7 +69,6 @@ export async function approveBookingAction(formData: FormData) {
     });
     if (meet) {
       meetingUrl = meet.meetingUrl;
-      meetingProvider = "zoom";
       locationText = meet.meetingUrl;
       await prisma.booking.update({
         where: { id: booking.id },

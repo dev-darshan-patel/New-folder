@@ -20,11 +20,6 @@ export const PAYMENT_APPLICATION_STATUS = {
   REJECTED: "REJECTED",
 } as const;
 
-// The plan tier gated to accept payments (per product decision). Kept here so
-// every gate check reads from one place — swapping to a different tier or a
-// per-plan flag later is a single edit.
-export const PAYMENTS_REQUIRED_PLAN = "BUSINESS";
-
 // Which provider a tenant is eligible for based on their declared country.
 // India = Razorpay only unless the platform Stripe-for-India flag is on;
 // everywhere else = Stripe only. See Feature 4 plan.
@@ -50,10 +45,11 @@ export async function tenantEligibleProviders(country: string | null): Promise<P
 // this check is what enforces "at any moment, at most one active provider
 // per tenant."
 //
-// Phase 4.5 introduces PENDING_PAYMENT / paymentStatus / payoutStatus on
-// Booking and will make this check meaningful. Today there are no payments
-// so nothing can be in flight — the check is a stable no-op. The signature
-// is deliberately future-proof so nothing wired up now needs to change.
+// TODO: still a no-op placeholder that always allows the switch. Now that
+// payments are live (PENDING_PAYMENT / paymentStatus / payoutStatus exist on
+// Booking), this should actually query for HELD payouts / in-progress holds on
+// `userId` and refuse the switch when any are found. Wired into
+// switchPaymentProviderAction already, so implementing it here is enough.
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function canSwitchPaymentProvider(_userId: string): Promise<{ ok: true } | { ok: false; reason: string }> {
   return { ok: true };

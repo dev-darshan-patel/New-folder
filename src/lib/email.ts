@@ -78,9 +78,6 @@ export async function sendEmail({ to, subject, text, html, attachments, replyTo 
   const config = await createTransport();
 
   if (!config) {
-    const att = attachments?.length
-      ? `\n  attachments: ${attachments.map((a) => a.filename).join(", ")}`
-      : "";
     logger.info({ to, subject, attachments: attachments?.map((a) => a.filename) }, "No email provider configured — email not sent");
     return;
   }
