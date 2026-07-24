@@ -1,4 +1,5 @@
 import "server-only";
+import { prisma } from "@/lib/prisma";
 import { getPlatformSettings } from "@/lib/settings";
 import type { PaymentProvider } from "@/lib/payments/provider";
 
@@ -39,19 +40,31 @@ export async function tenantEligibleProviders(country: string | null): Promise<P
   return eligibleProviders(country, settings.stripeForIndiaEnabled);
 }
 
-// A provider switch is allowed only when the tenant has no money in flight on
-// the current provider — HELD funds or in-progress PENDING_PAYMENT holds.
-// Historical bookings permanently keep the provider they were paid through;
-// this check is what enforces "at any moment, at most one active provider
-// per tenant."
-//
-// TODO: still a no-op placeholder that always allows the switch. Now that
-// payments are live (PENDING_PAYMENT / paymentStatus / payoutStatus exist on
-// Booking), this should actually query for HELD payouts / in-progress holds on
-// `userId` and refuse the switch when any are found. Wired into
-// switchPaymentProviderAction already, so implementing it here is enough.
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export async function canSwitchPaymentProvider(_userId: string): Promise<{ ok: true } | { ok: false; reason: string }> {
+// A provider switch is allowed only when the tenant has no money in flight —
+// an in-progress PENDING_PAYMENT hold (customer at checkout) or funds still
+// HELD / mid-release on the platform. Settled bookings (RELEASED / REFUNDED /
+// REVERSED) are terminal and permanently keep the provider they were paid
+// through, so they never block a switch. This is what enforces "at most one
+// active provider per tenant at any moment."
+export async function canSwitchPaymentProvider(
+  userId: string,
+): Promise<{ ok: true } | { ok: false; reason: string }> {
+  const inFlight = await prisma.booking.count({
+    where: {
+      userId,
+      OR: [
+        { status: "PENDING_PAYMENT" },
+        { payoutStatus: { in: ["HELD", "RELEASE_FAILED"] } },
+      ],
+    },
+  });
+  if (inFlight > 0) {
+    return {
+      ok: false,
+      reason:
+        "You have payments still in progress or held for payout. Switching providers isn't allowed until those settle.",
+    };
+  }
   return { ok: true };
 }
 
