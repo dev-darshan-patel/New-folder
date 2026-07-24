@@ -17,8 +17,11 @@ export default async function RecoverAccountPage({
   const user = await prisma.user.findUnique({ where: { recoveryToken: token } });
   if (!user) notFound();
 
-  const valid =
-    !!user.deletedAt && (!user.purgeScheduledAt || user.purgeScheduledAt.getTime() > Date.now());
+  // Valid while the account is soft-deleted and still inside the purge window.
+  // Date.now() is safe here: a server component renders once per request, so
+  // there's no re-render nondeterminism the purity rule guards against.
+  // eslint-disable-next-line react-hooks/purity
+  const valid = !!user.deletedAt && (!user.purgeScheduledAt || user.purgeScheduledAt.getTime() > Date.now());
 
   const recoverWithToken = recoverAccountAction.bind(null, token);
 

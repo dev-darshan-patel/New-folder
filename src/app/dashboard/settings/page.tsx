@@ -168,6 +168,7 @@ export default async function SettingsPage({
             <DisconnectButton action={disconnectCalendarAction} provider="Google Calendar" />
           ) : calendarConfigurable ? (
             <Button asChild>
+              {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- API route that 302-redirects into Google OAuth; must be a real browser navigation */}
               <a href="/api/calendar/google/start">Connect</a>
             </Button>
           ) : (
@@ -224,6 +225,7 @@ export default async function SettingsPage({
             <DisconnectButton action={disconnectZoomAction} provider="Zoom" />
           ) : zoomConfigurable ? (
             <Button asChild>
+              {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- API route that 302-redirects into Zoom OAuth; must be a real browser navigation */}
               <a href="/api/calendar/zoom/start">Connect</a>
             </Button>
           ) : (

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { useFormStatus } from "react-dom";
 import { updateEventTypeAction } from "../../actions";
@@ -518,9 +519,9 @@ function locationHint(location: LocationType, calendarConnected: boolean, zoomCo
     return (
       <p className="mt-2 text-xs text-slate-400">
         Want a video link?{" "}
-        <a href="/dashboard/settings" className="text-indigo-600 hover:underline">
+        <Link href="/dashboard/settings" className="text-indigo-600 hover:underline">
           Connect {!calendarConnected && !zoomConnected ? "Google Calendar or Zoom" : !calendarConnected ? "Google Calendar" : "Zoom"}
-        </a>{" "}
+        </Link>{" "}
         to enable it.
       </p>
     );
@@ -537,9 +538,9 @@ function UpgradeNote({ text }: { text: string }) {
   return (
     <p className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500">
       {text}{" "}
-      <a href="/dashboard/billing" className="font-medium text-indigo-600 hover:underline">
+      <Link href="/dashboard/billing" className="font-medium text-indigo-600 hover:underline">
         See plans
-      </a>
+      </Link>
     </p>
   );
 }

@@ -50,6 +50,7 @@ export default async function BookingsPage() {
           )}
           {canExportCsv && (
             <Button asChild variant="outline" size="sm">
+              {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- CSV download route; <Link> would prefetch/client-navigate and break the file download */}
               <a href="/dashboard/bookings/export">Export CSV</a>
             </Button>
           )}

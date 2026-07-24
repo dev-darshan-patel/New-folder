@@ -43,8 +43,10 @@ export default function MobileNav({
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
 
-  // Close drawer on route change
+  // Close drawer on route change. Syncing the drawer to router navigation is a
+  // legitimate effect, not the derived-state anti-pattern the rule targets.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setOpen(false);
   }, [pathname]);
 
