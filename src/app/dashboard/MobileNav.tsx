@@ -17,6 +17,7 @@ import {
   Settings,
   Shield,
   LogOut,
+  HelpCircle,
 } from "lucide-react";
 import { logoutAction } from "../(auth)/actions";
 import { Button } from "@/components/ui/button";
@@ -132,6 +133,15 @@ export default function MobileNav({
                 Admin console
               </Link>
             )}
+            <a
+              href="/PROJECT-GUIDE.html"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+            >
+              <HelpCircle size={18} />
+              Help & guide
+            </a>
           </div>
         </nav>
 

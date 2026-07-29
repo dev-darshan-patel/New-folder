@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { saveAvailabilityAction, saveDateOverrideAction, deleteDateOverrideAction } from "../actions";
@@ -38,7 +39,11 @@ export default async function AvailabilityPage() {
       </h1>
       <p className="mt-1 text-sm text-slate-600">
         Set the hours you&apos;re available each week. Times are in your timezone
-        ({user.timezone}).
+        ({user.timezone}) —{" "}
+        <Link href="/dashboard/settings#timezone" className="font-medium text-indigo-600 hover:underline">
+          change it
+        </Link>
+        .
       </p>
 
       <form action={saveAvailabilityAction} className="mt-6 space-y-3">

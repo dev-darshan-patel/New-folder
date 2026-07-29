@@ -136,23 +136,29 @@ export default function PlanForm({
       </div>
 
       <label className="block">
-        <span className="text-sm font-medium text-slate-700">Features (one per line)</span>
+        <span className="text-sm font-medium text-slate-700">Pricing-page bullets (one per line)</span>
         <textarea
           name="features"
           rows={5}
           defaultValue={initial.features.join("\n")}
           placeholder={"Up to 10 event types\nCustom branding\nPriority support"}
-          title="Feature bullets shown on the billing page"
+          title="Marketing text shown on the billing page"
           className={field}
         />
+        <p className="mt-1 text-xs text-amber-600">
+          Display text only — purely cosmetic. It does NOT control what this plan
+          unlocks and is not kept in sync with the feature gates below automatically.
+          If you check/uncheck a gate below, update this list to match, or the pricing
+          page will describe the plan incorrectly.
+        </p>
       </label>
 
       <div>
-        <span className="text-sm font-medium text-slate-700">Features</span>
+        <span className="text-sm font-medium text-slate-700">Feature gates (what this plan actually unlocks)</span>
         <p className="mt-1 text-xs text-slate-400">
           Controls what accounts on this plan can actually do — each one has a matching
           server-side check, so unchecking a box takes effect immediately, not just on the
-          pricing page.
+          pricing page. Remember to update the bullets above to match.
         </p>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           {FEATURE_REGISTRY.map((f) => (

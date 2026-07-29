@@ -88,6 +88,14 @@ export default async function DashboardLayout({
             )}
           </nav>
 
+          <a
+            href="/PROJECT-GUIDE.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="rounded-lg px-3 py-2 text-sm font-medium text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
+          >
+            Help & guide ↗
+          </a>
           <LogoutButton className="w-full justify-start text-slate-500" />
         </aside>
 
