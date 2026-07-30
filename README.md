@@ -53,8 +53,10 @@ build, also type-checks) are the two checks worth running.
 
 ## Documentation
 
-- **[docs/PROJECT-GUIDE.html](docs/PROJECT-GUIDE.html)** — the full guide: user,
-  admin, and developer sections (open it in a browser).
+- **[public/PROJECT-GUIDE.html](public/PROJECT-GUIDE.html)** — the full guide: user,
+  admin, and developer sections. Lives in `public/` so the running app serves it
+  at `/PROJECT-GUIDE.html` (linked from the dashboard and admin nav); open the file
+  directly in a browser to read it offline.
 - **[docs/deploy.md](docs/deploy.md)** — production deployment (Vercel + Neon).
 - **[docs/reminders-cron.md](docs/reminders-cron.md)** — the reminder cron setup.
 - **[CLAUDE.md](CLAUDE.md)** — architecture notes and conventions.
