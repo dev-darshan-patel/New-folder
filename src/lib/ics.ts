@@ -29,6 +29,60 @@ function escapeText(s: string): string {
   return s.replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\n/g, "\\n");
 }
 
+// One event inside a subscription feed. Deliberately leaner than IcsInput:
+// a feed is the owner's own calendar, so there's no RSVP/attendee round-trip.
+export type IcsFeedEvent = {
+  uid: string;
+  start: Date;
+  end: Date;
+  title: string;
+  description?: string | null;
+  location?: string | null;
+  // CONFIRMED for confirmed bookings, TENTATIVE for ones still awaiting
+  // approval or payment — calendar clients grey those out.
+  tentative?: boolean;
+};
+
+// Builds a multi-event VCALENDAR for a *subscription* feed (the URL a tenant
+// pastes into Google/Apple/Outlook Calendar).
+//
+// Two deliberate differences from buildIcs() above:
+//  - many VEVENTs instead of exactly one.
+//  - NO METHOD line. METHOD:REQUEST marks a calendar as a meeting *invitation*,
+//    which makes clients prompt the subscriber to RSVP to every event. A feed
+//    is a read-only mirror, so it must stay method-less.
+export function buildIcsFeed(params: {
+  calendarName: string;
+  events: IcsFeedEvent[];
+}): string {
+  const lines = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//Bookify//Scheduling//EN",
+    "CALSCALE:GREGORIAN",
+    `X-WR-CALNAME:${escapeText(params.calendarName)}`,
+    // Hint to clients about how often to re-poll the feed.
+    "REFRESH-INTERVAL;VALUE=DURATION:PT1H",
+    "X-PUBLISHED-TTL:PT1H",
+    ...params.events.flatMap((e) =>
+      [
+        "BEGIN:VEVENT",
+        `UID:${e.uid}`,
+        `DTSTAMP:${toIcsDate(new Date())}`,
+        `DTSTART:${toIcsDate(e.start)}`,
+        `DTEND:${toIcsDate(e.end)}`,
+        `SUMMARY:${escapeText(e.title)}`,
+        e.description ? `DESCRIPTION:${escapeText(e.description)}` : "",
+        e.location ? `LOCATION:${escapeText(e.location)}` : "",
+        `STATUS:${e.tentative ? "TENTATIVE" : "CONFIRMED"}`,
+        "END:VEVENT",
+      ].filter(Boolean),
+    ),
+    "END:VCALENDAR",
+  ].filter(Boolean);
+  return lines.join("\r\n");
+}
+
 export function buildIcs(input: IcsInput): string {
   const status = input.method === "CANCEL" ? "CANCELLED" : "CONFIRMED";
   const lines = [

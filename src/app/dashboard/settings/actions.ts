@@ -10,6 +10,7 @@ import { renderTemplate } from "@/lib/email-templates";
 import { disconnectGoogleCalendar, setBusySync } from "@/lib/google-calendar";
 import { disconnectZoom } from "@/lib/zoom";
 import { getDeletionImpact } from "@/lib/account-deletion";
+import { rotateCalendarFeedToken } from "@/lib/calendar-feed";
 import {
   PAYMENT_ACCOUNT_STATUS,
   PAYMENT_APPLICATION_STATUS,
@@ -47,6 +48,20 @@ export async function disconnectZoomAction() {
   const user = await getCurrentUser();
   if (!user) return;
   await disconnectZoom(user.id);
+  revalidatePath("/dashboard/settings");
+}
+
+// Rotate the iCal subscription token. This is the revoke path — every calendar
+// app currently subscribed to the old URL stops receiving updates.
+//
+// Note the minting counterpart lives in src/lib/calendar-feed.ts, NOT here:
+// everything exported from a "use server" module is a callable server action,
+// so a userId-taking helper would let any client mint/read another tenant's
+// feed token.
+export async function regenerateCalendarFeedTokenAction(): Promise<void> {
+  const user = await getCurrentUser();
+  if (!user) return;
+  await rotateCalendarFeedToken(user.id);
   revalidatePath("/dashboard/settings");
 }
 

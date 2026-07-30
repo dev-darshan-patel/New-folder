@@ -14,6 +14,8 @@ import ApplyForPaymentsForm from "./ApplyForPaymentsForm";
 import ProviderPicker from "./ProviderPicker";
 import PaymentOnboardingPanel from "./PaymentOnboardingPanel";
 import { getDeletionImpact, DELETION_GRACE_HOURS } from "@/lib/account-deletion";
+import { ensureCalendarFeedToken } from "@/lib/calendar-feed";
+import CalendarFeedSection from "./CalendarFeedSection";
 import {
   PAYMENT_ACCOUNT_STATUS,
   SUPPORTED_COUNTRIES,
@@ -67,7 +69,7 @@ export default async function SettingsPage({
   const user = await getCurrentUser();
   if (!user) return null;
 
-  const [connection, calendarConfigurable, zoomConnection, zoomConfigurable, sp, impact, latestPaymentApp, eligibleProvidersForUser, canAcceptPayments, canBusySync] = await Promise.all([
+  const [connection, calendarConfigurable, zoomConnection, zoomConfigurable, sp, impact, latestPaymentApp, eligibleProvidersForUser, canAcceptPayments, canBusySync, feedToken, feedEventTypes] = await Promise.all([
     getCalendarConnection(user.id),
     isCalendarConfigurable(),
     getZoomConnection(user.id),
@@ -81,7 +83,15 @@ export default async function SettingsPage({
     tenantEligibleProviders(user.country),
     planHasFeature(user.plan, "payments"),
     planHasFeature(user.plan, "calendar_busy_sync"),
+    ensureCalendarFeedToken(user.id),
+    prisma.eventType.findMany({
+      where: { userId: user.id, active: true },
+      select: { id: true, title: true },
+      orderBy: { createdAt: "asc" },
+    }),
   ]);
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const feedBase = `${baseUrl}/api/calendar/feed/${feedToken}`;
   const calendarStatus = sp.calendar ? CALENDAR_STATUS[sp.calendar] : null;
   const zoomStatus = sp.zoom ? ZOOM_STATUS[sp.zoom] : null;
   const paymentsStatus = sp.payments ? PAYMENTS_STATUS[sp.payments] : null;
@@ -234,6 +244,8 @@ export default async function SettingsPage({
         </div>
         </CardContent>
       </Card>
+
+      <CalendarFeedSection feedBase={feedBase} eventTypes={feedEventTypes} />
 
       <Card>
         <CardContent className="p-6">

@@ -137,6 +137,13 @@ model User {
   // Profile picture uploaded by the business owner (shown in dashboard + booking page).
   avatarUrl       String?
 
+  // Secret in the read-only iCal subscription URL the owner pastes into
+  // Google/Apple/Outlook Calendar (/api/calendar/feed/{token}). The token IS
+  // the authentication for that route — there's no session — so regenerating
+  // it is the way to revoke every existing subscription. Null until the owner
+  // first opens the calendar-feed settings, which mints it lazily.
+  calendarFeedToken String? @unique
+
   // Branding (applied to the public booking page + embed). Custom values only
   // take effect on plans that grant the custom_branding feature; otherwise defaults.
   brandColor      String   @default("#4f46e5")
