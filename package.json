@@ -2,6 +2,10 @@
   "name": "bookify",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "//": "Node < 24.15.0 has a TransformStream race (nodejs/node#62040) that breaks RSC streaming — server actions hang and requests fail with 'controller[kState].transformAlgorithm is not a function'.",
+    "node": ">=24.15.0"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
