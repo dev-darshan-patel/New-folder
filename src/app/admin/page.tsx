@@ -25,7 +25,7 @@ export default async function AdminOverview({
   const bookingPoints = a.series.map((p) => ({ label: shortDate(p.date), value: p.bookings }));
 
   return (
-    <div className="mx-auto max-w-5xl">
+    <div className="mx-auto max-w-6xl">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">

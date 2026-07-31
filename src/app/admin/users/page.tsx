@@ -192,7 +192,7 @@ export default async function AdminUsers({
   ];
 
   return (
-    <div className="mx-auto max-w-5xl">
+    <div className="mx-auto max-w-6xl">
       <AdminTable
         title="Users"
         description={`${total} ${total === 1 ? "account" : "accounts"} matching.`}

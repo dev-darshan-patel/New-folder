@@ -158,7 +158,7 @@ export default async function AdminBookings({
   ];
 
   return (
-    <div className="mx-auto max-w-5xl">
+    <div className="mx-auto max-w-6xl">
       {/* Stats (reflect search/business/date filters, ignore status filter) */}
       <div className="grid gap-4 sm:grid-cols-4">
         <Stat label="In scope" value={statsTotal} />

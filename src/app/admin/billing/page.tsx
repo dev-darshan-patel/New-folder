@@ -159,7 +159,7 @@ export default async function AdminBillingPage() {
   ];
 
   return (
-    <div className="mx-auto max-w-5xl">
+    <div className="mx-auto max-w-6xl">
       <h1 className="text-2xl font-bold tracking-tight text-slate-900">Billing</h1>
       <p className="mt-1 text-sm text-slate-600">Subscription health across all tenants.</p>
 
