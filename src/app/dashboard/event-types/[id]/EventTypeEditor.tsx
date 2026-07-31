@@ -19,6 +19,8 @@ type Initial = {
   maxPerWeek: number | null;
   maxPerMonth: number | null;
   minNoticeToCancelMinutes: number;
+  paddingMinutes: number;
+  maxAdvanceDays: number | null;
   confirmationRedirectUrl: string;
   replyToEmail: string;
   requiresApproval: boolean;
@@ -194,6 +196,34 @@ export default function EventTypeEditor({ initial }: { initial: Initial }) {
                 <option value="720">12 hours</option>
                 <option value="1440">1 day</option>
               </select>
+            </Field>
+
+            <Field label="Buffer between meetings">
+              <select
+                name="paddingMinutes"
+                defaultValue={String(initial.paddingMinutes)}
+                title="Gap enforced before and after every booking of this type"
+                className={input}
+              >
+                <option value="0">None</option>
+                <option value="5">5 minutes</option>
+                <option value="10">10 minutes</option>
+                <option value="15">15 minutes</option>
+                <option value="30">30 minutes</option>
+                <option value="60">1 hour</option>
+              </select>
+            </Field>
+
+            <Field label="Booking window (days ahead)">
+              <input
+                name="maxAdvanceDays"
+                type="number"
+                min={1}
+                defaultValue={initial.maxAdvanceDays ?? ""}
+                placeholder="Unlimited"
+                title="How many days ahead an invitee may book"
+                className={input}
+              />
             </Field>
           </>
         )}

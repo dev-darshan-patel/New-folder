@@ -293,6 +293,8 @@ export async function fetchRescheduleSlots(
       timeZone: booking.user.timezone,
       durationMinutes: booking.eventType.durationMinutes,
       bufferMinutes: booking.eventType.bufferMinutes,
+      paddingMinutes: booking.eventType.paddingMinutes,
+      maxAdvanceDays: booking.eventType.maxAdvanceDays,
       date,
     });
   }
@@ -307,6 +309,8 @@ export async function fetchRescheduleSlots(
     timeZone: booking.user.timezone,
     durationMinutes: booking.eventType.durationMinutes,
     bufferMinutes: booking.eventType.bufferMinutes,
+    paddingMinutes: booking.eventType.paddingMinutes,
+    maxAdvanceDays: booking.eventType.maxAdvanceDays,
     date,
   });
 }
@@ -364,6 +368,13 @@ export async function rescheduleBookingAction(input: {
   const end = new Date(start.getTime() + booking.eventType.durationMinutes * 60_000);
 
   if (await isBlockedByDateOverride(booking.userId, start, end, booking.user.timezone)) {
+    return { ok: false, error: "That time is no longer available." };
+  }
+
+  if (
+    booking.eventType.maxAdvanceDays != null &&
+    start.getTime() > Date.now() + booking.eventType.maxAdvanceDays * 86_400_000
+  ) {
     return { ok: false, error: "That time is no longer available." };
   }
 

@@ -192,6 +192,10 @@ export async function getSlotsForDate(params: {
   timeZone: string;
   durationMinutes: number;
   bufferMinutes: number;
+  // Gap enforced before/after existing bookings, on top of plain overlap.
+  paddingMinutes?: number;
+  // How many days ahead a slot may fall. null/undefined = unlimited.
+  maxAdvanceDays?: number | null;
   date: string; // YYYY-MM-DD in the user's timezone
   // Per-event-type cap on bookings for this calendar day. null/undefined = none.
   maxPerDay?: number | null;
@@ -201,11 +205,34 @@ export async function getSlotsForDate(params: {
   // Restrict the day's booking count to a single event type when capping.
   eventTypeId?: string;
 }): Promise<Slot[]> {
-  const { userId, timeZone, durationMinutes, bufferMinutes, date, maxPerDay, maxPerWeek, maxPerMonth, eventTypeId } =
-    params;
+  const {
+    userId,
+    timeZone,
+    durationMinutes,
+    bufferMinutes,
+    paddingMinutes = 0,
+    maxAdvanceDays,
+    date,
+    maxPerDay,
+    maxPerWeek,
+    maxPerMonth,
+    eventTypeId,
+  } = params;
 
   const [year, month, day] = date.split("-").map(Number);
   if (!year || !month || !day) return [];
+
+  const now = Date.now();
+
+  // Bounds of the day in UTC — computed up front so the booking-window check
+  // below can use it too.
+  const dayStartUtc = zonedToUtc(year, month, day, 0, timeZone);
+
+  // Booking window: once the requested date starts beyond the horizon, the
+  // whole day has no slots — same "whole day is off" semantics as the other caps.
+  if (maxAdvanceDays != null && dayStartUtc.getTime() > now + maxAdvanceDays * 86_400_000) {
+    return [];
+  }
 
   // A date override, if any, replaces the weekly grid for this one calendar
   // date — "closed" blanks the day entirely, "custom hours" swaps in a
@@ -228,8 +255,8 @@ export async function getSlotsForDate(params: {
         });
   if (windows.length === 0) return [];
 
-  // Bounds of the day in UTC to scope the booking query.
-  const dayStartUtc = zonedToUtc(year, month, day, 0, timeZone);
+  // End bound of the day in UTC to scope the booking query (dayStartUtc was
+  // computed above for the booking-window check).
   const dayEndUtc = zonedToUtc(year, month, day, 24 * 60, timeZone);
 
   const [bookings, googleBusy] = await Promise.all([
@@ -264,8 +291,8 @@ export async function getSlotsForDate(params: {
     if (capped) return [];
   }
 
-  const now = Date.now();
   const earliest = now + bufferMinutes * 60_000;
+  const padMs = paddingMinutes * 60_000;
 
   const slots: Slot[] = [];
   for (const window of windows) {
@@ -279,8 +306,12 @@ export async function getSlotsForDate(params: {
 
       if (startUtc.getTime() < earliest) continue;
 
+      // Padding widens each existing booking's occupied window by `padMs` on
+      // both sides — the slot grid/stride itself is unchanged.
       const overlaps = bookings.some(
-        (b) => startUtc < b.endTime && endUtc > b.startTime,
+        (b) =>
+          startUtc.getTime() < b.endTime.getTime() + padMs &&
+          endUtc.getTime() + padMs > b.startTime.getTime(),
       );
       if (overlaps) continue;
 
@@ -307,18 +338,40 @@ export async function getTeamSlotsForDate(params: {
   timeZone: string;
   durationMinutes: number;
   bufferMinutes: number;
+  paddingMinutes?: number;
+  maxAdvanceDays?: number | null;
   date: string; // YYYY-MM-DD in the business timezone
   maxPerDay?: number | null;
   maxPerWeek?: number | null;
   maxPerMonth?: number | null;
   eventTypeId?: string;
 }): Promise<Slot[]> {
-  const { assignmentMode, pool, timeZone, durationMinutes, bufferMinutes, date, maxPerDay, maxPerWeek, maxPerMonth, eventTypeId } =
-    params;
+  const {
+    assignmentMode,
+    pool,
+    timeZone,
+    durationMinutes,
+    bufferMinutes,
+    paddingMinutes = 0,
+    maxAdvanceDays,
+    date,
+    maxPerDay,
+    maxPerWeek,
+    maxPerMonth,
+    eventTypeId,
+  } = params;
   if (pool.length === 0) return [];
 
   const [year, month, day] = date.split("-").map(Number);
   if (!year || !month || !day) return [];
+
+  const now = Date.now();
+  const dayStartUtc = zonedToUtc(year, month, day, 0, timeZone);
+
+  // Booking window: same "whole day is off" semantics as getSlotsForDate.
+  if (maxAdvanceDays != null && dayStartUtc.getTime() > now + maxAdvanceDays * 86_400_000) {
+    return [];
+  }
 
   const weekdayProbe = new TZDate(year, month - 1, day, 12, 0, 0, 0, timeZone);
   const weekday = weekdayProbe.getDay();
@@ -329,7 +382,6 @@ export async function getTeamSlotsForDate(params: {
   });
   if (memberWindows.length === 0) return [];
 
-  const dayStartUtc = zonedToUtc(year, month, day, 0, timeZone);
   const dayEndUtc = zonedToUtc(year, month, day, 24 * 60, timeZone);
 
   // Daily cap on this event type, same semantics as the solo path.
@@ -387,8 +439,8 @@ export async function getTeamSlotsForDate(params: {
     }
   }
 
-  const now = Date.now();
   const earliest = now + bufferMinutes * 60_000;
+  const padMs = paddingMinutes * 60_000;
   const poolIds = pool.map((m) => m.id);
 
   const slots: Slot[] = [];
@@ -406,7 +458,7 @@ export async function getTeamSlotsForDate(params: {
     if (covering.length === 0) continue;
     if (assignmentMode === "COLLECTIVE" && covering.length < poolIds.length) continue;
 
-    const free = covering.filter((id) => isFreeAt(busyByMember.get(id) ?? [], startUtc, endUtc));
+    const free = covering.filter((id) => isFreeAt(busyByMember.get(id) ?? [], startUtc, endUtc, padMs));
     const offer = assignmentMode === "COLLECTIVE" ? free.length === covering.length : free.length > 0;
     if (!offer) continue;
 

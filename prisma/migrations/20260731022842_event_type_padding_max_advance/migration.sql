@@ -1,0 +1,2 @@
+ALTER TABLE "EventType" ADD COLUMN "paddingMinutes" INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE "EventType" ADD COLUMN "maxAdvanceDays" INTEGER;

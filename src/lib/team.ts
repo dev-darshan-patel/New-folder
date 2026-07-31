@@ -56,8 +56,12 @@ export async function getTeamMemberBusyWindows(
   }));
 }
 
-export function isFreeAt(busy: BusyWindow[], start: Date, end: Date): boolean {
-  return !busy.some((b) => start < b.end && end > b.start);
+// `padMs` widens each busy window by that much on both sides (event-type
+// padding/buffer between meetings), without changing `start`/`end` themselves.
+export function isFreeAt(busy: BusyWindow[], start: Date, end: Date, padMs = 0): boolean {
+  return !busy.some(
+    (b) => start.getTime() < b.end.getTime() + padMs && end.getTime() + padMs > b.start.getTime(),
+  );
 }
 
 // Among candidates known to be free (freeIds), pick whoever has gone the

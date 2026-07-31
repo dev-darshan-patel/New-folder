@@ -378,6 +378,12 @@ model EventType {
   // later doesn't silently re-denominate historical prices.
   priceCents      Int?
   currency        String?
+  // Gap enforced before AND after every booking of this event type, on top
+  // of the existing overlap check — widens the busy window a booking blocks
+  // rather than changing the slot grid/stride.
+  paddingMinutes  Int       @default(0)
+  // How many days ahead an invitee may book. null = unlimited.
+  maxAdvanceDays  Int?
   createdAt       DateTime  @default(now())
 
   bookings        Booking[]

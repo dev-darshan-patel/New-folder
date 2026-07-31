@@ -20,10 +20,11 @@ import logger from "@/lib/logger";
 
 // Slots for the "New booking" picker in the dashboard. Unlike the public
 // booking page, this deliberately skips the event type's min-notice
-// (bufferMinutes) and per-day/week/month caps — the owner is entering a
-// booking they already agreed to (e.g. over the phone), not self-serving
-// against their own policy limits. Real conflicts (existing bookings,
-// connected-calendar busy time, closed dates) are still enforced.
+// (bufferMinutes), padding, per-day/week/month caps, and booking window
+// (maxAdvanceDays) — the owner is entering a booking they already agreed to
+// (e.g. over the phone), not self-serving against their own policy limits.
+// Real conflicts (existing bookings, connected-calendar busy time, closed
+// dates) are still enforced.
 export async function fetchManualSlotsAction(eventTypeId: string, date: string): Promise<Slot[]> {
   const user = await getCurrentUser();
   if (!user) return [];

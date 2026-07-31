@@ -81,6 +81,8 @@ export default async function EditEventTypePage({
           maxPerWeek: eventType.maxPerWeek,
           maxPerMonth: eventType.maxPerMonth,
           minNoticeToCancelMinutes: eventType.minNoticeToCancelMinutes,
+          paddingMinutes: eventType.paddingMinutes,
+          maxAdvanceDays: eventType.maxAdvanceDays,
           confirmationRedirectUrl: eventType.confirmationRedirectUrl ?? "",
           replyToEmail: eventType.replyToEmail ?? "",
           requiresApproval: eventType.requiresApproval,

@@ -250,6 +250,15 @@ export async function updateEventTypeAction(formData: FormData) {
   const minNoticeToCancelMinutes = schedulingLimitsAllowed
     ? clampInt(formData.get("minNoticeToCancelMinutes"), 0, 100000, 0)
     : existing.minNoticeToCancelMinutes;
+  const paddingMinutes = schedulingLimitsAllowed
+    ? clampInt(formData.get("paddingMinutes"), 0, 1440, 0)
+    : existing.paddingMinutes;
+  const rawMaxAdvanceDays = String(formData.get("maxAdvanceDays") || "").trim();
+  const maxAdvanceDays = !schedulingLimitsAllowed
+    ? existing.maxAdvanceDays
+    : rawMaxAdvanceDays === ""
+      ? null
+      : clampInt(rawMaxAdvanceDays, 1, 3650, 1);
 
   // Confirmation redirect + reply-to are a single gated bundle. Redirect must
   // also be an absolute http(s) URL, or it's silently dropped regardless of
@@ -416,6 +425,8 @@ export async function updateEventTypeAction(formData: FormData) {
       maxPerWeek,
       maxPerMonth,
       minNoticeToCancelMinutes,
+      paddingMinutes,
+      maxAdvanceDays,
       confirmationRedirectUrl,
       replyToEmail,
       requiresApproval,

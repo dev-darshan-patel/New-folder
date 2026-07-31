@@ -55,6 +55,8 @@ export async function fetchSlotsAction(
       timeZone: eventType.user.timezone,
       durationMinutes: eventType.durationMinutes,
       bufferMinutes: eventType.bufferMinutes,
+      paddingMinutes: eventType.paddingMinutes,
+      maxAdvanceDays: eventType.maxAdvanceDays,
       date,
       maxPerDay: eventType.maxPerDay,
       maxPerWeek: eventType.maxPerWeek,
@@ -73,6 +75,8 @@ export async function fetchSlotsAction(
     timeZone: eventType.user.timezone,
     durationMinutes: eventType.durationMinutes,
     bufferMinutes: eventType.bufferMinutes,
+    paddingMinutes: eventType.paddingMinutes,
+    maxAdvanceDays: eventType.maxAdvanceDays,
     date,
     maxPerDay: eventType.maxPerDay,
     maxPerWeek: eventType.maxPerWeek,
@@ -177,6 +181,12 @@ export async function createBookingAction(input: {
     if (capped) {
       return { ok: false, error: "This time is no longer available. Please pick another." };
     }
+  }
+
+  // Enforce the booking window server-side (the slot UI already hides whole
+  // days beyond it) — closes the gap between "page loaded" and "form submitted".
+  if (eventType.maxAdvanceDays != null && start.getTime() > Date.now() + eventType.maxAdvanceDays * 86_400_000) {
+    return { ok: false, error: "This time is no longer available. Please pick another." };
   }
 
   // Validate answers to required intake questions.
@@ -625,6 +635,11 @@ export async function createRecurringBookingAction(input: {
   for (let i = 0; i < occurrences.length; i++) {
     const o = occurrences[i];
     if (await isBlockedByDateOverride(eventType.userId, o.start, o.end, businessTz)) {
+      return { ok: false, error: `${dateFmt(o.start)} is no longer available — the series wasn't booked.` };
+    }
+    // Booking window — a far-future occurrence in the series can fall outside
+    // it even when the series' first occurrence didn't.
+    if (eventType.maxAdvanceDays != null && o.start.getTime() > Date.now() + eventType.maxAdvanceDays * 86_400_000) {
       return { ok: false, error: `${dateFmt(o.start)} is no longer available — the series wasn't booked.` };
     }
     // Daily cap
