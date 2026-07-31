@@ -1,7 +1,15 @@
 import Link from "next/link";
+import { getCurrentUser } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 
-export default function Home() {
+export default async function Home() {
+  // The landing page is public, but if a session cookie is already present
+  // the header/CTAs should point at the dashboard instead of offering to log
+  // in again — otherwise an already-signed-in visitor looks logged out here
+  // even though every other page treats them as authenticated.
+  const user = await getCurrentUser();
+  const homeHref = user ? (user.adminRole ? "/admin" : "/dashboard") : null;
+
   return (
     <div className="flex min-h-screen flex-col">
       <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-5">
@@ -9,16 +17,26 @@ export default function Home() {
           Bookify<span className="text-indigo-600">.</span>
         </span>
         <nav className="flex items-center gap-4 text-sm">
-          <Button variant="ghost" asChild>
-            <Link href="/login">
-              Log in
-            </Link>
-          </Button>
-          <Button asChild className="rounded-full">
-            <Link href="/signup">
-              Get started
-            </Link>
-          </Button>
+          {homeHref ? (
+            <Button asChild className="rounded-full">
+              <Link href={homeHref}>
+                {user!.adminRole ? "Admin console" : "Go to dashboard"}
+              </Link>
+            </Button>
+          ) : (
+            <>
+              <Button variant="ghost" asChild>
+                <Link href="/login">
+                  Log in
+                </Link>
+              </Button>
+              <Button asChild className="rounded-full">
+                <Link href="/signup">
+                  Get started
+                </Link>
+              </Button>
+            </>
+          )}
         </nav>
       </header>
 
@@ -34,16 +52,26 @@ export default function Home() {
           pick a time that works — no back-and-forth.
         </p>
         <div className="mt-10 flex gap-4">
-          <Button size="lg" className="rounded-full" asChild>
-            <Link href="/signup">
-              Create your booking page
-            </Link>
-          </Button>
-          <Button size="lg" variant="ghost" className="rounded-full" asChild>
-            <Link href="/login">
-              Log in →
-            </Link>
-          </Button>
+          {homeHref ? (
+            <Button size="lg" className="rounded-full" asChild>
+              <Link href={homeHref}>
+                {user!.adminRole ? "Go to admin console →" : "Go to dashboard →"}
+              </Link>
+            </Button>
+          ) : (
+            <>
+              <Button size="lg" className="rounded-full" asChild>
+                <Link href="/signup">
+                  Create your booking page
+                </Link>
+              </Button>
+              <Button size="lg" variant="ghost" className="rounded-full" asChild>
+                <Link href="/login">
+                  Log in →
+                </Link>
+              </Button>
+            </>
+          )}
         </div>
       </main>
 

@@ -1,8 +1,15 @@
+import { redirect } from "next/navigation";
+import { getCurrentUser } from "@/lib/auth";
 import { isFeatureEnabled } from "@/lib/feature-flags";
 import OAuthSection from "../OAuthSection";
 import LoginForm from "./LoginForm";
 
 export default async function LoginPage() {
+  // Already signed in — send them straight to their dashboard/admin console
+  // instead of showing the form again (same destination loginAction uses).
+  const existingUser = await getCurrentUser();
+  if (existingUser) redirect(existingUser.adminRole ? "/admin" : "/dashboard");
+
   const oauthEnabled = await isFeatureEnabled("oauth_login");
 
   return (

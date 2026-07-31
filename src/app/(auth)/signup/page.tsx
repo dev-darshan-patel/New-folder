@@ -1,9 +1,15 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { getCurrentUser } from "@/lib/auth";
 import { getPlatformConfig } from "@/lib/platform-config";
 import OAuthSection from "../OAuthSection";
 import SignupForm from "./SignupForm";
 
 export default async function SignupPage() {
+  // Already signed in — no reason to see a signup form.
+  const existingUser = await getCurrentUser();
+  if (existingUser) redirect(existingUser.adminRole ? "/admin" : "/dashboard");
+
   const { signupsEnabled, supportEmail } = await getPlatformConfig();
 
   if (!signupsEnabled) {
