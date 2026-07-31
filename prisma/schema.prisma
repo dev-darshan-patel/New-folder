@@ -362,6 +362,10 @@ model EventType {
   // JSON array of custom intake questions: [{ label, required }].
   intakeQuestions String?
   active          Boolean        @default(true)
+  // When true, still fully bookable via its direct link, but hidden from the
+  // tenant's public listing page (/{slug}). Distinct from `active`, which
+  // disables the event type entirely.
+  unlisted        Boolean        @default(false)
   assignmentMode  AssignmentMode @default(SOLO)
   // Where the meeting happens. GOOGLE_MEET/ZOOM auto-generate a video link at
   // booking time (requires the owner to have connected that provider).

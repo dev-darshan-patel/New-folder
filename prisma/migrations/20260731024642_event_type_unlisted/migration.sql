@@ -1,0 +1,1 @@
+ALTER TABLE "EventType" ADD COLUMN "unlisted" BOOLEAN NOT NULL DEFAULT false;

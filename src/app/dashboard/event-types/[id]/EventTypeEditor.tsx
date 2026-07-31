@@ -24,6 +24,7 @@ type Initial = {
   confirmationRedirectUrl: string;
   replyToEmail: string;
   requiresApproval: boolean;
+  unlisted: boolean;
   capacity: number | null;
   allowRecurring: boolean;
   questions: IntakeQuestion[];
@@ -288,6 +289,22 @@ export default function EventTypeEditor({ initial }: { initial: Initial }) {
       ) : (
         <UpgradeNote text="Manual approval requires a higher plan." />
       )}
+
+      <label className="flex items-start gap-2 text-sm text-slate-700">
+        <input
+          type="checkbox"
+          name="unlisted"
+          value="1"
+          defaultChecked={initial.unlisted}
+          className="mt-0.5 h-4 w-4 rounded border-slate-300"
+        />
+        <span>
+          Unlisted
+          <span className="block text-xs text-slate-500">
+            Hidden from your public booking page, but still bookable via its direct link.
+          </span>
+        </span>
+      </label>
 
       {initial.features.groupBookings && (
         <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">

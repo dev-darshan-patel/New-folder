@@ -289,6 +289,9 @@ export async function updateEventTypeAction(formData: FormData) {
     ? formData.get("requiresApproval") === "1"
     : existing.requiresApproval;
 
+  // Ungated: hidden from the public listing, but the direct link still works.
+  const unlisted = formData.get("unlisted") === "1";
+
   // Group event type toggle. Any positive integer marks the event type as
   // GROUP (invitees book into owner-created Session rows); empty/zero = classic
   // 1:1 (unchanged behavior). Gated — ungated tenants keep whatever capacity
@@ -430,6 +433,7 @@ export async function updateEventTypeAction(formData: FormData) {
       confirmationRedirectUrl,
       replyToEmail,
       requiresApproval,
+      unlisted,
       capacity,
       allowRecurring,
       intakeQuestions,

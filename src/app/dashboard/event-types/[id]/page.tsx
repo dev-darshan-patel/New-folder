@@ -86,6 +86,7 @@ export default async function EditEventTypePage({
           confirmationRedirectUrl: eventType.confirmationRedirectUrl ?? "",
           replyToEmail: eventType.replyToEmail ?? "",
           requiresApproval: eventType.requiresApproval,
+          unlisted: eventType.unlisted,
           capacity: eventType.capacity,
           allowRecurring: eventType.allowRecurring,
           questions: parseQuestions(eventType.intakeQuestions),

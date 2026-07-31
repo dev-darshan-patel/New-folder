@@ -13,7 +13,7 @@ const getBusiness = cache(async (slug: string) => {
     where: { slug },
     include: {
       eventTypes: {
-        where: { active: true },
+        where: { active: true, unlisted: false },
         orderBy: { createdAt: "asc" },
       },
     },
