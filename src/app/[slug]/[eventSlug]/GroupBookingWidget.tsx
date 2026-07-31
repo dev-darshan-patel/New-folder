@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { NativeSelect } from "@/components/ui/native-select";
 import { SubmitButton } from "@/components/ui/submit-button";
+import { BRAND_COLOR } from "@/lib/brand";
 
 // A group session as passed in from the server component.
 export type GroupSession = {
@@ -32,7 +33,7 @@ function fmtSession(iso: string, tz: string): string {
 export default function GroupBookingWidget({
   eventTypeId,
   timezone,
-  accent = "#4f46e5",
+  accent = BRAND_COLOR,
   questions = [],
   sessions,
 }: {

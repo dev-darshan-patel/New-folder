@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { BLOCKING_STATUSES } from "@/lib/booking-status";
 import ConfirmSubmit from "@/components/ConfirmSubmit";
 import CopyLinkButton from "./CopyLinkButton";
@@ -97,16 +98,8 @@ export default async function EventTypesPage({
                     <p className="text-sm text-slate-500">{et.durationMinutes} min</p>
                   </div>
                   <div className="flex shrink-0 items-center gap-1.5">
-                    {!et.active && (
-                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500">
-                        Inactive
-                      </span>
-                    )}
-                    {et.unlisted && (
-                      <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
-                        Unlisted
-                      </span>
-                    )}
+                    {!et.active && <Badge variant="muted">Inactive</Badge>}
+                    {et.unlisted && <Badge variant="warning">Unlisted</Badge>}
                   </div>
                 </div>
 

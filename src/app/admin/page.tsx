@@ -3,6 +3,7 @@ import { getAdminAnalytics } from "@/lib/admin-metrics";
 import { getPlanMap } from "@/lib/plans";
 import { AreaChart, BarChart } from "@/components/admin/Charts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { BRAND_COLOR } from "@/lib/brand";
 
 const RANGES = [7, 30, 90];
 
@@ -65,7 +66,7 @@ export default async function AdminOverview({
       {/* Charts */}
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <Panel title={`MRR over ${range} days`}>
-          <AreaChart points={mrrPoints} color="#4f46e5" prefix="$" />
+          <AreaChart points={mrrPoints} color={BRAND_COLOR} prefix="$" />
         </Panel>
         <Panel title={`New signups (${range}d)`}>
           <AreaChart points={signupPoints} color="#16a34a" />

@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { SubmitButton } from "@/components/ui/submit-button";
 
 export default async function BillingPage({
@@ -96,11 +97,7 @@ export default async function BillingPage({
             >
               <CardHeader className="flex flex-row items-baseline justify-between pb-2">
                 <CardTitle className="text-lg">{plan.name}</CardTitle>
-                {isCurrent && (
-                  <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700">
-                    Current
-                  </span>
-                )}
+                {isCurrent && <Badge>Current</Badge>}
               </CardHeader>
               <CardContent className="flex flex-1 flex-col">
                 <p className="text-2xl font-bold text-slate-900">{plan.priceLabel}</p>

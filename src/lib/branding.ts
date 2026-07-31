@@ -1,7 +1,8 @@
 import type { User } from "@prisma/client";
 import { planHasFeature } from "@/lib/plans";
+import { BRAND_COLOR } from "@/lib/brand";
 
-export const DEFAULT_BRAND_COLOR = "#4f46e5"; // indigo-600
+export const DEFAULT_BRAND_COLOR = BRAND_COLOR;
 export const DEFAULT_BRAND_FONT = "Geist";
 
 // Curated font choices. `google` is the Google Fonts family param (omitted for

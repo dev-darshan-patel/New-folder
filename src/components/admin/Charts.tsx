@@ -1,3 +1,4 @@
+import { BRAND_COLOR } from "@/lib/brand";
 // Dependency-free SVG charts for the admin analytics dashboard. Pure
 // presentational server components — data is computed in src/lib/admin-metrics.ts.
 
@@ -32,7 +33,7 @@ function axisLabels(points: Point[]) {
 
 export function AreaChart({
   points,
-  color = "#4f46e5",
+  color = BRAND_COLOR,
   prefix = "",
 }: {
   points: Point[];

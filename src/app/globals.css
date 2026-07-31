@@ -8,9 +8,10 @@
   --card-foreground: #0f172a;
   --popover: #ffffff;
   --popover-foreground: #0f172a;
-  /* Brand color — the single source of truth for the app's accent color.
-     Was previously hand-rolled as literal indigo-600/700 Tailwind classes in
-     ~75 places; this is now the one place that defines it. */
+  /* Brand accent. This mirrors BRAND_COLOR in src/lib/brand.ts, which is the
+     source of truth — the OG image, apple icon and transactional emails are
+     rendered outside the browser and can't read a CSS variable, so the value
+     has to exist in TypeScript. Change both together. */
   --primary: #4f46e5;
   --primary-foreground: #f8fafc;
   --secondary: #f1f5f9;
@@ -24,6 +25,20 @@
   --input: #cbd5e1;
   --ring: #6366f1;
   --radius: 0.5rem;
+
+  /* Status colors. The app communicates four recurring states — needs
+     attention, healthy, failed, informational — and had been hand-rolling
+     them as raw amber, emerald, red and sky utilities per call site, so the
+     same meaning rendered in different shades on different pages. Each has a
+     tinted surface for badges and callouts, plus a readable foreground. */
+  --warning: #b45309;
+  --warning-surface: #fef3c7;
+  --success: #047857;
+  --success-surface: #d1fae5;
+  --danger: #b91c1c;
+  --danger-surface: #fee2e2;
+  --info: #0369a1;
+  --info-surface: #e0f2fe;
 }
 
 @theme inline {
@@ -47,6 +62,14 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-warning: var(--warning);
+  --color-warning-surface: var(--warning-surface);
+  --color-success: var(--success);
+  --color-success-surface: var(--success-surface);
+  --color-danger: var(--danger);
+  --color-danger-surface: var(--danger-surface);
+  --color-info: var(--info);
+  --color-info-surface: var(--info-surface);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);

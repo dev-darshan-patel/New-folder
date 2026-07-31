@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { NativeSelect } from "@/components/ui/native-select";
 import { SubmitButton } from "@/components/ui/submit-button";
+import { BRAND_COLOR } from "@/lib/brand";
 
 // Format a UTC instant as a time label in the given timezone.
 function fmtTime(iso: string, tz: string): string {
@@ -29,7 +30,7 @@ function fmtTime(iso: string, tz: string): string {
 export default function BookingWidget({
   eventTypeId,
   timezone,
-  accent = "#4f46e5",
+  accent = BRAND_COLOR,
   questions = [],
   allowRecurring = false,
   priceLabel = null,

@@ -146,6 +146,9 @@ model User {
 
   // Branding (applied to the public booking page + embed). Custom values only
   // take effect on plans that grant the custom_branding feature; otherwise defaults.
+  // Seed value for a new tenant's accent, matching BRAND_COLOR in
+  // src/lib/brand.ts. Intentionally a literal: it is the tenant's own saved
+  // setting from then on, so rebranding the product must NOT rewrite it.
   brandColor      String   @default("#4f46e5")
   brandFont       String   @default("Geist")
   logoUrl         String?

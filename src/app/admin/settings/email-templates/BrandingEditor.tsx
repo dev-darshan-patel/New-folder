@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import { wrapHtml } from "@/lib/email-render";
 import { updateEmailBrandingAction, type TemplateFormState } from "./actions";
 import { SubmitButton } from "@/components/ui/submit-button";
+import { BRAND_COLOR } from "@/lib/brand";
 
 type Initial = {
   emailBrandName: string;
@@ -24,7 +25,7 @@ export default function BrandingEditor({ initial }: { initial: Initial }) {
 
   const [name, setName] = useState(initial.emailBrandName);
   const [logo, setLogo] = useState(initial.emailLogoUrl);
-  const [accent, setAccent] = useState(initial.emailAccentColor || "#4f46e5");
+  const [accent, setAccent] = useState(initial.emailAccentColor || BRAND_COLOR);
   const [footer, setFooter] = useState(initial.emailFooterText);
   const [support, setSupport] = useState(initial.emailSupportUrl);
 

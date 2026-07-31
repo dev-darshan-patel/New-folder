@@ -8,6 +8,7 @@ import CopyLink from "./CopyLink";
 import { Card, CardContent } from "@/components/ui/card";
 import { BarChart } from "@/components/admin/Charts";
 import { SubmitButton } from "@/components/ui/submit-button";
+import { BRAND_COLOR } from "@/lib/brand";
 
 const RANGES = [7, 30, 90];
 
@@ -138,7 +139,7 @@ export default async function DashboardOverview({
             Bookings ({range}d)
           </p>
           <div className="mt-2">
-            <BarChart points={bookingPoints} color="#4f46e5" />
+            <BarChart points={bookingPoints} color={BRAND_COLOR} />
           </div>
         </CardContent>
       </Card>

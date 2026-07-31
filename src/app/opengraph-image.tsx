@@ -1,4 +1,5 @@
 import { ImageResponse } from "next/og";
+import { BRAND_COLOR } from "@/lib/brand";
 
 export const alt = "Bookify — Scheduling for small business";
 export const size = { width: 1200, height: 630 };
@@ -34,7 +35,7 @@ export default function Image() {
               width: 96,
               height: 96,
               borderRadius: 22,
-              background: "#4f46e5",
+              background: BRAND_COLOR,
               color: "#ffffff",
               fontSize: 56,
               fontWeight: 700,
