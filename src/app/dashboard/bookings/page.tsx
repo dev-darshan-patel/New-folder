@@ -39,7 +39,7 @@ export default async function BookingsPage() {
   });
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="mx-auto max-w-6xl">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h1 className="text-2xl font-bold tracking-tight text-slate-900">Bookings</h1>
         <div className="flex gap-2">

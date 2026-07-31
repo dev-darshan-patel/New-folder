@@ -44,7 +44,7 @@ export default async function AdminAuthSettingsPage() {
   const callbackUrl = (provider: string) => `${baseUrl}/api/auth/${provider}/callback`;
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="mx-auto max-w-6xl">
       <h1 className="text-2xl font-bold tracking-tight text-slate-900">Sign-in providers</h1>
       <p className="mt-1 text-sm text-slate-600">
         Let businesses sign up and log in with Google or Microsoft instead of (or in addition

@@ -28,7 +28,7 @@ export default async function EditPlanPage({
   if (!plan) notFound();
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="mx-auto max-w-6xl">
       <Link href="/admin/settings/plans" className="text-sm text-slate-500 hover:text-indigo-600">
         ← All plans
       </Link>

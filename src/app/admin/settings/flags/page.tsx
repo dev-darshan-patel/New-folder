@@ -19,7 +19,7 @@ export default async function AdminFeatureFlagsPage() {
   const flags = await getFeatureFlags();
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="mx-auto max-w-6xl">
       <h1 className="text-2xl font-bold tracking-tight text-slate-900">Feature flags</h1>
       <p className="mt-1 text-sm text-slate-600">
         Toggle product capabilities platform-wide. Disabled flags hide UI and block server-side

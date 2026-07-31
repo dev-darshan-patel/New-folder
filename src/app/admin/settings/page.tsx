@@ -36,7 +36,7 @@ export default async function AdminSettingsPage() {
   const stripeReady = await isStripeConfigured();
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="mx-auto max-w-6xl">
       <h1 className="text-2xl font-bold tracking-tight text-slate-900">Stripe settings</h1>
       <p className="mt-1 text-sm text-slate-600">
         Store test and live Stripe credentials. Only one mode is active for the whole

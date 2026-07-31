@@ -36,7 +36,7 @@ export default async function EventTypesPage({
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="mx-auto max-w-6xl">
       <h1 className="text-2xl font-bold tracking-tight text-slate-900">
         Event Types
       </h1>

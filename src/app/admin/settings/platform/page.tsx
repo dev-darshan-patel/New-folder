@@ -23,7 +23,7 @@ export default async function AdminPlatformConfigPage() {
   const settings = await getPlatformSettings();
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="mx-auto max-w-6xl">
       <h1 className="text-2xl font-bold tracking-tight text-slate-900">Platform config</h1>
       <p className="mt-1 text-sm text-slate-600">
         Operational switches for the whole platform — maintenance mode, signups, and support

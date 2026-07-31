@@ -70,7 +70,7 @@ export default async function AdminUserDetail({
     : null;
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="mx-auto max-w-6xl">
       <Link href="/admin/users" className="text-sm font-medium text-slate-500 hover:text-slate-900">
         ← All users
       </Link>
