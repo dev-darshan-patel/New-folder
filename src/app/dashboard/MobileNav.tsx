@@ -20,6 +20,7 @@ import {
   HelpCircle,
 } from "lucide-react";
 import { logoutAction } from "../(auth)/actions";
+import { isNavActive } from "@/lib/nav-active";
 import { SubmitButton } from "@/components/ui/submit-button";
 
 // Grouped to match the desktop sidebar (src/app/dashboard/layout.tsx).
@@ -59,6 +60,7 @@ export default function MobileNav({
 }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
+  const allHrefs = navGroups.flatMap((g) => g.items.map((i) => i.href));
 
   // Close drawer on route change. Syncing the drawer to router navigation is a
   // legitimate effect, not the derived-state anti-pattern the rule targets.
@@ -130,7 +132,7 @@ export default function MobileNav({
                 </p>
                 <div className="mt-1 space-y-1">
                   {group.items.map((item) => {
-                    const active = pathname === item.href;
+                    const active = isNavActive(pathname, item.href, allHrefs);
                     return (
                       <Link
                         key={item.href}

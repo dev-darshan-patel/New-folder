@@ -6,6 +6,7 @@ import ImpersonationBanner from "@/components/ImpersonationBanner";
 import DeletionBanner from "@/components/DeletionBanner";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
 import MobileNav from "./MobileNav";
+import SidebarNav from "@/components/SidebarNav";
 import { Button } from "@/components/ui/button";
 
 // Grouped for scannability, mirroring the /admin sidebar's grouping.
@@ -85,33 +86,14 @@ export default async function DashboardLayout({
             </span>
           </Link>
 
-          <nav className="mt-8 flex flex-1 flex-col gap-4 overflow-y-auto">
-            {navGroups.map((group) => (
-              <div key={group.title}>
-                <p className="px-3 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-                  {group.title}
-                </p>
-                <div className="mt-1 flex flex-col gap-1">
-                  {group.items.map((item) => (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      className="rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
-                    >
-                      {item.label}
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            ))}
-            {user.adminRole && (
-              <Button asChild className="mt-2 w-full justify-start">
-                <Link href="/admin">
-                  Admin console
-                </Link>
-              </Button>
-            )}
-          </nav>
+          <SidebarNav groups={navGroups} variant="light" />
+          {user.adminRole && (
+            <Button asChild className="mb-2 w-full justify-start">
+              <Link href="/admin">
+                Admin console
+              </Link>
+            </Button>
+          )}
 
           <a
             href="/PROJECT-GUIDE.html"

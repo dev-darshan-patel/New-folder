@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import LogoutButton from "@/components/LogoutButton";
+import SidebarNav from "@/components/SidebarNav";
 
 // Grouped for scannability — a flat list of 16 identical-looking links made
 // it hard to find anything. superAdminOnly items are filtered per-role below,
@@ -67,32 +68,19 @@ export default async function AdminLayout({
           Platform console · {user.adminRole.replace("_", " ").toLowerCase()}
         </p>
 
-        <nav className="mt-8 flex flex-1 flex-col gap-4 overflow-y-auto">
-          {navGroups.map((group) => {
-            const items = group.items.filter(
-              (item) => !item.superAdminOnly || user.adminRole === "SUPER_ADMIN",
-            );
-            if (items.length === 0) return null;
-            return (
-              <div key={group.title}>
-                <p className="px-3 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                  {group.title}
-                </p>
-                <div className="mt-1 flex flex-col gap-1">
-                  {items.map((item) => (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      className="rounded-lg px-3 py-2 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
-                    >
-                      {item.label}
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-        </nav>
+        {/* Role filtering happens here, on the server, so links the viewer
+            can't use are never sent to the client at all. */}
+        <SidebarNav
+          variant="dark"
+          groups={navGroups
+            .map((group) => ({
+              title: group.title,
+              items: group.items
+                .filter((item) => !item.superAdminOnly || user.adminRole === "SUPER_ADMIN")
+                .map(({ href, label }) => ({ href, label })),
+            }))
+            .filter((group) => group.items.length > 0)}
+        />
 
         <a
           href="/PROJECT-GUIDE.html"
