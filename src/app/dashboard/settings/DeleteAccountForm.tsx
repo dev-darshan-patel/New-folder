@@ -5,6 +5,7 @@ import { requestAccountDeletionAction, type SettingsState } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 export default function DeleteAccountForm({
   hasPassword,
@@ -78,14 +79,13 @@ export default function DeleteAccountForm({
       )}
 
       <div className="flex gap-3">
-        <Button
-          type="submit"
+        <SubmitButton
           disabled={pending}
           variant="outline"
           className="border-red-300 text-red-600 hover:bg-red-100"
         >
           {pending ? "Scheduling…" : "Confirm deletion"}
-        </Button>
+        </SubmitButton>
         <Button type="button" variant="ghost" onClick={() => setConfirming(false)}>
           Cancel
         </Button>

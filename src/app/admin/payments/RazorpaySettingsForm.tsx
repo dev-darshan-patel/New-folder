@@ -7,9 +7,9 @@ import {
   clearRazorpaySecretAction,
   type AdminPaymentsState,
 } from "./actions";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 function maskTail(value: string | null): string {
   if (!value) return "Not set";
@@ -44,9 +44,9 @@ function SecretRow({
       {currentValue && (
         <form action={formAction} className="mt-1 inline-block">
           <input type="hidden" name="field" value={clearField} />
-          <Button type="submit" variant="link" size="sm" className="h-auto p-0 text-xs text-red-600">
+          <SubmitButton variant="link" size="sm" className="h-auto p-0 text-xs text-red-600">
             Clear
-          </Button>
+          </SubmitButton>
         </form>
       )}
     </div>
@@ -134,7 +134,7 @@ export default function RazorpaySettingsForm({
         />
       </fieldset>
 
-      <Button type="submit">Save Razorpay credentials</Button>
+      <SubmitButton>Save Razorpay credentials</SubmitButton>
     </form>
   );
 }

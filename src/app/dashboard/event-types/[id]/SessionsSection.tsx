@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { createSessionAction, cancelSessionAction } from "../../actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 // Owner-facing section that lists this group event type's sessions and lets
 // the owner create/cancel them. Rendered from the event type editor page but
@@ -61,7 +62,7 @@ export default async function SessionsSection({
             className="mt-1 w-24"
           />
         </label>
-        <Button type="submit">Add session</Button>
+        <SubmitButton>Add session</SubmitButton>
       </form>
 
       <div className="mt-6">
@@ -106,9 +107,9 @@ export default async function SessionsSection({
                   </Button>
                   <form action={cancelSessionAction}>
                     <input type="hidden" name="sessionId" value={s.id} />
-                    <Button type="submit" variant="link" size="sm" className="text-red-600">
+                    <SubmitButton variant="link" size="sm" className="text-red-600">
                       Cancel
-                    </Button>
+                    </SubmitButton>
                   </form>
                 </div>
               </li>

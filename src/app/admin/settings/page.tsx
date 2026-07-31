@@ -2,10 +2,10 @@ import { getCurrentUser } from "@/lib/auth";
 import { getPlatformSettings } from "@/lib/settings";
 import { isStripeConfigured } from "@/lib/stripe";
 import { updateStripeSettingsAction, clearStripeSecretAction } from "./actions";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 const SECRET_FIELD_NAMES = [
   "stripeTestSecretKey",
@@ -103,12 +103,11 @@ export default async function AdminSettingsPage() {
           priceBusiness={settings.stripeLivePriceBusiness}
         />
 
-        <Button
-          type="submit"
+        <SubmitButton
           className="mt-6"
         >
           Save settings
-        </Button>
+        </SubmitButton>
       </form>
 
       {/* Standalone forms for the inline "Clear" buttons. These sit outside
@@ -221,14 +220,13 @@ function SecretField({
           placeholder={placeholder}
           className="flex-1"
         />
-        <Button
-          type="submit"
+        <SubmitButton
           form={`clear-${name}`}
           variant="outline"
           className="shrink-0"
         >
           Clear
-        </Button>
+        </SubmitButton>
       </div>
       <p className="mt-1 text-xs text-slate-400">Leave blank to keep the current value.</p>
     </div>

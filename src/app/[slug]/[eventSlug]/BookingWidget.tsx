@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { NativeSelect } from "@/components/ui/native-select";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 // Format a UTC instant as a time label in the given timezone.
 function fmtTime(iso: string, tz: string): string {
@@ -388,8 +389,7 @@ export default function BookingWidget({
                   {formError}
                 </p>
               )}
-              <Button
-                type="submit"
+              <SubmitButton
                 disabled={submitting}
                 style={{ backgroundColor: accent }}
                 className="w-full"
@@ -401,7 +401,7 @@ export default function BookingWidget({
                   : priceLabel
                     ? `Continue to payment — ${priceLabel}`
                     : "Confirm booking"}
-              </Button>
+              </SubmitButton>
             </div>
           </form>
         )}

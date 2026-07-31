@@ -4,11 +4,11 @@ import { getPlatformSettings } from "@/lib/settings";
 import { isProviderConfigured } from "@/lib/oauth";
 import { isZoomConfigurable } from "@/lib/zoom";
 import { updateAuthSettingsAction, clearAuthSecretAction } from "./actions";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 const SECRET_FIELD_NAMES = ["googleClientSecret", "microsoftClientSecret", "zoomClientSecret"] as const;
 
@@ -142,12 +142,11 @@ export default async function AdminAuthSettingsPage() {
           }
         />
 
-        <Button
-          type="submit"
+        <SubmitButton
           className="mt-6"
         >
           Save settings
-        </Button>
+        </SubmitButton>
       </form>
 
       {SECRET_FIELD_NAMES.map((name) => (
@@ -251,14 +250,13 @@ function SecretField({
           placeholder={placeholder}
           className="flex-1"
         />
-        <Button
-          type="submit"
+        <SubmitButton
           form={`clear-${name}`}
           variant="outline"
           className="shrink-0"
         >
           Clear
-        </Button>
+        </SubmitButton>
       </div>
       <p className="mt-1 text-xs text-slate-400">Leave blank to keep the current value.</p>
     </div>

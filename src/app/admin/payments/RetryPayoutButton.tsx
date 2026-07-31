@@ -3,7 +3,7 @@
 import { useActionState, useEffect } from "react";
 import { toast } from "sonner";
 import { retryPayoutAction, type AdminPaymentsState } from "./actions";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 export default function RetryPayoutButton({ bookingId }: { bookingId: string }) {
   const [state, formAction] = useActionState<AdminPaymentsState, FormData>(
@@ -19,9 +19,9 @@ export default function RetryPayoutButton({ bookingId }: { bookingId: string }) 
   return (
     <form action={formAction} className="inline-block">
       <input type="hidden" name="bookingId" value={bookingId} />
-      <Button type="submit" size="sm" variant="outline">
+      <SubmitButton size="sm" variant="outline">
         Retry
-      </Button>
+      </SubmitButton>
     </form>
   );
 }

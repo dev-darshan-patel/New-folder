@@ -5,8 +5,8 @@ import { makeQrDataUrl, decryptTotpSecret } from "@/lib/totp";
 import { beginTotpSetupAction } from "./actions";
 import EnableTotpForm from "./EnableTotpForm";
 import DisableTotpForm from "./DisableTotpForm";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 export default async function SecurityPage() {
   const user = await getCurrentUser();
@@ -70,7 +70,7 @@ export default async function SecurityPage() {
             }}
             className="mt-4"
           >
-            <Button type="submit">Start setup</Button>
+            <SubmitButton>Start setup</SubmitButton>
           </form>
           </CardContent>
         </Card>

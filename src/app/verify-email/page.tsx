@@ -3,7 +3,7 @@ import { Mail } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import { logoutAction } from "@/app/(auth)/actions";
 import ResendButton from "./ResendButton";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 // "Check your inbox" pending page. This is the hard gate: unverified accounts
 // land here (redirected from the dashboard layout) and can't reach any feature
@@ -38,14 +38,13 @@ export default async function VerifyEmailPendingPage() {
 
       <div className="mt-8 border-t border-slate-100 pt-4 text-center">
         <form action={logoutAction}>
-          <Button
-            type="submit"
+          <SubmitButton
             variant="link"
             size="sm"
             className="h-auto p-0 text-xs text-slate-500 hover:text-slate-800"
           >
             Use a different account
-          </Button>
+          </SubmitButton>
         </form>
       </div>
     </div>

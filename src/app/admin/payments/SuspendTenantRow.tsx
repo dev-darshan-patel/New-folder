@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { suspendPaymentsAction, unsuspendPaymentsAction, type AdminPaymentsState } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 export default function SuspendTenantRow({
   userId,
@@ -75,9 +76,9 @@ export default function SuspendTenantRow({
             <input type="hidden" name="userId" value={userId} />
             <Textarea name="reason" required rows={2} placeholder="Reason (audit log)" />
             <div className="flex gap-2">
-              <Button type="submit" size="sm" variant="destructive">
+              <SubmitButton size="sm" variant="destructive">
                 Confirm suspension
-              </Button>
+              </SubmitButton>
               <Button
                 type="button"
                 size="sm"
@@ -93,9 +94,9 @@ export default function SuspendTenantRow({
       {status === "SUSPENDED" && (
         <form action={unsuspendAction} className="mt-2">
           <input type="hidden" name="userId" value={userId} />
-          <Button type="submit" size="sm">
+          <SubmitButton size="sm">
             Re-enable payments
-          </Button>
+          </SubmitButton>
         </form>
       )}
     </div>

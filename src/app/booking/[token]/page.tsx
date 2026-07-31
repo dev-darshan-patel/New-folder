@@ -5,6 +5,7 @@ import { parseGuests } from "@/lib/guests";
 import { cancelBookingAction, cancelRemainingSeriesAction } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 export default async function ManageBookingPage({
   params,
@@ -162,13 +163,12 @@ export default async function ManageBookingPage({
             )}
             <form action={cancelBookingAction} className="flex-1">
               <input type="hidden" name="token" value={token} />
-              <Button
-                type="submit"
+              <SubmitButton
                 variant="outline"
                 className="w-full border-red-300 text-red-600 hover:bg-red-50"
               >
                 {pending ? "Withdraw request" : booking.seriesId ? "Cancel this session" : "Cancel booking"}
-              </Button>
+              </SubmitButton>
             </form>
           </div>
         )}
@@ -176,13 +176,12 @@ export default async function ManageBookingPage({
         {!canceled && !past && booking.seriesId && hasRemaining && (
           <form action={cancelRemainingSeriesAction} className="mt-3">
             <input type="hidden" name="token" value={token} />
-            <Button
-              type="submit"
+            <SubmitButton
               variant="outline"
               className="w-full border-red-300 text-red-600 hover:bg-red-50"
             >
               Cancel this &amp; all remaining sessions
-            </Button>
+            </SubmitButton>
           </form>
         )}
 

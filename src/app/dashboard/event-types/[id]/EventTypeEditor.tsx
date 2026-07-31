@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { useFormStatus } from "react-dom";
 import { updateEventTypeAction } from "../../actions";
 import type { IntakeQuestion } from "@/lib/intake";
 import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 type LocationType = "IN_PERSON" | "PHONE" | "GOOGLE_MEET" | "ZOOM";
 
@@ -539,17 +539,8 @@ export default function EventTypeEditor({ initial }: { initial: Initial }) {
         </div>
       )}
 
-      <SaveButton />
+      <SubmitButton pendingLabel="Saving…">Save changes</SubmitButton>
     </form>
-  );
-}
-
-function SaveButton() {
-  const { pending } = useFormStatus();
-  return (
-    <Button type="submit" disabled={pending}>
-      {pending ? "Saving…" : "Save changes"}
-    </Button>
   );
 }
 

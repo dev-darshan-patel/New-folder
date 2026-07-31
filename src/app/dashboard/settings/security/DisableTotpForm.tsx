@@ -2,9 +2,9 @@
 
 import { useActionState } from "react";
 import { disableTotpAction, type SecurityState } from "./actions";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 export default function DisableTotpForm() {
   const [state, formAction, pending] = useActionState<SecurityState, FormData>(
@@ -34,13 +34,12 @@ export default function DisableTotpForm() {
         <p className="rounded-lg bg-white/70 px-3 py-2 text-sm text-green-800">{state.message}</p>
       )}
 
-      <Button
-        type="submit"
+      <SubmitButton
         variant="destructive"
         disabled={pending}
       >
         {pending ? "Disabling…" : "Disable 2FA"}
-      </Button>
+      </SubmitButton>
     </form>
   );
 }

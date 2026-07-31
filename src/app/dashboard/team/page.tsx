@@ -9,10 +9,10 @@ import {
   setMemberActiveAction,
   setOwnerParticipationAction,
 } from "./actions";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 export default async function TeamPage() {
   const user = await getCurrentUser();
@@ -61,13 +61,12 @@ export default async function TeamPage() {
             </div>
             <form action={setOwnerParticipationAction}>
               <input type="hidden" name="active" value={owner.active ? "0" : "1"} />
-              <Button
-                type="submit"
+              <SubmitButton
                 variant="outline"
                 size="sm"
               >
                 {owner.active ? "Remove myself from pools" : "Include myself as a bookable member"}
-              </Button>
+              </SubmitButton>
             </form>
           </div>
           <Link
@@ -92,19 +91,18 @@ export default async function TeamPage() {
                   <form action={setMemberActiveAction}>
                     <input type="hidden" name="id" value={m.id} />
                     <input type="hidden" name="active" value={m.active ? "0" : "1"} />
-                    <Button
-                      type="submit"
+                    <SubmitButton
                       variant="outline"
                       size="sm"
                     >
                       {m.active ? "Deactivate" : "Activate"}
-                    </Button>
+                    </SubmitButton>
                   </form>
                   <form action={removeTeamMemberAction}>
                     <input type="hidden" name="id" value={m.id} />
-                    <Button type="submit" variant="ghost" size="sm" className="text-red-600 hover:text-red-700 hover:bg-red-50">
+                    <SubmitButton variant="ghost" size="sm" className="text-red-600 hover:text-red-700 hover:bg-red-50">
                       Remove
-                    </Button>
+                    </SubmitButton>
                   </form>
                 </div>
               </div>
@@ -143,11 +141,10 @@ export default async function TeamPage() {
                 type="email"
               />
             </div>
-            <Button
-              type="submit"
+            <SubmitButton
             >
               Add teammate
-            </Button>
+            </SubmitButton>
           </CardContent>
         </form>
       </Card>

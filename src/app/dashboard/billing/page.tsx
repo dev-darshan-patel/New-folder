@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 export default async function BillingPage({
   searchParams,
@@ -140,12 +141,11 @@ export default async function BillingPage({
                         name="couponCode"
                         placeholder="Promo code (optional)"
                       />
-                      <Button
-                        type="submit"
+                      <SubmitButton
                         className="w-full"
                       >
                         Upgrade to {plan.name}
-                      </Button>
+                      </SubmitButton>
                     </form>
                   )}
                 </div>

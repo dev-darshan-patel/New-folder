@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { NativeSelect } from "@/components/ui/native-select";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 // A group session as passed in from the server component.
 export type GroupSession = {
@@ -231,14 +232,13 @@ export default function GroupBookingWidget({
                 {formError}
               </p>
             )}
-            <Button
-              type="submit"
+            <SubmitButton
               disabled={submitting}
               style={{ backgroundColor: accent }}
               className="w-full"
             >
               {submitting ? "Booking…" : "Confirm booking"}
-            </Button>
+            </SubmitButton>
           </div>
         </form>
       )}

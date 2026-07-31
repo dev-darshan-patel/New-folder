@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { refreshPaymentOnboardingAction } from "./actions";
 import type { SettingsState } from "./actions";
 import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 const PROVIDER_LABEL: Record<string, string> = {
   STRIPE: "Stripe",
@@ -41,9 +42,9 @@ export default function PaymentOnboardingPanel({
         </p>
         <form action={formAction} className="mt-2 inline-block">
           <input type="hidden" name="provider" value={provider} />
-          <Button type="submit" variant="outline" size="sm">
+          <SubmitButton variant="outline" size="sm">
             Re-check status
-          </Button>
+          </SubmitButton>
         </form>
       </div>
     );
@@ -66,9 +67,9 @@ export default function PaymentOnboardingPanel({
         {accountId && (
           <form action={formAction}>
             <input type="hidden" name="provider" value={provider} />
-            <Button type="submit" variant="outline" size="sm">
+            <SubmitButton variant="outline" size="sm">
               Refresh status
-            </Button>
+            </SubmitButton>
           </form>
         )}
       </div>

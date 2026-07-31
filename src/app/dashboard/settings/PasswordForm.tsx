@@ -2,9 +2,9 @@
 
 import { useActionState } from "react";
 import { changePasswordAction, type SettingsState } from "./actions";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 export default function PasswordForm({ hasPassword }: { hasPassword: boolean }) {
   const [state, formAction, pending] = useActionState<SettingsState, FormData>(
@@ -60,12 +60,11 @@ export default function PasswordForm({ hasPassword }: { hasPassword: boolean }) 
         </p>
       )}
 
-      <Button
-        type="submit"
+      <SubmitButton
         disabled={pending || !hasPassword}
       >
         {pending ? "Changing…" : "Change password"}
-      </Button>
+      </SubmitButton>
     </form>
   );
 }

@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 function qs(params: Record<string, string | number | undefined>): string {
   const usp = new URLSearchParams();
@@ -249,9 +250,9 @@ export default async function AdminUsers({
               />
               Show deleted
             </label>
-            <Button type="submit">
+            <SubmitButton>
               Apply
-            </Button>
+            </SubmitButton>
             {(parsed.q || parsed.plan || parsed.hasBookings || parsed.showDeleted) && (
               <Link href="/admin/users" className="text-sm text-slate-500 hover:text-slate-900">
                 Clear

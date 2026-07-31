@@ -1,21 +1,11 @@
 "use client";
 
 import { useActionState } from "react";
-import { useFormStatus } from "react-dom";
 import { sendBroadcastAction, type BroadcastState } from "./actions";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-
-function SubmitButton() {
-  const { pending } = useFormStatus();
-  return (
-    <Button type="submit" disabled={pending} className="mt-2">
-      {pending ? "Sending… this can take a while" : "Send broadcast"}
-    </Button>
-  );
-}
+import { SubmitButton } from "@/components/ui/submit-button";
 
 export function BroadcastForm({ recipientCount }: { recipientCount: number }) {
   const [state, formAction] = useActionState<BroadcastState, FormData>(
@@ -81,7 +71,9 @@ export function BroadcastForm({ recipientCount }: { recipientCount: number }) {
             </p>
           )}
 
-          <SubmitButton />
+          <SubmitButton className="mt-2" pendingLabel="Sending… this can take a while">
+            Send broadcast
+          </SubmitButton>
         </form>
       </CardContent>
     </Card>

@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Card, CardContent } from "@/components/ui/card";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 function qs(params: Record<string, string | number | undefined>): string {
   const usp = new URLSearchParams();
@@ -224,9 +225,9 @@ export default async function AdminBookings({
                 defaultValue={sp.dateTo ?? ""}
               />
             </Field>
-            <Button type="submit">
+            <SubmitButton>
               Apply
-            </Button>
+            </SubmitButton>
             {(parsed.q || parsed.status || parsed.businessId || sp.dateFrom || sp.dateTo) && (
               <Link href="/admin/bookings" className="text-sm text-slate-500 hover:text-slate-900">
                 Clear

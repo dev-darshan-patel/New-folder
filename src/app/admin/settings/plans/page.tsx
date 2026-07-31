@@ -4,9 +4,9 @@ import { prisma } from "@/lib/prisma";
 import { ensurePlans, getAllPlans } from "@/lib/plans";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { togglePlanActiveAction, deletePlanAction } from "./actions";
 import PlanForm from "./PlanForm";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 export default async function AdminPlansPage() {
   const viewer = await getCurrentUser();
@@ -66,9 +66,9 @@ export default async function AdminPlansPage() {
                     <form action={togglePlanActiveAction}>
                       <input type="hidden" name="id" value={p.id} />
                       <input type="hidden" name="active" value={(!p.active).toString()} />
-                      <Button type="submit" variant="outline" size="sm">
+                      <SubmitButton variant="outline" size="sm">
                         {p.active ? "Hide" : "Show"}
-                      </Button>
+                      </SubmitButton>
                     </form>
                   )}
                   <Link
@@ -80,14 +80,13 @@ export default async function AdminPlansPage() {
                   {!p.isSystem && inUse === 0 && (
                     <form action={deletePlanAction}>
                       <input type="hidden" name="id" value={p.id} />
-                      <Button
-                        type="submit"
+                      <SubmitButton
                         variant="outline"
                         size="sm"
                         className="border-red-200 text-red-600 hover:bg-red-50"
                       >
                         Delete
-                      </Button>
+                      </SubmitButton>
                     </form>
                   )}
                 </div>

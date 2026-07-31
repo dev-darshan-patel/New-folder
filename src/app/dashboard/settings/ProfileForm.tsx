@@ -2,10 +2,10 @@
 
 import { useActionState, useEffect, useState } from "react";
 import { updateProfileAction, type SettingsState } from "./actions";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 type Initial = {
   name: string;
@@ -115,12 +115,11 @@ export default function ProfileForm({ initial }: { initial: Initial }) {
         </p>
       )}
 
-      <Button
-        type="submit"
+      <SubmitButton
         disabled={pending}
       >
         {pending ? "Saving…" : "Save profile"}
-      </Button>
+      </SubmitButton>
     </form>
   );
 }

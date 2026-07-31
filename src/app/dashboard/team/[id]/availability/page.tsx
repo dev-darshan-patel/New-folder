@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { updateMemberAvailabilityAction } from "../../actions";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
@@ -73,7 +73,7 @@ export default async function MemberAvailabilityPage({
             </div>
           );
         })}
-        <Button type="submit">Save hours</Button>
+        <SubmitButton>Save hours</SubmitButton>
       </form>
     </div>
   );

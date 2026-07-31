@@ -4,10 +4,10 @@ import { getPlanMap, getAllPlans } from "@/lib/plans";
 import { createCouponAction, toggleCouponAction, deleteCouponAction } from "./actions";
 import { AdminTable, type Column } from "@/components/admin/AdminTable";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 type CouponRow = Awaited<ReturnType<typeof prisma.coupon.findMany<{
   include: { _count: { select: { redemptions: true } } };
@@ -102,26 +102,24 @@ export default async function AdminCouponsPage() {
           <form action={toggleCouponAction}>
             <input type="hidden" name="id" value={c.id} />
             <input type="hidden" name="active" value={c.active ? "false" : "true"} />
-            <Button
-              type="submit"
+            <SubmitButton
               variant="link"
               size="sm"
               className="h-auto px-0 text-xs"
             >
               {c.active ? "Deactivate" : "Activate"}
-            </Button>
+            </SubmitButton>
           </form>
           {canDelete && (
             <form action={deleteCouponAction}>
               <input type="hidden" name="id" value={c.id} />
-              <Button
-                type="submit"
+              <SubmitButton
                 variant="link"
                 size="sm"
                 className="h-auto px-0 text-xs text-red-600"
               >
                 Delete
-              </Button>
+              </SubmitButton>
             </form>
           )}
         </div>
@@ -201,12 +199,11 @@ export default async function AdminCouponsPage() {
                   <Input name="expiresAt" type="datetime-local" className="mt-1" />
                 </label>
               </div>
-              <Button
-                type="submit"
+              <SubmitButton
                 className="mt-4"
               >
                 Create coupon
-              </Button>
+              </SubmitButton>
             </form>
           </CardContent>
         </Card>

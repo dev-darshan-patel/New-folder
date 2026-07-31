@@ -4,6 +4,7 @@ import { useActionState, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { manualRefundAction, type AdminPaymentsState } from "./actions";
 import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 export default function RefundButton({ bookingId }: { bookingId: string }) {
   const [state, formAction] = useActionState<AdminPaymentsState, FormData>(
@@ -28,9 +29,9 @@ export default function RefundButton({ bookingId }: { bookingId: string }) {
   return (
     <form action={formAction} className="inline-flex items-center gap-2">
       <input type="hidden" name="bookingId" value={bookingId} />
-      <Button type="submit" size="sm" variant="destructive">
+      <SubmitButton size="sm" variant="destructive">
         Confirm refund
-      </Button>
+      </SubmitButton>
       <Button type="button" size="sm" variant="outline" onClick={() => setConfirming(false)}>
         Cancel
       </Button>

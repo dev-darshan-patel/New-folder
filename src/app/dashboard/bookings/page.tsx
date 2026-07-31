@@ -8,6 +8,7 @@ import { approveBookingAction, rejectBookingAction } from "./approval-actions";
 import { planHasFeature } from "@/lib/plans";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 export default async function BookingsPage() {
   const user = await getCurrentUser();
@@ -220,13 +221,12 @@ function Row(props: {
           </Button>
           <form action={cancelBookingAction}>
             <input type="hidden" name="token" value={props.manageToken} />
-            <Button
-              type="submit"
+            <SubmitButton
               variant="link"
               className="h-auto p-0 text-red-600"
             >
               Cancel
-            </Button>
+            </SubmitButton>
           </form>
         </div>
       )}
@@ -265,15 +265,15 @@ function PendingRow(props: {
         <div className="mt-3 flex gap-3 border-t border-amber-200 pt-3 text-sm">
           <form action={approveBookingAction}>
             <input type="hidden" name="id" value={props.id} />
-            <Button type="submit" size="sm">
+            <SubmitButton size="sm">
               Approve
-            </Button>
+            </SubmitButton>
           </form>
           <form action={rejectBookingAction}>
             <input type="hidden" name="id" value={props.id} />
-            <Button type="submit" size="sm" variant="outline" className="border-red-300 text-red-600 hover:bg-red-50">
+            <SubmitButton size="sm" variant="outline" className="border-red-300 text-red-600 hover:bg-red-50">
               Decline
-            </Button>
+            </SubmitButton>
           </form>
         </div>
       </CardContent>

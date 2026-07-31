@@ -3,7 +3,7 @@
 import { useActionState, useState } from "react";
 import { wrapHtml } from "@/lib/email-render";
 import { updateEmailBrandingAction, type TemplateFormState } from "./actions";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 type Initial = {
   emailBrandName: string;
@@ -123,9 +123,9 @@ export default function BrandingEditor({ initial }: { initial: Initial }) {
           <p className="rounded-lg bg-green-50 px-3 py-2 text-sm text-green-700">{state.message}</p>
         )}
 
-        <Button type="submit" disabled={pending}>
+        <SubmitButton disabled={pending}>
           {pending ? "Saving…" : "Save branding"}
-        </Button>
+        </SubmitButton>
       </form>
 
       <div>

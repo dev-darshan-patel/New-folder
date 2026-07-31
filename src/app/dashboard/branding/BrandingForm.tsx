@@ -3,11 +3,11 @@
 import { useState } from "react";
 import { FONTS } from "@/lib/branding";
 import { updateBrandingAction } from "../actions";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 type Initial = {
   brandColor: string;
@@ -91,9 +91,9 @@ export default function BrandingForm({
             />
           </div>
 
-          <Button type="submit">
+          <SubmitButton>
             Save branding
-          </Button>
+          </SubmitButton>
         </fieldset>
       </form>
 

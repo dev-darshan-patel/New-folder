@@ -4,9 +4,9 @@ import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getTemplateDef, getEmailBrand, CATEGORY_LABELS } from "@/lib/email-templates";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { resetEmailTemplateAction, toggleEmailTemplateAction } from "../actions";
 import TemplateEditor from "./TemplateEditor";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 export default async function EditEmailTemplatePage({
   params,
@@ -64,15 +64,15 @@ export default async function EditEmailTemplatePage({
           <form action={toggleEmailTemplateAction}>
             <input type="hidden" name="key" value={def.key} />
             <input type="hidden" name="enabled" value={(!enabled).toString()} />
-            <Button type="submit" variant="outline" size="sm">
+            <SubmitButton variant="outline" size="sm">
               {enabled ? "Disable" : "Enable"}
-            </Button>
+            </SubmitButton>
           </form>
           <form action={resetEmailTemplateAction}>
             <input type="hidden" name="key" value={def.key} />
-            <Button type="submit" variant="outline" size="sm">
+            <SubmitButton variant="outline" size="sm">
               Reset to default
-            </Button>
+            </SubmitButton>
           </form>
         </div>
       </div>

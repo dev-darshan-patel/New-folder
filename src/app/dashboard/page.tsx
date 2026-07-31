@@ -6,8 +6,8 @@ import { planHasFeature } from "@/lib/plans";
 import { approveBookingAction, rejectBookingAction } from "./bookings/approval-actions";
 import CopyLink from "./CopyLink";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { BarChart } from "@/components/admin/Charts";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 const RANGES = [7, 30, 90];
 
@@ -161,13 +161,13 @@ export default async function DashboardOverview({
                   <div className="flex gap-2">
                     <form action={approveBookingAction}>
                       <input type="hidden" name="id" value={b.id} />
-                      <Button type="submit" size="sm">Approve</Button>
+                      <SubmitButton size="sm">Approve</SubmitButton>
                     </form>
                     <form action={rejectBookingAction}>
                       <input type="hidden" name="id" value={b.id} />
-                      <Button type="submit" size="sm" variant="outline" className="border-red-300 text-red-600 hover:bg-red-50">
+                      <SubmitButton size="sm" variant="outline" className="border-red-300 text-red-600 hover:bg-red-50">
                         Decline
-                      </Button>
+                      </SubmitButton>
                     </form>
                   </div>
                 </CardContent>

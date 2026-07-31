@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { recoverAccountAction } from "./actions";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 export default async function RecoverAccountPage({
   params,
@@ -41,9 +41,9 @@ export default async function RecoverAccountPage({
             cancelled during deactivation stay cancelled.
           </p>
           <form action={recoverWithToken} className="mt-5">
-            <Button type="submit" className="w-full">
+            <SubmitButton className="w-full">
               Restore my account
-            </Button>
+            </SubmitButton>
           </form>
         </>
       ) : (

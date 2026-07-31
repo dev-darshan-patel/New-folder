@@ -2,9 +2,9 @@
 
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 export default function DateOverrideForm({
   action,
@@ -56,9 +56,9 @@ export default function DateOverrideForm({
           </div>
         </>
       )}
-      <Button type="submit" disabled={pending}>
+      <SubmitButton disabled={pending}>
         {pending ? "Saving…" : "Add override"}
-      </Button>
+      </SubmitButton>
     </form>
   );
 }

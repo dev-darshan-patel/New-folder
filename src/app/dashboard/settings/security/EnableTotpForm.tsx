@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 type Props = {
   secret: string;
@@ -94,12 +95,11 @@ export default function EnableTotpForm({ secret, qrDataUrl }: Props) {
           <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p>
         )}
 
-        <Button
-          type="submit"
+        <SubmitButton
           disabled={pending}
         >
           {pending ? "Verifying…" : "Enable 2FA"}
-        </Button>
+        </SubmitButton>
       </form>
       </CardContent>
     </Card>

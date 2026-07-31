@@ -2,8 +2,8 @@
 
 import { useActionState } from "react";
 import { resetPasswordAction, type ResetState } from "./actions";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 export default function ResetPasswordForm({ token }: { token: string }) {
   const action = resetPasswordAction.bind(null, token);
@@ -34,9 +34,9 @@ export default function ResetPasswordForm({ token }: { token: string }) {
       {state?.error && (
         <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p>
       )}
-      <Button type="submit" disabled={pending} className="w-full">
+      <SubmitButton disabled={pending} className="w-full">
         {pending ? "Saving…" : "Set new password"}
-      </Button>
+      </SubmitButton>
     </form>
   );
 }

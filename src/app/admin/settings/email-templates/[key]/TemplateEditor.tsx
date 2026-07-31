@@ -9,6 +9,7 @@ import {
 } from "../actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 type Var = { name: string; description: string; sample: string };
 
@@ -122,9 +123,9 @@ export default function TemplateEditor({ templateKey, vars, initial, brand }: Pr
             </p>
           )}
 
-          <Button type="submit" disabled={pending}>
+          <SubmitButton disabled={pending}>
             {pending ? "Saving…" : "Save template"}
-          </Button>
+          </SubmitButton>
         </form>
 
         {/* Variable palette */}

@@ -3,10 +3,10 @@
 import { useActionState, useEffect } from "react";
 import { toast } from "sonner";
 import { applyForPaymentsAction } from "./actions";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { NativeSelect } from "@/components/ui/native-select";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 type Country = { code: string; name: string };
 
@@ -63,7 +63,7 @@ export default function ApplyForPaymentsForm({ countries }: { countries: Country
           discretion during that window.
         </span>
       </label>
-      <Button type="submit">Submit application</Button>
+      <SubmitButton>Submit application</SubmitButton>
     </form>
   );
 }

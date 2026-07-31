@@ -6,10 +6,10 @@ import {
   sendTestEmailAction,
 } from "./actions";
 import TestEmailButton from "./TestEmailButton";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 function maskTail(value: string | null): string {
   if (!value) return "Not set";
@@ -101,14 +101,13 @@ export default async function EmailSettingsPage() {
                   placeholder="16-character app password (no spaces)"
                   className="flex-1"
                 />
-                <Button
-                  type="submit"
+                <SubmitButton
                   form="clear-gmailSmtpPass"
                   variant="outline"
                   className="shrink-0"
                 >
                   Clear
-                </Button>
+                </SubmitButton>
               </div>
               <p className="mt-1 text-xs text-slate-400">Leave blank to keep the current value.</p>
             </div>
@@ -166,14 +165,13 @@ export default async function EmailSettingsPage() {
                   placeholder="SES SMTP password"
                   className="flex-1"
                 />
-                <Button
-                  type="submit"
+                <SubmitButton
                   form="clear-sesSmtpPass"
                   variant="outline"
                   className="shrink-0"
                 >
                   Clear
-                </Button>
+                </SubmitButton>
               </div>
               <p className="mt-1 text-xs text-slate-400">Leave blank to keep the current value.</p>
             </div>
@@ -191,11 +189,10 @@ export default async function EmailSettingsPage() {
           </CardContent>
         </Card>
 
-        <Button
-          type="submit"
+        <SubmitButton
         >
           Save settings
-        </Button>
+        </SubmitButton>
       </form>
 
       {/* Clear-secret side-forms (outside the main form — can't nest forms) */}

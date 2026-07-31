@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { hardDeleteUserAction } from "../../actions";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 export default function HardDeleteForm({ userId, slug }: { userId: string; slug: string }) {
   const [confirmText, setConfirmText] = useState("");
@@ -24,9 +24,9 @@ export default function HardDeleteForm({ userId, slug }: { userId: string; slug:
           placeholder={slug}
           className="flex-1 border-red-300 focus-visible:border-red-500"
         />
-        <Button type="submit" variant="destructive" disabled={!matches}>
+        <SubmitButton variant="destructive" disabled={!matches}>
           Delete permanently
-        </Button>
+        </SubmitButton>
       </div>
     </form>
   );

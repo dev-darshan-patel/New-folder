@@ -7,11 +7,11 @@ import {
 } from "./actions";
 import { AdminTable, type Column } from "@/components/admin/AdminTable";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 type AnnouncementRow = Awaited<
   ReturnType<typeof prisma.announcement.findMany>
@@ -93,25 +93,23 @@ export default async function AdminAnnouncementsPage() {
           <form action={setAnnouncementActiveAction}>
             <input type="hidden" name="id" value={a.id} />
             <input type="hidden" name="active" value={a.active ? "0" : "1"} />
-            <Button
-              type="submit"
+            <SubmitButton
               variant="link"
               size="sm"
               className="h-auto px-0 text-xs"
             >
               {a.active ? "Deactivate" : "Activate"}
-            </Button>
+            </SubmitButton>
           </form>
           <form action={deleteAnnouncementAction}>
             <input type="hidden" name="id" value={a.id} />
-            <Button
-              type="submit"
+            <SubmitButton
               variant="link"
               size="sm"
               className="h-auto px-0 text-xs text-red-600"
             >
               Delete
-            </Button>
+            </SubmitButton>
           </form>
         </div>
       ),
@@ -163,9 +161,9 @@ export default async function AdminAnnouncementsPage() {
                   </span>
                 </label>
               </div>
-              <Button type="submit" className="mt-4">
+              <SubmitButton className="mt-4">
                 Create announcement
-              </Button>
+              </SubmitButton>
             </form>
           </CardContent>
         </Card>

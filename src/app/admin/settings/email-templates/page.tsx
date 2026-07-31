@@ -9,10 +9,10 @@ import {
 } from "@/lib/email-templates";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { toggleEmailTemplateAction } from "./actions";
 import BrandingEditor from "./BrandingEditor";
 import ImportButton from "./ImportButton";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 export default async function EmailTemplatesPage({
   searchParams,
@@ -146,9 +146,9 @@ export default async function EmailTemplatesPage({
                           <form action={toggleEmailTemplateAction}>
                             <input type="hidden" name="key" value={def.key} />
                             <input type="hidden" name="enabled" value={(!enabled).toString()} />
-                            <Button type="submit" variant="outline" size="sm">
+                            <SubmitButton variant="outline" size="sm">
                               {enabled ? "Disable" : "Enable"}
-                            </Button>
+                            </SubmitButton>
                           </form>
                           <Link
                             href={`/admin/settings/email-templates/${def.key}`}

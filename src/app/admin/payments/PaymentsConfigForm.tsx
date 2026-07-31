@@ -3,8 +3,8 @@
 import { useActionState, useEffect } from "react";
 import { toast } from "sonner";
 import { updatePaymentsPlatformConfigAction, type AdminPaymentsState } from "./actions";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 export default function PaymentsConfigForm({
   stripeForIndiaEnabled,
@@ -64,7 +64,7 @@ export default function PaymentsConfigForm({
         </p>
       </div>
 
-      <Button type="submit">Save payments config</Button>
+      <SubmitButton>Save payments config</SubmitButton>
     </form>
   );
 }

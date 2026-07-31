@@ -9,6 +9,7 @@ import {
 } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 export default function PendingApplicationRow({
   id,
@@ -63,9 +64,9 @@ export default function PendingApplicationRow({
         <div className="mt-3 flex gap-2">
           <form action={approveAction}>
             <input type="hidden" name="id" value={id} />
-            <Button type="submit" size="sm">
+            <SubmitButton size="sm">
               Approve
-            </Button>
+            </SubmitButton>
           </form>
           <Button type="button" size="sm" variant="outline" onClick={() => setShowRejectForm(true)}>
             Reject
@@ -81,9 +82,9 @@ export default function PendingApplicationRow({
             placeholder="Reason (shown to the tenant, e.g. 'Need clearer business description')"
           />
           <div className="flex gap-2">
-            <Button type="submit" size="sm" variant="destructive">
+            <SubmitButton size="sm" variant="destructive">
               Confirm rejection
-            </Button>
+            </SubmitButton>
             <Button type="button" size="sm" variant="outline" onClick={() => setShowRejectForm(false)}>
               Cancel
             </Button>

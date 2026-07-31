@@ -12,6 +12,7 @@ import HardDeleteForm from "./HardDeleteForm";
 import ConfirmSubmit from "@/components/ConfirmSubmit";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 const ROLES: AdminRole[] = ["SUPER_ADMIN", "SUPPORT", "READ_ONLY"];
 
@@ -82,9 +83,9 @@ export default function AdminActions({
         <div className="mt-2 flex flex-wrap gap-2">
           <form action={forcePasswordResetAction}>
             <input type="hidden" name="userId" value={target.id} />
-            <Button type="submit" variant="outline" size="sm">
+            <SubmitButton variant="outline" size="sm">
               Send password reset email
-            </Button>
+            </SubmitButton>
           </form>
 
           {/* Restoring access is safe and instant, so it stays a plain button.
@@ -94,14 +95,13 @@ export default function AdminActions({
             <form action={setSuspendedAction}>
               <input type="hidden" name="userId" value={target.id} />
               <input type="hidden" name="suspended" value="0" />
-              <Button
-                type="submit"
+              <SubmitButton
                 variant="outline"
                 size="sm"
                 className="border-green-300 text-green-700 hover:bg-green-50"
               >
                 Unsuspend account
-              </Button>
+              </SubmitButton>
             </form>
           ) : (
             <ConfirmSubmit
@@ -118,15 +118,14 @@ export default function AdminActions({
           {isSuperAdmin && !isSelf && (
             <form action={startImpersonationAction}>
               <input type="hidden" name="userId" value={target.id} />
-              <Button
-                type="submit"
+              <SubmitButton
                 variant="outline"
                 size="sm"
                 disabled={target.suspended || !!target.deletedAt}
                 className="border-primary/30 text-primary hover:bg-primary/5"
               >
                 View as this user
-              </Button>
+              </SubmitButton>
             </form>
           )}
         </div>
@@ -163,14 +162,13 @@ export default function AdminActions({
             {target.deletedAt ? (
               <form action={restoreUserAction}>
                 <input type="hidden" name="userId" value={target.id} />
-                <Button
-                  type="submit"
+                <SubmitButton
                   variant="outline"
                   size="sm"
                   className="border-green-300 text-green-700 hover:bg-green-50"
                 >
                   Restore account
-                </Button>
+                </SubmitButton>
               </form>
             ) : (
               <ConfirmSubmit

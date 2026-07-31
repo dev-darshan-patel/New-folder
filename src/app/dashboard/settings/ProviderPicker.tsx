@@ -4,7 +4,7 @@ import { useActionState, useEffect } from "react";
 import { toast } from "sonner";
 import { setActivePaymentProviderAction } from "./actions";
 import type { SettingsState } from "./actions";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 const PROVIDER_LABEL: Record<string, string> = {
   STRIPE: "Stripe",
@@ -45,14 +45,13 @@ export default function ProviderPicker({
         {eligible.map((p) => (
           <form key={p} action={formAction}>
             <input type="hidden" name="provider" value={p} />
-            <Button
-              type="submit"
+            <SubmitButton
               variant={active === p ? "default" : "outline"}
               className="w-full"
             >
               {PROVIDER_LABEL[p] ?? p}
               {active === p && " ✓"}
-            </Button>
+            </SubmitButton>
           </form>
         ))}
       </div>

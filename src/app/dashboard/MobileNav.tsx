@@ -20,7 +20,7 @@ import {
   HelpCircle,
 } from "lucide-react";
 import { logoutAction } from "../(auth)/actions";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 // Grouped to match the desktop sidebar (src/app/dashboard/layout.tsx).
 const navGroups = [
@@ -173,14 +173,13 @@ export default function MobileNav({
         {/* Logout */}
         <div className="border-t border-slate-200 px-3 py-4">
           <form action={logoutAction}>
-            <Button
-              type="submit"
+            <SubmitButton
               variant="ghost"
               className="w-full justify-start gap-3 rounded-xl px-4 py-3 text-sm font-medium text-slate-500 hover:text-slate-900"
             >
               <LogOut size={18} />
               Log out
-            </Button>
+            </SubmitButton>
           </form>
         </div>
       </div>

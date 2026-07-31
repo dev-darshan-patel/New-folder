@@ -1,11 +1,11 @@
 import { getCurrentUser } from "@/lib/auth";
 import { getPlatformSettings } from "@/lib/settings";
 import { updatePlatformConfigAction } from "./actions";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 export default async function AdminPlatformConfigPage() {
   const viewer = await getCurrentUser();
@@ -74,11 +74,10 @@ export default async function AdminPlatformConfigPage() {
           </CardContent>
         </Card>
 
-        <Button
-          type="submit"
+        <SubmitButton
         >
           Save config
-        </Button>
+        </SubmitButton>
       </form>
     </div>
   );

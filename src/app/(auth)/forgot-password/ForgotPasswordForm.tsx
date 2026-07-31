@@ -2,9 +2,9 @@
 
 import { useActionState } from "react";
 import { requestPasswordResetAction } from "../actions";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 export default function ForgotPasswordForm() {
   const [state, formAction, pending] = useActionState(requestPasswordResetAction, null);
@@ -34,13 +34,12 @@ export default function ForgotPasswordForm() {
         <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p>
       )}
 
-      <Button
-        type="submit"
+      <SubmitButton
         disabled={pending}
         className="w-full"
       >
         {pending ? "Sending…" : "Send reset link"}
-      </Button>
+      </SubmitButton>
     </form>
   );
 }

@@ -5,8 +5,8 @@ import { getCurrentUser } from "@/lib/auth";
 import { getPlanConfig, getAllPlans } from "@/lib/plans";
 import { addAdminNoteAction } from "../../actions";
 import AdminActions from "./AdminActions";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const BOOKINGS_PAGE_SIZE = 10;
@@ -257,7 +257,7 @@ export default async function AdminUserDetail({
               placeholder="Add an internal note (not visible to the user)…"
               className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500"
             />
-            <Button type="submit">Add</Button>
+            <SubmitButton>Add</SubmitButton>
           </form>
         )}
       </Section>

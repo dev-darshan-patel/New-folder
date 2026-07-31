@@ -5,9 +5,9 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { loginAction } from "../actions";
 import { oauthErrorMessage } from "../oauth-errors";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 function OAuthError() {
   const searchParams = useSearchParams();
@@ -76,13 +76,12 @@ export default function LoginForm({ showEmailDivider }: { showEmailDivider: bool
           <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p>
         )}
 
-        <Button
-          type="submit"
+        <SubmitButton
           disabled={pending}
           className="w-full"
         >
           {pending ? "Logging in…" : "Log in"}
-        </Button>
+        </SubmitButton>
       </form>
 
       <p className="mt-6 text-center text-sm text-slate-600">

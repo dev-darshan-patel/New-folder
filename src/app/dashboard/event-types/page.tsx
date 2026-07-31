@@ -17,6 +17,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BLOCKING_STATUSES } from "@/lib/booking-status";
 import ConfirmSubmit from "@/components/ConfirmSubmit";
 import CopyLinkButton from "./CopyLinkButton";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 export default async function EventTypesPage({
   searchParams,
@@ -118,16 +119,16 @@ export default async function EventTypesPage({
                   </Button>
                   <form action={cloneEventTypeAction}>
                     <input type="hidden" name="id" value={et.id} />
-                    <Button type="submit" variant="ghost" size="sm">
+                    <SubmitButton variant="ghost" size="sm">
                       Clone
-                    </Button>
+                    </SubmitButton>
                   </form>
                   <form action={toggleEventTypeActiveAction}>
                     <input type="hidden" name="id" value={et.id} />
                     <input type="hidden" name="active" value={et.active ? "0" : "1"} />
-                    <Button type="submit" variant="ghost" size="sm">
+                    <SubmitButton variant="ghost" size="sm">
                       {et.active ? "Deactivate" : "Activate"}
-                    </Button>
+                    </SubmitButton>
                   </form>
                   <ConfirmSubmit
                     action={deleteEventTypeAction}
@@ -198,12 +199,11 @@ export default async function EventTypesPage({
                 rows={2}
               />
             </div>
-            <Button
-              type="submit"
+            <SubmitButton
               disabled={atLimit}
             >
               {atLimit ? "Upgrade to add more" : "Create event type"}
-            </Button>
+            </SubmitButton>
           </form>
         </CardContent>
       </Card>

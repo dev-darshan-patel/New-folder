@@ -2,11 +2,11 @@ import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { saveAvailabilityAction, saveDateOverrideAction, deleteDateOverrideAction } from "../actions";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import DateOverrideForm from "./DateOverrideForm";
 import DeleteOverrideButton from "./DeleteOverrideButton";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
@@ -82,12 +82,11 @@ export default async function AvailabilityPage() {
           );
         })}
 
-        <Button
-          type="submit"
+        <SubmitButton
           className="mt-6"
         >
           Save availability
-        </Button>
+        </SubmitButton>
       </form>
 
       <div className="mt-10">

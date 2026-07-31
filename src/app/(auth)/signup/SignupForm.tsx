@@ -2,9 +2,9 @@
 
 import { useActionState, useEffect } from "react";
 import { signupAction } from "../actions";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 export default function SignupForm() {
   const [state, formAction, pending] = useActionState(signupAction, null);
@@ -33,13 +33,12 @@ export default function SignupForm() {
         <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p>
       )}
 
-      <Button
-        type="submit"
+      <SubmitButton
         disabled={pending}
         className="w-full"
       >
         {pending ? "Creating account…" : "Create account"}
-      </Button>
+      </SubmitButton>
     </form>
   );
 }
