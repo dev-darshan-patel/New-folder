@@ -635,6 +635,7 @@
 
 <h2 id="event-types">Event types</h2>
 <p>An event type is one kind of appointment. Create them at <strong>Event Types</strong>, then click <strong>Edit</strong> to configure. Here is every setting, what it does, and what it needs.</p>
+<p>Each event type also has <strong>Copy link</strong>, <strong>Clone</strong>, <strong>Deactivate/Activate</strong>, and <strong>Delete</strong> on its card. Cloning duplicates every setting onto a new event type (so you can build variations of a popular offering without starting over); it's still subject to your plan's event-type limit and, if a setting is only available on a higher plan than you're currently on, the clone drops it rather than silently copying something you're not entitled to.</p>
 
 <h3>Basics</h3>
 <div class="table-wrap">
@@ -644,6 +645,7 @@
 <tr><td><strong>Description</strong></td><td>Optional blurb shown on the booking page.</td><td>—</td></tr>
 <tr><td><strong>Duration</strong></td><td>How long the appointment lasts, from 15 to 120 minutes.</td><td>—</td></tr>
 <tr><td><strong>Location</strong></td><td>Where it happens — see the table below.</td><td>—</td></tr>
+<tr><td><strong>Unlisted</strong></td><td>Hides it from your public booking page (<code>/{your-handle}</code>) while its direct link keeps working — handy for an offer you only share privately. Different from deactivating: an unlisted event type is still fully bookable.</td><td>—</td></tr>
 </table>
 </div>
 
@@ -664,9 +666,11 @@
 <table>
 <tr><th>Setting</th><th>What it does</th></tr>
 <tr><td><strong>Minimum notice</strong></td><td>How far ahead someone must book. Options: none, 1h, 2h, 4h, 12h, 1 day. Stops same-minute surprise bookings.</td></tr>
+<tr><td><strong>Buffer between meetings</strong></td><td>A gap kept free before <em>and</em> after every booking of this type — none, 5, 10, 15, 30 or 60 minutes. Use it so back-to-back bookings always leave you a breather; it only hides adjoining slots, it never changes your normal time-slot grid.</td></tr>
 <tr><td><strong>Max bookings / day</strong></td><td>Once this many bookings exist for this event type on a date, that whole date stops offering slots.</td></tr>
 <tr><td><strong>Max bookings / week</strong></td><td>Same idea, per calendar week (Sun–Sat, your timezone).</td></tr>
 <tr><td><strong>Max bookings / month</strong></td><td>Same idea, per calendar month.</td></tr>
+<tr><td><strong>Booking window</strong></td><td>How many days ahead someone may book at all — e.g. set to 30 so people can't book six months out for a slot you haven't planned around yet. Leave blank for no limit.</td></tr>
 <tr><td><strong>Cancel/reschedule notice</strong></td><td>How close to the start time a <em>customer</em> can still change their booking. You as the owner can always change it, regardless of this setting.</td></tr>
 </table>
 </div>
@@ -817,6 +821,10 @@
 </div>
 <p>Busy-sync has its own on/off toggle, so you can connect Google purely for Meet links without letting Bookify read your calendar's busy times.</p>
 <div class="callout warn"><strong>Outlook / Microsoft 365 calendar sync is not built.</strong> You can <em>sign in</em> with a Microsoft account, but Bookify does not currently read Outlook busy time or create Outlook events. Only Google busy-sync exists today.</div>
+
+<h3>Calendar feed (subscribe, no connection needed)</h3>
+<p><strong>Settings → Calendar feed</strong> gives you a private, read-only web-calendar URL — one for all your bookings, and one per event type. Paste it into Google Calendar, Apple Calendar or Outlook as a <em>subscription</em> (not an import) and your bookings show up there automatically, refreshing on their own. Unlike Meet/Zoom above, this needs no OAuth connection at all — the link itself is the only credential.</p>
+<div class="callout warn"><strong>Treat the feed link like a password.</strong> The link itself is the only credential — anyone who has it can see everything on it: booking times, customer name and email, notes, and the meeting link. If it ever leaks, click <strong>Generate new link</strong> — the old URL stops working immediately and every calendar subscribed to it will simply stop updating.</div>
 
 <h2 id="security">Account security</h2>
 <ul>
@@ -1172,8 +1180,8 @@
 <div class="table-wrap">
 <table>
 <tr><th>Model</th><th>Purpose</th></tr>
-<tr><td><code>User</code></td><td>A tenant account: profile, plan and billing state, security (2FA, lockout, session version), branding, payment-provider connection state, deletion lifecycle timestamps</td></tr>
-<tr><td><code>EventType</code></td><td>A bookable appointment type: duration, location, limits, intake questions, price, assignment mode, capacity, recurring flag</td></tr>
+<tr><td><code>User</code></td><td>A tenant account: profile, plan and billing state, security (2FA, lockout, session version), branding, payment-provider connection state, deletion lifecycle timestamps, iCal feed token</td></tr>
+<tr><td><code>EventType</code></td><td>A bookable appointment type: duration, location, limits (incl. padding, booking window), unlisted flag, intake questions, price, assignment mode, capacity, recurring flag</td></tr>
 <tr><td><code>Availability</code></td><td>One weekly recurring window (weekday + minutes-from-midnight). Optionally scoped to a team member.</td></tr>
 <tr><td><code>DateOverride</code></td><td>A one-off exception for a specific date — closed, or custom hours</td></tr>
 <tr><td><code>Booking</code></td><td>An appointment: invitee details, UTC times, status, intake answers, guests, video link, recurring-series linkage, payment and payout state</td></tr>
@@ -1253,7 +1261,8 @@
   <li>Walk the window in steps, producing candidate wall-clock start times.</li>
   <li>Convert each wall-clock time to a UTC instant <em>in the tenant's timezone for that specific date</em>, so daylight-saving is handled correctly.</li>
   <li>Drop anything already in the past, or inside the event type's minimum-notice horizon.</li>
-  <li>Drop anything overlapping an existing booking whose status holds the slot.</li>
+  <li>Drop everything for the day if it's beyond the event type's booking window (<code>maxAdvanceDays</code>).</li>
+  <li>Drop anything overlapping an existing booking whose status holds the slot — widened by the event type's padding, if any, so a booking blocks <code>[start − padding, end + padding]</code> rather than just its own window.</li>
   <li>Drop everything for the day if a daily, weekly or monthly cap is already met.</li>
   <li>For team event types, intersect against member availability — any member for round-robin, all members for collective.</li>
   <li>Subtract connected-calendar busy windows, if the tenant has busy-sync enabled and their plan still grants it.</li>
@@ -1286,7 +1295,7 @@
 <div class="table-wrap">
 <table>
 <tr><td><code>/</code></td><td>Marketing landing page</td></tr>
-<tr><td><code>/[slug]</code></td><td>A tenant's public page listing their event types</td></tr>
+<tr><td><code>/[slug]</code></td><td>A tenant's public page listing their event types (unlisted ones excluded)</td></tr>
 <tr><td><code>/[slug]/[eventSlug]</code></td><td>The booking page. Add <code>?embed=1</code> for the embeddable variant.</td></tr>
 <tr><td><code>/booking/[token]</code></td><td>Invitee self-manage — view, cancel</td></tr>
 <tr><td><code>/booking/[token]/reschedule</code></td><td>Invitee reschedule</td></tr>
@@ -1308,7 +1317,7 @@
 <h4>Dashboard — tenant</h4>
 <div class="table-wrap">
 <table>
-<tr><td><code>/dashboard</code></td><td>Overview with the shareable booking link</td></tr>
+<tr><td><code>/dashboard</code></td><td>Overview — shareable booking link, KPIs, bookings chart, upcoming/pending-approval lists</td></tr>
 <tr><td><code>/dashboard/event-types</code>, <code>/dashboard/event-types/[id]</code></td><td>List and edit event types</td></tr>
 <tr><td><code>/dashboard/event-types/[id]/sessions/[sessionId]</code></td><td>Manage one group session</td></tr>
 <tr><td><code>/dashboard/availability</code></td><td>Weekly hours + date overrides</td></tr>
@@ -1339,6 +1348,7 @@
 <tr><td><code>/api/auth/[provider]/start</code>, <code>/callback</code></td><td>Google / Microsoft sign-in flow</td></tr>
 <tr><td><code>/api/calendar/google/start</code>, <code>/callback</code></td><td>Google Calendar connect flow</td></tr>
 <tr><td><code>/api/calendar/zoom/start</code>, <code>/callback</code></td><td>Zoom connect flow</td></tr>
+<tr><td><code>/api/calendar/feed/[token]</code></td><td>Read-only iCal subscription feed — no session, the token is the auth; optional <code>?eventType=</code></td></tr>
 <tr><td><code>/api/avatar/[userId]</code>, <code>/api/upload/avatar</code></td><td>Avatar serve (auth-checked proxy) and upload</td></tr>
 <tr><td><code>/api/stripe/webhook</code>, <code>/api/payments/webhook/[provider]</code></td><td>Payment provider webhooks — signature-verified</td></tr>
 <tr><td><code>/api/payments/onboarding/[provider]/start</code>, <code>/return</code></td><td>Provider Connect onboarding</td></tr>

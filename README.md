@@ -14,11 +14,14 @@ REST/tRPC layer).
 
 Core booking flow, Stripe subscription billing, self-service reschedule/cancel,
 custom branding + an embeddable widget, `.ics` calendar invites, invitee
-timezone selection, per-event-type intake questions & scheduling limits, email
-reminders (24h + 1h, via cron), team scheduling (round-robin / collective),
-group & recurring bookings, tenant payments (Stripe / Razorpay), 2FA, a
-per-plan feature-entitlement system, self-service account deletion + recovery,
-and a full platform super-admin console (`/admin`).
+timezone selection, per-event-type intake questions & scheduling limits
+(min-notice, daily/weekly/monthly caps, buffer between meetings, booking
+window), unlisted event types, event-type cloning, email reminders (24h + 1h,
+via cron), a read-only iCal subscription feed, a real dashboard overview with
+metrics, team scheduling (round-robin / collective), group & recurring
+bookings, tenant payments (Stripe / Razorpay), 2FA, a per-plan
+feature-entitlement system, self-service account deletion + recovery, and a
+full platform super-admin console (`/admin`).
 
 Not built yet: **Google/Outlook calendar sync** beyond the existing Google
 busy-sync + Meet-link generation (SMS is intentionally out of scope).
