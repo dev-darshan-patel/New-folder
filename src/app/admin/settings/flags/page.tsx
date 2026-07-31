@@ -7,7 +7,7 @@ export default async function AdminFeatureFlagsPage() {
   const viewer = await getCurrentUser();
   if (!viewer || viewer.adminRole !== "SUPER_ADMIN") {
     return (
-      <div className="mx-auto max-w-2xl">
+      <div className="mx-auto max-w-6xl">
         <h1 className="text-2xl font-bold tracking-tight text-slate-900">Feature flags</h1>
         <p className="mt-2 text-sm text-slate-500">
           Platform settings are restricted to Super Admins.

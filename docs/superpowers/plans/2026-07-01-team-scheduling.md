@@ -589,7 +589,7 @@ export default async function TeamPage() {
 
   if (!planConfig(user.plan).teamScheduling) {
     return (
-      <div className="mx-auto max-w-2xl">
+      <div className="mx-auto max-w-6xl">
         <h1 className="text-2xl font-bold tracking-tight text-slate-900">Team</h1>
         <p className="mt-2 text-sm text-slate-600">
           Team scheduling (round-robin and collective booking) is available on the
@@ -612,7 +612,7 @@ export default async function TeamPage() {
   const others = members.filter((m) => !m.isOwner);
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="mx-auto max-w-6xl">
       <h1 className="text-2xl font-bold tracking-tight text-slate-900">Team</h1>
       <p className="mt-1 text-sm text-slate-600">
         Add teammates and set their hours so round-robin and collective event types
@@ -838,7 +838,7 @@ export default async function MemberAvailabilityPage({
   const byDay = new Map(windows.map((w) => [w.weekday, w]));
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="mx-auto max-w-6xl">
       <h1 className="text-2xl font-bold tracking-tight text-slate-900">
         {member.name}&apos;s hours
       </h1>

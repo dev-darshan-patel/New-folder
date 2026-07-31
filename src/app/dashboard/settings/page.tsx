@@ -97,7 +97,7 @@ export default async function SettingsPage({
   const paymentsStatus = sp.payments ? PAYMENTS_STATUS[sp.payments] : null;
 
   return (
-    <div className="mx-auto max-w-2xl space-y-8">
+    <div className="mx-auto max-w-6xl space-y-8">
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-slate-900">Account settings</h1>
         <p className="mt-1 text-sm text-slate-600">Manage your profile and password.</p>

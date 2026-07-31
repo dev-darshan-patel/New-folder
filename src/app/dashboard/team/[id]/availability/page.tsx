@@ -28,7 +28,7 @@ export default async function MemberAvailabilityPage({
   const byDay = new Map(windows.map((w) => [w.weekday, w]));
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="mx-auto max-w-6xl">
       <h1 className="text-2xl font-bold tracking-tight text-slate-900">
         {member.name}&apos;s hours
       </h1>

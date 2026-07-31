@@ -23,7 +23,7 @@ export default async function EmailSettingsPage() {
     await requireAdminRole("SUPER_ADMIN");
   } catch {
     return (
-      <div className="mx-auto max-w-2xl">
+      <div className="mx-auto max-w-6xl">
         <h1 className="text-2xl font-bold tracking-tight text-slate-900">Email settings</h1>
         <p className="mt-2 text-sm text-slate-500">Restricted to Super Admins.</p>
       </div>
@@ -34,7 +34,7 @@ export default async function EmailSettingsPage() {
   const provider = settings.emailProvider ?? "NONE";
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="mx-auto max-w-6xl">
       <h1 className="text-2xl font-bold tracking-tight text-slate-900">Email settings</h1>
       <p className="mt-1 text-sm text-slate-600">
         Choose one email provider for outgoing booking confirmations, reminders, and

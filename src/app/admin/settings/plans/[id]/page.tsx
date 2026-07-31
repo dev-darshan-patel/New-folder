@@ -13,7 +13,7 @@ export default async function EditPlanPage({
   const viewer = await getCurrentUser();
   if (!viewer || viewer.adminRole !== "SUPER_ADMIN") {
     return (
-      <div className="mx-auto max-w-2xl">
+      <div className="mx-auto max-w-6xl">
         <h1 className="text-2xl font-bold tracking-tight text-slate-900">Plan</h1>
         <p className="mt-2 text-sm text-slate-500">Restricted to Super Admins.</p>
       </div>

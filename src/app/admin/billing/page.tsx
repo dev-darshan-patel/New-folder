@@ -18,7 +18,7 @@ export default async function AdminBillingPage() {
     await requireAdminRole("READ_ONLY");
   } catch {
     return (
-      <div className="mx-auto max-w-2xl">
+      <div className="mx-auto max-w-6xl">
         <h1 className="text-2xl font-bold tracking-tight text-slate-900">Billing</h1>
         <p className="mt-2 text-sm text-slate-500">Restricted to admins.</p>
       </div>

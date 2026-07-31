@@ -10,7 +10,7 @@ export default async function AdminBroadcastPage() {
 
   if (viewer.adminRole !== "SUPER_ADMIN") {
     return (
-      <div className="mx-auto max-w-2xl">
+      <div className="mx-auto max-w-6xl">
         <h1 className="text-2xl font-bold tracking-tight text-slate-900">Broadcast email</h1>
         <p className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
           Only super admins can send broadcast emails.
@@ -24,7 +24,7 @@ export default async function AdminBroadcastPage() {
   });
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="mx-auto max-w-6xl">
       <h1 className="text-2xl font-bold tracking-tight text-slate-900">Broadcast email</h1>
       <p className="mt-1 text-sm text-slate-600">
         Send an email to every active business on the platform. This will email{" "}

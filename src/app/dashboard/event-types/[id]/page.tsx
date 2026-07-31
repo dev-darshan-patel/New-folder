@@ -59,7 +59,7 @@ export default async function EditEventTypePage({
   ]);
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="mx-auto max-w-6xl">
       <Link
         href="/dashboard/event-types"
         className="text-sm font-medium text-slate-500 hover:text-slate-900"
