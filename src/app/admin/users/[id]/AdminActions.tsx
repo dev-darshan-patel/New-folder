@@ -9,6 +9,7 @@ import {
   setAdminRoleAction,
 } from "../../actions";
 import HardDeleteForm from "./HardDeleteForm";
+import ConfirmSubmit from "@/components/ConfirmSubmit";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -86,22 +87,33 @@ export default function AdminActions({
             </Button>
           </form>
 
-          <form action={setSuspendedAction}>
-            <input type="hidden" name="userId" value={target.id} />
-            <input type="hidden" name="suspended" value={target.suspended ? "0" : "1"} />
-            <Button
-              type="submit"
-              variant="outline"
-              size="sm"
-              className={
-                target.suspended
-                  ? "border-green-300 text-green-700 hover:bg-green-50"
-                  : "border-amber-300 text-amber-700 hover:bg-amber-50"
-              }
-            >
-              {target.suspended ? "Unsuspend account" : "Suspend account"}
-            </Button>
-          </form>
+          {/* Restoring access is safe and instant, so it stays a plain button.
+              Suspending is customer-visible — it blocks the tenant's login AND
+              404s their public booking page — so it asks first. */}
+          {target.suspended ? (
+            <form action={setSuspendedAction}>
+              <input type="hidden" name="userId" value={target.id} />
+              <input type="hidden" name="suspended" value="0" />
+              <Button
+                type="submit"
+                variant="outline"
+                size="sm"
+                className="border-green-300 text-green-700 hover:bg-green-50"
+              >
+                Unsuspend account
+              </Button>
+            </form>
+          ) : (
+            <ConfirmSubmit
+              action={setSuspendedAction}
+              fields={{ userId: target.id, suspended: "1" }}
+              label="Suspend account"
+              className="border border-amber-300 text-amber-700 hover:bg-amber-50"
+              title={`Suspend ${target.businessName}?`}
+              confirmLabel="Suspend account"
+              description="They will be signed out and unable to log back in, and their public booking page will stop accepting bookings immediately. Existing bookings are kept. You can undo this at any time."
+            />
+          )}
 
           {isSuperAdmin && !isSelf && (
             <form action={startImpersonationAction}>
@@ -161,17 +173,15 @@ export default function AdminActions({
                 </Button>
               </form>
             ) : (
-              <form action={softDeleteUserAction}>
-                <input type="hidden" name="userId" value={target.id} />
-                <Button
-                  type="submit"
-                  variant="outline"
-                  size="sm"
-                  className="border-red-300 text-red-700 hover:bg-red-50"
-                >
-                  Soft delete (hide account)
-                </Button>
-              </form>
+              <ConfirmSubmit
+                action={softDeleteUserAction}
+                fields={{ userId: target.id }}
+                label="Soft delete (hide account)"
+                className="border border-red-300 text-red-700 hover:bg-red-50"
+                title={`Soft delete ${target.businessName}?`}
+                confirmLabel="Soft delete"
+                description="The account is hidden from the users list and can no longer be used, but nothing is erased — you can restore it from this page at any time."
+              />
             )}
           </div>
           <div className="mt-3">

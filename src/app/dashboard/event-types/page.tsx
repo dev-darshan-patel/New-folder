@@ -14,6 +14,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { BLOCKING_STATUSES } from "@/lib/booking-status";
+import ConfirmSubmit from "@/components/ConfirmSubmit";
 import CopyLinkButton from "./CopyLinkButton";
 
 export default async function EventTypesPage({
@@ -25,10 +27,28 @@ export default async function EventTypesPage({
   if (!user) return null;
 
   const sp = await searchParams;
-  const eventTypes = await prisma.eventType.findMany({
-    where: { userId: user.id },
-    orderBy: { createdAt: "asc" },
-  });
+  const [eventTypes, upcomingByEventType] = await Promise.all([
+    prisma.eventType.findMany({
+      where: { userId: user.id },
+      orderBy: { createdAt: "asc" },
+    }),
+    // Deleting an event type cascades to its bookings (schema.prisma:415), so
+    // the delete confirmation needs to state how many real appointments would
+    // go with it. Only future slot-holding bookings matter — past and
+    // cancelled ones aren't something the owner can still harm.
+    prisma.booking.groupBy({
+      by: ["eventTypeId"],
+      where: {
+        userId: user.id,
+        status: { in: BLOCKING_STATUSES },
+        startTime: { gte: new Date() },
+      },
+      _count: { _all: true },
+    }),
+  ]);
+  const upcomingCount = new Map(
+    upcomingByEventType.map((r) => [r.eventTypeId, r._count._all]),
+  );
 
   const planCfg = await getPlanConfig(user.plan);
   const limit = planCfg.maxEventTypes;
@@ -109,17 +129,22 @@ export default async function EventTypesPage({
                       {et.active ? "Deactivate" : "Activate"}
                     </Button>
                   </form>
-                  <form action={deleteEventTypeAction}>
-                    <input type="hidden" name="id" value={et.id} />
-                    <Button
-                      type="submit"
-                      variant="ghost"
-                      size="sm"
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                    >
-                      Delete
-                    </Button>
-                  </form>
+                  <ConfirmSubmit
+                    action={deleteEventTypeAction}
+                    fields={{ id: et.id }}
+                    label="Delete"
+                    className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                    title={`Delete "${et.title}"?`}
+                    destructive
+                    confirmLabel="Delete event type"
+                    description={
+                      (upcomingCount.get(et.id) ?? 0) > 0
+                        ? `This also permanently deletes ${upcomingCount.get(et.id)} upcoming booking${
+                            upcomingCount.get(et.id) === 1 ? "" : "s"
+                          }. Those customers keep their calendar invites and will not be told. This can't be undone.`
+                        : "This can't be undone. Consider deactivating it instead if you might use it again."
+                    }
+                  />
                 </div>
               </CardContent>
             </Card>
