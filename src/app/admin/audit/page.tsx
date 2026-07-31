@@ -82,7 +82,7 @@ export default async function AdminAuditLogPage({
   ];
 
   return (
-    <div className="mx-auto max-w-4xl">
+    <div className="mx-auto max-w-6xl">
       <AdminTable
         title="Audit log"
         description={`Every admin action, newest first. ${total} total.`}

@@ -130,7 +130,7 @@ export default async function AdminCouponsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl">
+    <div className="mx-auto max-w-6xl">
       <h1 className="text-2xl font-bold tracking-tight text-slate-900">Coupons</h1>
       <p className="mt-1 text-sm text-slate-600">
         Promo codes for billing. Trial codes grant a plan without Stripe; Stripe promo codes

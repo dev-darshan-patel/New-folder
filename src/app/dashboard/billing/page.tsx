@@ -34,7 +34,7 @@ export default async function BillingPage({
   const isDev = process.env.NODE_ENV !== "production";
 
   return (
-    <div className="mx-auto max-w-4xl">
+    <div className="mx-auto max-w-6xl">
       <h1 className="text-2xl font-bold tracking-tight text-slate-900">
         Plans &amp; Billing
       </h1>

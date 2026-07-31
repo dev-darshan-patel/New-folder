@@ -119,7 +119,7 @@ export default async function AdminAnnouncementsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl">
+    <div className="mx-auto max-w-6xl">
       <h1 className="text-2xl font-bold tracking-tight text-slate-900">
         Announcements
       </h1>

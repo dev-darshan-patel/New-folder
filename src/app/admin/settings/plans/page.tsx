@@ -27,7 +27,7 @@ export default async function AdminPlansPage() {
   const countByPlan = new Map(counts.map((c) => [c.plan, c._count._all]));
 
   return (
-    <div className="mx-auto max-w-4xl">
+    <div className="mx-auto max-w-6xl">
       <h1 className="text-2xl font-bold tracking-tight text-slate-900">Plans</h1>
       <p className="mt-1 text-sm text-slate-600">
         Create, edit, and retire subscription tiers. Prices, limits, and feature gates apply

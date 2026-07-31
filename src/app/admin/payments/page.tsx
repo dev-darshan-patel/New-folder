@@ -74,7 +74,7 @@ export default async function AdminPaymentsPage() {
   ]);
 
   return (
-    <div className="mx-auto max-w-4xl space-y-8">
+    <div className="mx-auto max-w-6xl space-y-8">
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-slate-900">Payments</h1>
         <p className="mt-1 text-sm text-slate-600">

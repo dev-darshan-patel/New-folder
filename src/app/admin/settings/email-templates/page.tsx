@@ -59,7 +59,7 @@ export default async function EmailTemplatesPage({
   const categories: TemplateCategory[] = ["BOOKING", "AUTH", "ACCOUNT", "NOTIFICATION"];
 
   return (
-    <div className="mx-auto max-w-4xl">
+    <div className="mx-auto max-w-6xl">
       <h1 className="text-2xl font-bold tracking-tight text-slate-900">Email templates</h1>
       <p className="mt-1 text-sm text-slate-600">
         Edit every transactional email the platform sends. Disabled templates fall back to the
