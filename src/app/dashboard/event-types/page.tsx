@@ -5,6 +5,8 @@ import { getPlanConfig } from "@/lib/plans";
 import {
   createEventTypeAction,
   deleteEventTypeAction,
+  toggleEventTypeActiveAction,
+  cloneEventTypeAction,
 } from "../actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import CopyLinkButton from "./CopyLinkButton";
 
 export default async function EventTypesPage({
   searchParams,
@@ -61,28 +64,51 @@ export default async function EventTypesPage({
         </div>
       )}
 
-      <ul className="mt-6 space-y-3">
-        {eventTypes.map((et) => (
-          <li key={et.id}>
-            <Card>
-              <CardContent className="flex items-center justify-between p-4">
-                <div>
-                  <p className="font-medium text-slate-900">{et.title}</p>
-                  <p className="text-sm text-slate-500">
-                    {et.durationMinutes} min ·{" "}
-                    <span className="text-slate-400">
-                      {baseUrl}/{user.slug}/{et.slug}
-                    </span>
-                  </p>
+      <div className="mt-6 grid gap-4 sm:grid-cols-2">
+        {eventTypes.map((et) => {
+          const url = `${baseUrl}/${user.slug}/${et.slug}`;
+          return (
+            <Card key={et.id} className={et.active ? "" : "opacity-60"}>
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="truncate font-medium text-slate-900">{et.title}</p>
+                    <p className="text-sm text-slate-500">{et.durationMinutes} min</p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-1.5">
+                    {!et.active && (
+                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500">
+                        Inactive
+                      </span>
+                    )}
+                    {et.unlisted && (
+                      <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
+                        Unlisted
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <div className="flex items-center gap-1">
+
+                <p className="mt-2 truncate text-xs text-slate-400">{url}</p>
+
+                <div className="mt-3 flex flex-wrap items-center gap-1 border-t border-slate-100 pt-3">
+                  <CopyLinkButton url={url} />
                   <Button asChild variant="ghost" size="sm">
-                    <Link
-                      href={`/dashboard/event-types/${et.id}`}
-                    >
-                      Edit
-                    </Link>
+                    <Link href={`/dashboard/event-types/${et.id}`}>Edit</Link>
                   </Button>
+                  <form action={cloneEventTypeAction}>
+                    <input type="hidden" name="id" value={et.id} />
+                    <Button type="submit" variant="ghost" size="sm">
+                      Clone
+                    </Button>
+                  </form>
+                  <form action={toggleEventTypeActiveAction}>
+                    <input type="hidden" name="id" value={et.id} />
+                    <input type="hidden" name="active" value={et.active ? "0" : "1"} />
+                    <Button type="submit" variant="ghost" size="sm">
+                      {et.active ? "Deactivate" : "Activate"}
+                    </Button>
+                  </form>
                   <form action={deleteEventTypeAction}>
                     <input type="hidden" name="id" value={et.id} />
                     <Button
@@ -97,18 +123,16 @@ export default async function EventTypesPage({
                 </div>
               </CardContent>
             </Card>
-          </li>
-        ))}
+          );
+        })}
         {eventTypes.length === 0 && (
-          <li>
-            <Card>
-              <CardContent className="border-dashed p-6 text-center text-sm text-slate-500">
-                No event types yet. Create one below.
-              </CardContent>
-            </Card>
-          </li>
+          <Card className="sm:col-span-2">
+            <CardContent className="border-dashed p-6 text-center text-sm text-slate-500">
+              No event types yet. Create one below.
+            </CardContent>
+          </Card>
         )}
-      </ul>
+      </div>
 
       <Card className="mt-8">
         <CardHeader>

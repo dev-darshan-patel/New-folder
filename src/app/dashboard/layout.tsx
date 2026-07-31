@@ -8,16 +8,32 @@ import AnnouncementBanner from "@/components/AnnouncementBanner";
 import MobileNav from "./MobileNav";
 import { Button } from "@/components/ui/button";
 
-const navItems = [
-  { href: "/dashboard", label: "Overview" },
-  { href: "/dashboard/event-types", label: "Event Types" },
-  { href: "/dashboard/availability", label: "Availability" },
-  { href: "/dashboard/bookings", label: "Bookings" },
-  { href: "/dashboard/team", label: "Team" },
-  { href: "/dashboard/branding", label: "Branding" },
-  { href: "/dashboard/embed", label: "Embed" },
-  { href: "/dashboard/billing", label: "Billing" },
-  { href: "/dashboard/settings", label: "Settings" },
+// Grouped for scannability, mirroring the /admin sidebar's grouping.
+const navGroups: { title: string; items: { href: string; label: string }[] }[] = [
+  {
+    title: "Scheduling",
+    items: [
+      { href: "/dashboard", label: "Overview" },
+      { href: "/dashboard/event-types", label: "Event Types" },
+      { href: "/dashboard/availability", label: "Availability" },
+      { href: "/dashboard/bookings", label: "Bookings" },
+    ],
+  },
+  {
+    title: "Business",
+    items: [
+      { href: "/dashboard/team", label: "Team" },
+      { href: "/dashboard/branding", label: "Branding" },
+      { href: "/dashboard/embed", label: "Embed" },
+    ],
+  },
+  {
+    title: "Account",
+    items: [
+      { href: "/dashboard/billing", label: "Billing" },
+      { href: "/dashboard/settings", label: "Settings" },
+    ],
+  },
 ];
 
 export default async function DashboardLayout({
@@ -69,15 +85,24 @@ export default async function DashboardLayout({
             </span>
           </Link>
 
-          <nav className="mt-8 flex flex-1 flex-col gap-1">
-            {navItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
-              >
-                {item.label}
-              </Link>
+          <nav className="mt-8 flex flex-1 flex-col gap-4 overflow-y-auto">
+            {navGroups.map((group) => (
+              <div key={group.title}>
+                <p className="px-3 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                  {group.title}
+                </p>
+                <div className="mt-1 flex flex-col gap-1">
+                  {group.items.map((item) => (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className="rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
+                    >
+                      {item.label}
+                    </Link>
+                  ))}
+                </div>
+              </div>
             ))}
             {user.adminRole && (
               <Button asChild className="mt-2 w-full justify-start">

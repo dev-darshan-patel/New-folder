@@ -198,6 +198,127 @@ export async function deleteEventTypeAction(formData: FormData) {
   revalidatePath("/dashboard/event-types");
 }
 
+// Flip active/inactive from the event-types list. The client sends the
+// *desired* next state (it already knows the current one), so this is a
+// single scoped write — same ownership pattern as delete.
+export async function toggleEventTypeActiveAction(formData: FormData) {
+  const user = await getCurrentUser();
+  if (!user) throw new Error("Not authenticated");
+  const id = String(formData.get("id") || "");
+  const active = formData.get("active") === "1";
+  await prisma.eventType.updateMany({ where: { id, userId: user.id }, data: { active } });
+  revalidatePath("/dashboard/event-types");
+}
+
+// Duplicate an event type. Cloning creates a *new* gated thing, so — unlike
+// updateEventTypeAction's downgrade rule of "preserve existing gated values" —
+// any field the current plan doesn't grant is dropped/reset here rather than
+// copied, exactly as if an ungated tenant were creating this event type fresh.
+export async function cloneEventTypeAction(formData: FormData) {
+  const user = await getCurrentUser();
+  if (!user) throw new Error("Not authenticated");
+  const id = String(formData.get("id") || "");
+
+  const source = await prisma.eventType.findFirst({
+    where: { id, userId: user.id },
+    include: { members: true },
+  });
+  if (!source) return;
+
+  const planCfg = await getPlanConfig(user.plan);
+  const has = (key: FeatureKey) => planCfg.featureKeys.includes(key);
+
+  // Same event-type limit re-check as createEventTypeAction.
+  if (planCfg.maxEventTypes !== null) {
+    const count = await prisma.eventType.count({ where: { userId: user.id } });
+    if (count >= planCfg.maxEventTypes) {
+      redirect("/dashboard/event-types?limit=1");
+    }
+  }
+
+  // Unique slug within this user's event types, same probe loop as create.
+  const root = slugify(`${source.title} copy`) || "meeting-copy";
+  let slug = root;
+  let n = 1;
+  while (
+    await prisma.eventType.findUnique({ where: { userId_slug: { userId: user.id, slug } } })
+  ) {
+    n += 1;
+    slug = `${root}-${n}`;
+  }
+
+  const schedulingLimitsAllowed = has("scheduling_limits");
+  const capacity = has("group_bookings") ? source.capacity : null;
+  const allowRecurring = capacity == null && has("recurring_bookings") ? source.allowRecurring : false;
+  const teamSchedulingEnabled = has("team_scheduling");
+  const assignmentMode = teamSchedulingEnabled ? source.assignmentMode : "SOLO";
+  const locationType = has("video_links") ? source.locationType : "IN_PERSON";
+  const locationDetail = has("video_links") ? source.locationDetail : null;
+
+  // Price only carries over if the plan still grants payments, the owner is
+  // still eligible, and the clone stays inside the same scope fence
+  // updateEventTypeAction enforces (SOLO, non-group, non-recurring).
+  let priceCents: number | null = null;
+  let currency: string | null = null;
+  if (
+    has("payments") &&
+    source.priceCents != null &&
+    capacity == null &&
+    !allowRecurring &&
+    assignmentMode === "SOLO"
+  ) {
+    const eligibility = pricingEligibility({
+      paymentAccountStatus: user.paymentAccountStatus,
+      activePaymentProvider: user.activePaymentProvider,
+      country: user.country,
+      stripeConnectReady: user.stripeConnectReady,
+      razorpayConnectReady: user.razorpayConnectReady,
+    });
+    if (eligibility.canPrice) {
+      priceCents = source.priceCents;
+      currency = eligibility.currency;
+    }
+  }
+
+  const created = await prisma.eventType.create({
+    data: {
+      userId: user.id,
+      title: `${source.title} (copy)`,
+      slug,
+      description: source.description,
+      durationMinutes: source.durationMinutes,
+      bufferMinutes: schedulingLimitsAllowed ? source.bufferMinutes : 0,
+      maxPerDay: schedulingLimitsAllowed ? source.maxPerDay : null,
+      maxPerWeek: schedulingLimitsAllowed ? source.maxPerWeek : null,
+      maxPerMonth: schedulingLimitsAllowed ? source.maxPerMonth : null,
+      minNoticeToCancelMinutes: schedulingLimitsAllowed ? source.minNoticeToCancelMinutes : 0,
+      paddingMinutes: schedulingLimitsAllowed ? source.paddingMinutes : 0,
+      maxAdvanceDays: schedulingLimitsAllowed ? source.maxAdvanceDays : null,
+      confirmationRedirectUrl: has("redirect_replyto") ? source.confirmationRedirectUrl : null,
+      replyToEmail: has("redirect_replyto") ? source.replyToEmail : null,
+      requiresApproval: has("approval_flow") ? source.requiresApproval : false,
+      capacity,
+      allowRecurring,
+      intakeQuestions: has("intake_questions") ? source.intakeQuestions : null,
+      active: source.active,
+      unlisted: source.unlisted,
+      assignmentMode,
+      locationType,
+      locationDetail,
+      priceCents,
+      currency,
+    },
+  });
+
+  if (teamSchedulingEnabled && assignmentMode !== "SOLO" && source.members.length > 0) {
+    await prisma.eventTypeMember.createMany({
+      data: source.members.map((m) => ({ eventTypeId: created.id, teamMemberId: m.teamMemberId })),
+    });
+  }
+
+  revalidatePath("/dashboard/event-types");
+}
+
 // Update an event type's scheduling settings + intake questions.
 export async function updateEventTypeAction(formData: FormData) {
   const user = await getCurrentUser();
