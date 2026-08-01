@@ -18,8 +18,11 @@ jobs:
             echo "CRON_URL secret is not set"; exit 1
           fi
           echo "Calling $CRON_URL"
-          # Use GET and include Authorization header. Fails the job on non-2xx.
-          response=$(curl -sS -w "%{http_code}" -o /tmp/resp -H "Authorization: Bearer $CRON_SECRET" "$CRON_URL") || true
+          # -L: follow redirects (e.g. Vercel's automatic http->https or
+          # non-canonical-domain redirect) instead of failing on the 307
+          # itself. Same-host redirects keep the Authorization header;
+          # curl only strips it across a *different* host.
+          response=$(curl -sSL -w "%{http_code}" -o /tmp/resp -H "Authorization: Bearer $CRON_SECRET" "$CRON_URL") || true
           body=$(cat /tmp/resp || true)
           echo "Status: $response";
           echo "Body: $body";
