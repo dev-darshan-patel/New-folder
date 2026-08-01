@@ -173,7 +173,7 @@ function Row(props: {
         <p className="font-medium text-foreground">
           {props.title}
           {props.series && (
-            <span className="ml-2 rounded bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700">
+            <span className="ml-2 rounded bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
               Week {props.series.index}/{props.series.total}
             </span>
           )}

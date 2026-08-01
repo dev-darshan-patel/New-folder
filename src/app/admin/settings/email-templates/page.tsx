@@ -152,7 +152,7 @@ export default async function EmailTemplatesPage({
                           </form>
                           <Link
                             href={`/admin/settings/email-templates/${def.key}`}
-                            className="rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-500"
+                            className="rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-white hover:bg-primary/90"
                           >
                             Edit
                           </Link>

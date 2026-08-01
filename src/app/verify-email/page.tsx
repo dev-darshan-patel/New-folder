@@ -16,7 +16,7 @@ export default async function VerifyEmailPendingPage() {
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-6">
-      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-indigo-100 text-primary">
+      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
         <Mail size={22} />
       </div>
       <h1 className="mt-5 text-center text-2xl font-bold tracking-tight text-foreground">

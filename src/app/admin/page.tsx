@@ -92,7 +92,7 @@ export default async function AdminOverview({
                     <span className="text-muted-foreground">{count} · {pct}%</span>
                   </div>
                   <div className="mt-1 h-2 overflow-hidden rounded-full bg-muted">
-                    <div className="h-full bg-indigo-500" style={{ width: `${pct}%` }} />
+                    <div className="h-full bg-primary" style={{ width: `${pct}%` }} />
                   </div>
                 </div>
               );
@@ -127,7 +127,7 @@ function Kpi({
   highlight?: boolean;
 }) {
   return (
-    <Card className={highlight ? "border-indigo-200 bg-indigo-50" : ""}>
+    <Card className={highlight ? "border-primary/20 bg-primary/5" : ""}>
       <CardContent className="p-5">
         <p className="text-sm text-muted-foreground">{label}</p>
         <p className="mt-1 text-2xl font-bold text-foreground">{value}</p>

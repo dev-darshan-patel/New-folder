@@ -139,7 +139,7 @@ export default function MobileNav({
                         href={item.href}
                         className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-colors ${
                           active
-                            ? "bg-indigo-50 text-indigo-700"
+                            ? "bg-primary/5 text-primary"
                             : "text-slate-600 hover:bg-muted hover:text-foreground"
                         }`}
                       >
@@ -154,7 +154,7 @@ export default function MobileNav({
             {isAdmin && (
               <Link
                 href="/admin"
-                className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-primary hover:bg-indigo-50"
+                className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-primary hover:bg-primary/5"
               >
                 <Shield size={18} />
                 Admin console

@@ -75,7 +75,7 @@ export default function AvatarUpload({ currentUrl, initials, size = 80 }: Props)
         onClick={() => !uploading && inputRef.current?.click()}
         title="Click to upload a profile photo"
         style={{ width: size, height: size }}
-        className="group relative shrink-0 cursor-pointer overflow-hidden rounded-full border-2 border-border bg-indigo-100 transition-opacity hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-500"
+        className="group relative shrink-0 cursor-pointer overflow-hidden rounded-full border-2 border-border bg-primary/10 transition-opacity hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring"
       >
         {displayed ? (
           // eslint-disable-next-line @next/next/no-img-element -- user-uploaded blob avatar / local object-URL preview; next/image can't optimize these and would need remotePatterns config

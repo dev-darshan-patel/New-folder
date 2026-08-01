@@ -78,8 +78,8 @@ export default function RescheduleWidget({
               onClick={() => setSelectedDay(day.iso)}
               className={`rounded-lg border px-3 py-2 text-sm transition-colors ${
                 selectedDay === day.iso
-                  ? "border-indigo-600 bg-indigo-600 text-white"
-                  : "border-border text-slate-700 hover:border-indigo-300"
+                  ? "border-primary bg-primary text-white"
+                  : "border-border text-slate-700 hover:border-primary/30"
               }`}
             >
               {day.label}
@@ -111,7 +111,7 @@ export default function RescheduleWidget({
                 disabled={submitting}
                 onClick={() => pick(slot)}
                 variant="outline"
-                className="w-full justify-center text-indigo-700 hover:border-ring hover:bg-indigo-50"
+                className="w-full justify-center text-primary hover:border-ring hover:bg-primary/5"
               >
                 {slot.label}
               </Button>

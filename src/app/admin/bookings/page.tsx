@@ -106,7 +106,7 @@ export default async function AdminBookings({
             <a
               href={`/${b.user.slug}`}
               target="_blank"
-              className="text-xs text-indigo-500 hover:underline"
+              className="text-xs text-primary hover:underline"
             >
               View public page ↗
             </a>

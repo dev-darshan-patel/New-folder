@@ -51,7 +51,7 @@ export default async function BusinessPage({
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-xl flex-col px-6 py-16">
       <div className="text-center">
-        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-indigo-100 text-2xl font-bold text-indigo-700">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-2xl font-bold text-primary">
           {user.businessName.charAt(0).toUpperCase()}
         </div>
         <h1 className="mt-4 text-2xl font-bold tracking-tight text-foreground">
@@ -73,7 +73,7 @@ export default async function BusinessPage({
                   <p className="mt-2 text-sm font-medium text-primary">
                     {et.durationMinutes} min
                     {et.priceCents != null && et.currency ? (
-                      <span className="ml-2 rounded bg-indigo-50 px-2 py-0.5 text-xs">
+                      <span className="ml-2 rounded bg-primary/5 px-2 py-0.5 text-xs">
                         {formatPrice(et.priceCents, et.currency)}
                       </span>
                     ) : null}

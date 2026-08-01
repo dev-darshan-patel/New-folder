@@ -15,6 +15,21 @@ const MIGRATED_PALETTE_CLASSES = {
   "bg-slate-100": "bg-muted",
   "text-indigo-600": "text-primary",
   "border-indigo-500": "border-ring",
+  // Brand purple, fully unified — literal indigo renders #4f39f6 under
+  // Tailwind 4 while --primary is #4f46e5, so any of these reintroduces a
+  // second, slightly-off brand colour. text-indigo-400 is intentionally
+  // absent: the admin sidebar accent still needs it on its dark surface.
+  "bg-indigo-600": "bg-primary",
+  "bg-indigo-500": "bg-primary",
+  "border-indigo-600": "border-primary",
+  "ring-indigo-600": "ring-primary",
+  "text-indigo-800": "text-primary",
+  "text-indigo-700": "text-primary",
+  "text-indigo-500": "text-primary",
+  "bg-indigo-100": "bg-primary/10",
+  "bg-indigo-50": "bg-primary/5",
+  "border-indigo-300": "border-primary/30",
+  "border-indigo-200": "border-primary/20",
 };
 
 // (?<![\w-]) / (?![\w-]) match a whole class token while still allowing

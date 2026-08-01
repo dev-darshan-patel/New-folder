@@ -138,7 +138,7 @@ export default function TemplateEditor({ templateKey, vars, initial, brand }: Pr
                 key={v.name}
                 type="button"
                 onClick={() => insertVar(v.name)}
-                className="flex w-full items-center justify-between gap-3 rounded-lg border border-border bg-white px-3 py-2 text-left hover:border-indigo-300 hover:bg-indigo-50"
+                className="flex w-full items-center justify-between gap-3 rounded-lg border border-border bg-white px-3 py-2 text-left hover:border-primary/30 hover:bg-primary/5"
               >
                 <code className="text-xs font-semibold text-primary">{`{{${v.name}}}`}</code>
                 <span className="truncate text-xs text-muted-foreground">{v.description}</span>
@@ -161,7 +161,7 @@ export default function TemplateEditor({ templateKey, vars, initial, brand }: Pr
                 type="button"
                 onClick={() => setDevice(d)}
                 className={`rounded-md px-3 py-1 text-xs font-medium capitalize ${
-                  device === d ? "bg-indigo-600 text-white" : "text-slate-600 hover:bg-muted"
+                  device === d ? "bg-primary text-white" : "text-slate-600 hover:bg-muted"
                 }`}
               >
                 {d}

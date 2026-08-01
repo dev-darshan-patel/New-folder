@@ -66,7 +66,7 @@ export default async function DashboardLayout({
             className="mt-3 flex items-center gap-2.5 rounded-lg p-1.5 transition-colors hover:bg-slate-50"
             title="Account settings"
           >
-            <span className="relative shrink-0 h-8 w-8 overflow-hidden rounded-full border border-border bg-indigo-100">
+            <span className="relative shrink-0 h-8 w-8 overflow-hidden rounded-full border border-border bg-primary/10">
               {user.avatarUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element -- user-uploaded blob avatar; next/image adds no value at this fixed 32px size and would need remotePatterns config
                 <img

@@ -421,7 +421,7 @@ export default function EventTypeEditor({ initial }: { initial: Initial }) {
                 }
                 className={`rounded-lg border px-3 py-1.5 text-sm font-medium ${
                   location === opt.v
-                    ? "border-indigo-600 bg-indigo-50 text-indigo-700"
+                    ? "border-primary bg-primary/5 text-primary"
                     : "border-input text-slate-700 hover:bg-slate-50"
                 } ${disabled ? "cursor-not-allowed opacity-40" : ""}`}
               >
@@ -516,7 +516,7 @@ export default function EventTypeEditor({ initial }: { initial: Initial }) {
                 onClick={() => setMode(m)}
                 className={`rounded-lg border px-3 py-1.5 text-sm font-medium ${
                   mode === m
-                    ? "border-indigo-600 bg-indigo-50 text-indigo-700"
+                    ? "border-primary bg-primary/5 text-primary"
                     : "border-input text-slate-700 hover:bg-slate-50"
                 }`}
               >

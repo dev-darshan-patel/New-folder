@@ -98,7 +98,7 @@ export default async function AdminBillingPage() {
           <a
             href={`https://dashboard.stripe.com/customers/${u.stripeCustomerId}`}
             target="_blank"
-            className="text-xs text-indigo-500 hover:underline"
+            className="text-xs text-primary hover:underline"
           >
             View customer ↗
           </a>
@@ -150,7 +150,7 @@ export default async function AdminBillingPage() {
           <a
             href={i.hostedInvoiceUrl}
             target="_blank"
-            className="text-xs text-indigo-500 hover:underline"
+            className="text-xs text-primary hover:underline"
           >
             View ↗
           </a>
@@ -194,7 +194,7 @@ export default async function AdminBillingPage() {
           <CardContent className="p-4 text-sm text-muted-foreground">
             Stripe is not configured (or unreachable) — invoice history unavailable. Configure it
             at{" "}
-            <Link href="/admin/settings" className="text-indigo-500 hover:underline">
+            <Link href="/admin/settings" className="text-primary hover:underline">
               /admin/settings
             </Link>
             .

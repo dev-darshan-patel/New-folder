@@ -105,7 +105,7 @@ export default async function AdminUserDetail({
           )}
           <span
             className={`rounded-full px-3 py-1 text-sm font-medium ${
-              user.plan === "FREE" ? "bg-muted text-slate-600" : "bg-indigo-100 text-indigo-700"
+              user.plan === "FREE" ? "bg-muted text-slate-600" : "bg-primary/10 text-primary"
             }`}
           >
             {planCfg.name} · ${planCfg.priceMonthly}/mo

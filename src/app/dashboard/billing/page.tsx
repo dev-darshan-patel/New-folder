@@ -92,7 +92,7 @@ export default async function BillingPage({
             <Card
               key={planId}
               className={`flex flex-col ${
-                isCurrent ? "border-indigo-600 ring-1 ring-indigo-600" : ""
+                isCurrent ? "border-primary ring-1 ring-primary" : ""
               }`}
             >
               <CardHeader className="flex flex-row items-baseline justify-between pb-2">

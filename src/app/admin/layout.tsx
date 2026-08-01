@@ -62,6 +62,10 @@ export default async function AdminLayout({
     <div className="flex min-h-screen bg-slate-50">
       <aside className="hidden w-60 flex-col border-r border-border bg-slate-900 p-5 text-slate-100 md:flex">
         <Link href="/admin" className="text-lg font-bold">
+          {/* The only remaining literal indigo in the app, on purpose: this
+              sits on bg-slate-900 and --primary (#4f46e5) is far too dark to
+              read against near-black. Needs a light-on-dark brand token
+              before it can be migrated. */}
           Admin<span className="text-indigo-400">.</span>
         </Link>
         <p className="mt-1 text-xs text-slate-400">

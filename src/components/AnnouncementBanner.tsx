@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 
 const STYLES: Record<string, string> = {
-  INFO: "border-indigo-200 bg-indigo-50 text-indigo-800",
+  INFO: "border-primary/20 bg-primary/5 text-primary",
   WARNING: "border-amber-200 bg-amber-50 text-amber-800",
   CRITICAL: "border-red-200 bg-red-50 text-red-800",
 };
