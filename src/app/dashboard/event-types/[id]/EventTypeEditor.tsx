@@ -5,6 +5,10 @@ import { useState } from "react";
 import { updateEventTypeAction } from "../../actions";
 import type { IntakeQuestion } from "@/lib/intake";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { NativeSelect } from "@/components/ui/native-select";
 import { SubmitButton } from "@/components/ui/submit-button";
 
 type LocationType = "IN_PERSON" | "PHONE" | "GOOGLE_MEET" | "ZOOM";
@@ -91,52 +95,54 @@ export default function EventTypeEditor({ initial }: { initial: Initial }) {
       <input type="hidden" name="id" value={initial.id} />
       <input type="hidden" name="intakeQuestions" value={JSON.stringify(cleaned)} />
 
-      <Field label="Title">
-        <input
-          name="title"
-          defaultValue={initial.title}
-          required
-          title="Event type title"
-          placeholder="e.g. 30 Minute Meeting"
-          className={input}
-        />
-      </Field>
+      <Section title="Basics" description="What this appointment is called and how long it runs.">
+        <Field label="Title">
+          <Input
+            name="title"
+            defaultValue={initial.title}
+            required
+            title="Event type title"
+            placeholder="e.g. 30 Minute Meeting"
+          />
+        </Field>
 
-      <Field label="Description (optional)">
-        <textarea
-          name="description"
-          defaultValue={initial.description}
-          rows={2}
-          title="Event type description"
-          placeholder="A short description shown to customers"
-          className={input}
-        />
-      </Field>
+        <Field label="Description (optional)">
+          <Textarea
+            name="description"
+            defaultValue={initial.description}
+            rows={2}
+            title="Event type description"
+            placeholder="A short description shown to customers"
+          />
+        </Field>
+      </Section>
 
+      <Section
+        title="Scheduling"
+        description="How long it takes, how far ahead people can book, and how many you'll accept."
+      >
       <div className="grid gap-5 sm:grid-cols-3">
         <Field label="Duration (minutes)">
-          <select
+          <NativeSelect
             name="durationMinutes"
             defaultValue={String(initial.durationMinutes)}
             title="Meeting duration in minutes"
-            className={input}
           >
             {[15, 30, 45, 60, 90, 120].map((d) => (
               <option key={d} value={d}>
                 {d} min
               </option>
             ))}
-          </select>
+          </NativeSelect>
         </Field>
 
         {initial.features.schedulingLimits && (
           <>
             <Field label="Minimum notice">
-              <select
+              <NativeSelect
                 name="bufferMinutes"
                 defaultValue={String(initial.bufferMinutes)}
                 title="Minimum notice required before a booking"
-                className={input}
               >
                 <option value="0">None</option>
                 <option value="60">1 hour</option>
@@ -144,51 +150,47 @@ export default function EventTypeEditor({ initial }: { initial: Initial }) {
                 <option value="240">4 hours</option>
                 <option value="720">12 hours</option>
                 <option value="1440">1 day</option>
-              </select>
+              </NativeSelect>
             </Field>
 
             <Field label="Max bookings / day">
-              <input
+              <Input
                 name="maxPerDay"
                 type="number"
                 min={1}
                 defaultValue={initial.maxPerDay ?? ""}
                 placeholder="Unlimited"
                 title="Maximum number of bookings allowed per day"
-                className={input}
               />
             </Field>
 
             <Field label="Max bookings / week">
-              <input
+              <Input
                 name="maxPerWeek"
                 type="number"
                 min={1}
                 defaultValue={initial.maxPerWeek ?? ""}
                 placeholder="Unlimited"
                 title="Maximum number of bookings allowed per calendar week"
-                className={input}
               />
             </Field>
 
             <Field label="Max bookings / month">
-              <input
+              <Input
                 name="maxPerMonth"
                 type="number"
                 min={1}
                 defaultValue={initial.maxPerMonth ?? ""}
                 placeholder="Unlimited"
                 title="Maximum number of bookings allowed per calendar month"
-                className={input}
               />
             </Field>
 
             <Field label="Cancel/reschedule notice">
-              <select
+              <NativeSelect
                 name="minNoticeToCancelMinutes"
                 defaultValue={String(initial.minNoticeToCancelMinutes)}
                 title="Minimum notice required for an invitee to cancel or reschedule"
-                className={input}
               >
                 <option value="0">None</option>
                 <option value="60">1 hour</option>
@@ -196,15 +198,14 @@ export default function EventTypeEditor({ initial }: { initial: Initial }) {
                 <option value="240">4 hours</option>
                 <option value="720">12 hours</option>
                 <option value="1440">1 day</option>
-              </select>
+              </NativeSelect>
             </Field>
 
             <Field label="Buffer between meetings">
-              <select
+              <NativeSelect
                 name="paddingMinutes"
                 defaultValue={String(initial.paddingMinutes)}
                 title="Gap enforced before and after every booking of this type"
-                className={input}
               >
                 <option value="0">None</option>
                 <option value="5">5 minutes</option>
@@ -212,18 +213,17 @@ export default function EventTypeEditor({ initial }: { initial: Initial }) {
                 <option value="15">15 minutes</option>
                 <option value="30">30 minutes</option>
                 <option value="60">1 hour</option>
-              </select>
+              </NativeSelect>
             </Field>
 
             <Field label="Booking window (days ahead)">
-              <input
+              <Input
                 name="maxAdvanceDays"
                 type="number"
                 min={1}
                 defaultValue={initial.maxAdvanceDays ?? ""}
                 placeholder="Unlimited"
                 title="How many days ahead an invitee may book"
-                className={input}
               />
             </Field>
           </>
@@ -232,37 +232,42 @@ export default function EventTypeEditor({ initial }: { initial: Initial }) {
       {!initial.features.schedulingLimits && (
         <UpgradeNote text="Scheduling limits (minimum notice, booking caps, cancel-notice window) require a higher plan." />
       )}
+      </Section>
 
-      <PriceField
-        priceCents={initial.priceCents}
-        currency={initial.currency}
-        pricing={initial.pricing}
-        isGroup={isGroup}
-        allowRecurring={allowRecurring}
-        mode={mode}
-      />
+      <Section title="Price" description="Charge for this appointment at the time of booking.">
+        <PriceField
+          priceCents={initial.priceCents}
+          currency={initial.currency}
+          pricing={initial.pricing}
+          isGroup={isGroup}
+          allowRecurring={allowRecurring}
+          mode={mode}
+        />
+      </Section>
 
+      <Section
+        title="After booking"
+        description="What happens once someone books, and who can find this event type."
+      >
       {initial.features.redirectReplyTo ? (
         <div className="grid gap-5 sm:grid-cols-2">
           <Field label="Confirmation redirect URL (optional)">
-            <input
+            <Input
               name="confirmationRedirectUrl"
               type="url"
               defaultValue={initial.confirmationRedirectUrl}
               placeholder="https://example.com/thank-you"
               title="Send invitees here instead of the built-in confirmation screen"
-              className={input}
             />
           </Field>
 
           <Field label="Reply-to email (optional)">
-            <input
+            <Input
               name="replyToEmail"
               type="email"
               defaultValue={initial.replyToEmail}
               placeholder="support@yourbusiness.com"
               title="Replies to invitee emails go to this address instead of the default"
-              className={input}
             />
           </Field>
         </div>
@@ -305,7 +310,12 @@ export default function EventTypeEditor({ initial }: { initial: Initial }) {
           </span>
         </span>
       </label>
+      </Section>
 
+      <Section
+        title="Booking type"
+        description="One-to-one by default. Switch to a group class or a repeating weekly series."
+      >
       {initial.features.groupBookings && (
         <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
           <label className="flex items-start gap-2 text-sm text-slate-700">
@@ -327,12 +337,11 @@ export default function EventTypeEditor({ initial }: { initial: Initial }) {
           {isGroup && (
             <div className="mt-3 pl-6">
               <Field label="Seats per session">
-                <input
+                <Input
                   type="number"
                   min={1}
                   value={capacity}
                   onChange={(e) => setCapacity(e.target.value)}
-                  className={input}
                   title="Default seat count for new sessions of this event type"
                 />
               </Field>
@@ -378,9 +387,10 @@ export default function EventTypeEditor({ initial }: { initial: Initial }) {
         />
       )}
 
+      </Section>
+
+      <Section title="Location" description="Where this meeting takes place.">
       <div>
-        <p className="text-sm font-medium text-slate-700">Location</p>
-        <p className="text-xs text-slate-500">Where this meeting takes place.</p>
         <input type="hidden" name="locationType" value={location} />
         <div className="mt-2 flex flex-wrap gap-2">
           {(
@@ -424,7 +434,7 @@ export default function EventTypeEditor({ initial }: { initial: Initial }) {
         {locationHint(location, initial.calendarConnected, initial.zoomConnected)}
 
         {(location === "IN_PERSON" || location === "PHONE") && (
-          <input
+          <Input
             name="locationDetail"
             value={locationDetail}
             onChange={(e) => setLocationDetail(e.target.value)}
@@ -434,26 +444,27 @@ export default function EventTypeEditor({ initial }: { initial: Initial }) {
                 : "Address or room (shown to the invitee)"
             }
             title="Location detail"
-            className={`${input} mt-3`}
+            className="mt-3"
           />
         )}
       </div>
+      </Section>
 
+      <Section
+        title="Intake questions"
+        description="Extra questions shown on the booking form, in addition to name and email."
+      >
       {initial.features.intakeQuestions ? (
         <div>
-          <p className="text-sm font-medium text-slate-700">Intake questions</p>
-          <p className="text-xs text-slate-500">
-            Extra questions shown on the booking form (in addition to name &amp; email).
-          </p>
-          <div className="mt-3 space-y-2">
+          <div className="space-y-2">
             {questions.map((q, i) => (
               <div key={i} className="flex items-center gap-2">
-                <input
+                <Input
                   value={q.label}
                   onChange={(e) => update(i, { label: e.target.value })}
                   placeholder="e.g. Phone number"
                   title={`Intake question ${i + 1}`}
-                  className={`${input} flex-1`}
+                  className="flex-1"
                 />
                 <label className="flex items-center gap-1 text-xs text-slate-600">
                   <input
@@ -490,13 +501,11 @@ export default function EventTypeEditor({ initial }: { initial: Initial }) {
       ) : (
         <UpgradeNote text="Custom intake questions require a higher plan." />
       )}
+      </Section>
 
       {initial.teamSchedulingEnabled && (
+      <Section title="Assignment" description="Who handles bookings for this event type.">
         <div>
-          <p className="text-sm font-medium text-slate-700">Assignment</p>
-          <p className="text-xs text-slate-500">
-            Who handles bookings for this event type.
-          </p>
           <input type="hidden" name="assignmentMode" value={mode} />
           <input type="hidden" name="poolMemberIds" value={JSON.stringify(pool)} />
           <div className="mt-2 flex gap-2">
@@ -537,6 +546,7 @@ export default function EventTypeEditor({ initial }: { initial: Initial }) {
             </div>
           )}
         </div>
+      </Section>
       )}
 
       <SubmitButton pendingLabel="Saving…">Save changes</SubmitButton>
@@ -567,9 +577,6 @@ function locationHint(location: LocationType, calendarConnected: boolean, zoomCo
   return null;
 }
 
-const input =
-  "mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100";
-
 // Small inline note shown in place of a gated section — consistent, low-key
 // upgrade prompt reused across every plan-gated field in this form.
 function UpgradeNote({ text }: { text: string }) {
@@ -583,6 +590,30 @@ function UpgradeNote({ text }: { text: string }) {
   );
 }
 
+// One titled group of related settings. This form carries ~20 settings and
+// used to be a single flat column, with plan-gated upsell notes interleaved
+// between real fields — grouping them makes it scannable and gives the
+// upgrade prompts somewhere to sit that isn't the middle of a field list.
+function Section({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="rounded-xl border border-border bg-card p-5">
+      <h2 className="text-sm font-semibold text-foreground">{title}</h2>
+      {description && (
+        <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
+      )}
+      <div className="mt-4 space-y-5">{children}</div>
+    </section>
+  );
+}
+
 function Field({
   label,
   children,
@@ -591,10 +622,10 @@ function Field({
   children: React.ReactNode;
 }) {
   return (
-    <label className="block">
-      <span className="text-sm font-medium text-slate-700">{label}</span>
+    <Label className="block">
+      <span className="mb-1 block">{label}</span>
       {children}
-    </label>
+    </Label>
   );
 }
 
@@ -644,7 +675,7 @@ function PriceField({
       </p>
       <div className="mt-3 flex items-center gap-2">
         <span className="text-sm text-slate-500">{pricing.currency}</span>
-        <input
+        <Input
           name="priceCents"
           type="number"
           step="1"
@@ -652,7 +683,7 @@ function PriceField({
           max="10000000"
           defaultValue={initialDisplay ? Math.round(Number(initialDisplay) * 100) : ""}
           placeholder="Free"
-          className={`${input} max-w-[10rem]`}
+          className="max-w-[10rem]"
         />
         <span className="text-xs text-slate-500">(in smallest unit; 100 = 1.00)</span>
       </div>
