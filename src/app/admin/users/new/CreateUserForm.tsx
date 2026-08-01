@@ -5,9 +5,8 @@ import { useRouter } from "next/navigation";
 import { createUserByAdminAction, type AdminUserFormState } from "../../actions";
 import { Card, CardContent } from "@/components/ui/card";
 import { SubmitButton } from "@/components/ui/submit-button";
-
-const INPUT_CLASSES =
-  "mt-1 w-full rounded-lg border border-input px-3 py-2 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-indigo-100";
+import { Input } from "@/components/ui/input";
+import { NativeSelect } from "@/components/ui/native-select";
 
 export default function CreateUserForm({
   plans,
@@ -48,75 +47,73 @@ export default function CreateUserForm({
     <form action={formAction} className="space-y-4">
       <label className="block">
         <span className="text-sm font-medium text-slate-700">Name</span>
-        <input name="name" type="text" required autoComplete="name" className={INPUT_CLASSES} />
+        <Input name="name" type="text" required autoComplete="name" />
       </label>
 
       <label className="block">
         <span className="text-sm font-medium text-slate-700">Business name</span>
-        <input name="businessName" type="text" required className={INPUT_CLASSES} />
+        <Input name="businessName" type="text" required />
       </label>
 
       <label className="block">
         <span className="text-sm font-medium text-slate-700">Email</span>
-        <input name="email" type="email" required autoComplete="email" className={INPUT_CLASSES} />
+        <Input name="email" type="email" required autoComplete="email" />
       </label>
 
       <label className="block">
         <span className="text-sm font-medium text-slate-700">Password</span>
-        <input
+        <Input
           name="password"
           type="password"
           required
           minLength={8}
           autoComplete="new-password"
-          className={INPUT_CLASSES}
         />
         <span className="mt-1 block text-xs text-slate-400">At least 8 characters</span>
       </label>
 
       <label className="block">
         <span className="text-sm font-medium text-slate-700">Timezone</span>
-        <select ref={tzRef} name="timezone" defaultValue="UTC" className={INPUT_CLASSES}>
+        <NativeSelect ref={tzRef} name="timezone" defaultValue="UTC">
           {timezones.map((tz) => (
             <option key={tz} value={tz}>
               {tz}
             </option>
           ))}
-        </select>
+        </NativeSelect>
       </label>
 
       <label className="block">
         <span className="text-sm font-medium text-slate-700">
           Mobile <span className="text-slate-400">(optional)</span>
         </span>
-        <input
+        <Input
           name="mobile"
           type="text"
           placeholder="+1 555 010 1234"
-          className={INPUT_CLASSES}
         />
       </label>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="block">
           <span className="text-sm font-medium text-slate-700">Plan</span>
-          <select name="plan" defaultValue="FREE" className={INPUT_CLASSES}>
+          <NativeSelect name="plan" defaultValue="FREE">
             {plans.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name}
               </option>
             ))}
-          </select>
+          </NativeSelect>
         </label>
 
         <label className="block">
           <span className="text-sm font-medium text-slate-700">Admin role</span>
-          <select name="adminRole" defaultValue="" className={INPUT_CLASSES}>
+          <NativeSelect name="adminRole" defaultValue="">
             <option value="">None</option>
             <option value="READ_ONLY">Read only</option>
             <option value="SUPPORT">Support</option>
             <option value="SUPER_ADMIN">Super admin</option>
-          </select>
+          </NativeSelect>
         </label>
       </div>
 

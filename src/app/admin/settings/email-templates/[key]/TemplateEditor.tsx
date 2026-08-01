@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SubmitButton } from "@/components/ui/submit-button";
+import { Textarea } from "@/components/ui/textarea";
 
 type Var = { name: string; description: string; sample: string };
 
@@ -69,28 +70,26 @@ export default function TemplateEditor({ templateKey, vars, initial, brand }: Pr
 
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-slate-700">Subject</label>
-            <input
+            <Input
               ref={subjectRef}
               name="subject"
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
               onFocus={() => setActiveField("subject")}
               title="Email subject line"
-              className="w-full rounded-lg border border-input px-3 py-2 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-indigo-100"
             />
           </div>
 
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-slate-700">HTML body</label>
-            <textarea
+            <Textarea
               ref={htmlRef}
               name="html"
               value={html}
               onChange={(e) => setHtml(e.target.value)}
               onFocus={() => setActiveField("html")}
               rows={12}
-              title="HTML email body"
-              className="w-full rounded-lg border border-input px-3 py-2 font-mono text-xs text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-indigo-100"
+              title="HTML email body" className="font-mono text-xs"
             />
             <p className="text-xs text-slate-400">
               Rendered inside the shared branded header/footer shell.
@@ -99,15 +98,14 @@ export default function TemplateEditor({ templateKey, vars, initial, brand }: Pr
 
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-slate-700">Plain-text body</label>
-            <textarea
+            <Textarea
               ref={textRef}
               name="text"
               value={text}
               onChange={(e) => setText(e.target.value)}
               onFocus={() => setActiveField("text")}
               rows={8}
-              title="Plain-text email body"
-              className="w-full rounded-lg border border-input px-3 py-2 font-mono text-xs text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-indigo-100"
+              title="Plain-text email body" className="font-mono text-xs"
             />
             <p className="text-xs text-slate-400">
               Fallback for clients that don&rsquo;t render HTML. Keep it in sync.

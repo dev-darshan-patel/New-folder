@@ -4,9 +4,8 @@ import { useActionState, useMemo, useState } from "react";
 import { updateUserByAdminAction, type AdminUserFormState } from "../../../actions";
 import { Card, CardContent } from "@/components/ui/card";
 import { SubmitButton } from "@/components/ui/submit-button";
-
-const INPUT_CLASSES =
-  "mt-1 w-full rounded-lg border border-input px-3 py-2 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-indigo-100";
+import { Input } from "@/components/ui/input";
+import { NativeSelect } from "@/components/ui/native-select";
 
 export type EditUserInitial = {
   id: string;
@@ -41,46 +40,42 @@ export default function EditUserForm({ initial }: { initial: EditUserInitial }) 
 
       <label className="block">
         <span className="text-sm font-medium text-slate-700">Name</span>
-        <input
+        <Input
           name="name"
           type="text"
           required
           defaultValue={initial.name}
-          className={INPUT_CLASSES}
         />
       </label>
 
       <label className="block">
         <span className="text-sm font-medium text-slate-700">Business name</span>
-        <input
+        <Input
           name="businessName"
           type="text"
           required
           defaultValue={initial.businessName}
-          className={INPUT_CLASSES}
         />
       </label>
 
       <label className="block">
         <span className="text-sm font-medium text-slate-700">Email</span>
-        <input
+        <Input
           name="email"
           type="email"
           required
           defaultValue={initial.email}
-          className={INPUT_CLASSES}
         />
       </label>
 
       <label className="block">
         <span className="text-sm font-medium text-slate-700">URL slug</span>
-        <input
+        <Input
           name="slug"
           type="text"
           required
           value={slug}
           onChange={(e) => setSlug(e.target.value)}
-          className={INPUT_CLASSES}
         />
         <span className="mt-1 block text-xs text-slate-400">
           Public booking link: yoursite.com/{slug || "your-slug"}
@@ -89,29 +84,27 @@ export default function EditUserForm({ initial }: { initial: EditUserInitial }) 
 
       <label className="block">
         <span className="text-sm font-medium text-slate-700">Timezone</span>
-        <select
+        <NativeSelect
           name="timezone"
           defaultValue={initial.timezone}
-          className={INPUT_CLASSES}
         >
           {timezones.map((tz) => (
             <option key={tz} value={tz}>
               {tz}
             </option>
           ))}
-        </select>
+        </NativeSelect>
       </label>
 
       <label className="block">
         <span className="text-sm font-medium text-slate-700">
           Mobile <span className="text-slate-400">(optional)</span>
         </span>
-        <input
+        <Input
           name="mobile"
           type="text"
           defaultValue={initial.mobile}
           placeholder="+1 555 010 1234"
-          className={INPUT_CLASSES}
         />
       </label>
 

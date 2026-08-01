@@ -13,6 +13,7 @@ import { toggleEmailTemplateAction } from "./actions";
 import BrandingEditor from "./BrandingEditor";
 import ImportButton from "./ImportButton";
 import { SubmitButton } from "@/components/ui/submit-button";
+import { Input } from "@/components/ui/input";
 
 export default async function EmailTemplatesPage({
   searchParams,
@@ -103,12 +104,11 @@ export default async function EmailTemplatesPage({
       </Card>
 
       <form className="mt-8">
-        <input
+        <Input
           type="search"
           name="q"
           defaultValue={q ?? ""}
-          placeholder="Search templates…"
-          className="w-full max-w-sm rounded-lg border border-input px-3 py-2 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-indigo-100"
+          placeholder="Search templates…" className="max-w-sm"
         />
       </form>
 

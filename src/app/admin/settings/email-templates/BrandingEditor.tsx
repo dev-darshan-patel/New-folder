@@ -5,6 +5,8 @@ import { wrapHtml } from "@/lib/email-render";
 import { updateEmailBrandingAction, type TemplateFormState } from "./actions";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { BRAND_COLOR } from "@/lib/brand";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 type Initial = {
   emailBrandName: string;
@@ -13,9 +15,6 @@ type Initial = {
   emailFooterText: string;
   emailSupportUrl: string;
 };
-
-const field =
-  "w-full rounded-lg border border-input px-3 py-2 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-indigo-100";
 
 export default function BrandingEditor({ initial }: { initial: Initial }) {
   const [state, formAction, pending] = useActionState<TemplateFormState, FormData>(
@@ -46,25 +45,23 @@ export default function BrandingEditor({ initial }: { initial: Initial }) {
       <form action={formAction} className="space-y-4">
         <div className="space-y-1.5">
           <label className="text-sm font-medium text-slate-700">Brand name</label>
-          <input
+          <Input
             name="emailBrandName"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Bookify"
             title="Brand name shown in the email header"
-            className={field}
           />
         </div>
 
         <div className="space-y-1.5">
           <label className="text-sm font-medium text-slate-700">Logo URL (optional)</label>
-          <input
+          <Input
             name="emailLogoUrl"
             value={logo}
             onChange={(e) => setLogo(e.target.value)}
             placeholder="https://yoursite.com/logo.png"
             title="Logo image URL — replaces the text header when set"
-            className={field}
           />
           <p className="text-xs text-slate-400">
             When set, the logo image replaces the text brand name in the header.
@@ -81,39 +78,36 @@ export default function BrandingEditor({ initial }: { initial: Initial }) {
               title="Pick the accent color"
               className="h-9 w-12 cursor-pointer rounded border border-input"
             />
-            <input
+            <Input
               name="emailAccentColor"
               value={accent}
               onChange={(e) => setAccent(e.target.value)}
               placeholder="#4f46e5"
-              title="Accent color hex value"
-              className={`${field} max-w-[140px]`}
+              title="Accent color hex value" className="max-w-[140px]"
             />
           </div>
         </div>
 
         <div className="space-y-1.5">
           <label className="text-sm font-medium text-slate-700">Footer text</label>
-          <textarea
+          <Textarea
             name="emailFooterText"
             value={footer}
             onChange={(e) => setFooter(e.target.value)}
             rows={2}
             placeholder="You're receiving this because you have an account with us."
             title="Footer text shown at the bottom of every email"
-            className={field}
           />
         </div>
 
         <div className="space-y-1.5">
           <label className="text-sm font-medium text-slate-700">Support URL (optional)</label>
-          <input
+          <Input
             name="emailSupportUrl"
             value={support}
             onChange={(e) => setSupport(e.target.value)}
             placeholder="https://yoursite.com/support"
             title="Support link shown in the footer"
-            className={field}
           />
         </div>
 

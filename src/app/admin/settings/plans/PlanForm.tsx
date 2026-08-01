@@ -4,6 +4,8 @@ import { useActionState } from "react";
 import { createPlanAction, updatePlanAction, type PlanFormState } from "./actions";
 import { FEATURE_REGISTRY } from "@/lib/features";
 import { SubmitButton } from "@/components/ui/submit-button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 type Initial = {
   id: string;
@@ -18,9 +20,6 @@ type Initial = {
   sortOrder: number;
   isSystem: boolean;
 };
-
-const field =
-  "mt-1 w-full rounded-lg border border-input px-3 py-2 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-indigo-100";
 
 export default function PlanForm({
   mode,
@@ -38,21 +37,19 @@ export default function PlanForm({
         <label className="block">
           <span className="text-sm font-medium text-slate-700">Plan ID</span>
           {mode === "create" ? (
-            <input
+            <Input
               name="id"
               defaultValue={initial.id}
               placeholder="STARTER"
               title="Unique uppercase plan ID"
-              className={field}
             />
           ) : (
             <>
               <input type="hidden" name="id" value={initial.id} />
-              <input
+              <Input
                 value={initial.id}
                 disabled
-                title="Plan ID (immutable)"
-                className={`${field} bg-slate-50 text-muted-foreground`}
+                title="Plan ID (immutable)" className="bg-slate-50 text-muted-foreground"
               />
             </>
           )}
@@ -65,30 +62,29 @@ export default function PlanForm({
 
         <label className="block">
           <span className="text-sm font-medium text-slate-700">Display name</span>
-          <input name="name" defaultValue={initial.name} placeholder="Starter" title="Plan display name" className={field} />
+          <Input name="name" defaultValue={initial.name} placeholder="Starter" title="Plan display name" />
         </label>
 
         <label className="block">
           <span className="text-sm font-medium text-slate-700">Price label</span>
-          <input
+          <Input
             name="priceLabel"
             defaultValue={initial.priceLabel}
             placeholder="$19/mo"
             title="Displayed price label"
-            className={field}
           />
         </label>
 
         <label className="block">
           <span className="text-sm font-medium text-slate-700">Monthly price (USD)</span>
-          <input
+          <Input
             name="priceMonthly"
             type="number"
             min={0}
             defaultValue={initial.priceMonthly}
             disabled={initial.isSystem}
             title="Numeric monthly price for MRR math"
-            className={`${field} ${initial.isSystem ? "bg-slate-50 text-muted-foreground" : ""}`}
+            className={initial.isSystem ? "bg-slate-50 text-muted-foreground" : ""}
           />
           {initial.isSystem && (
             <span className="mt-1 block text-xs text-slate-400">The FREE plan is always $0.</span>
@@ -97,37 +93,34 @@ export default function PlanForm({
 
         <label className="block">
           <span className="text-sm font-medium text-slate-700">Max event types</span>
-          <input
+          <Input
             name="maxEventTypes"
             type="number"
             min={0}
             defaultValue={initial.maxEventTypes ?? ""}
             placeholder="Unlimited"
             title="Max active event types (blank = unlimited)"
-            className={field}
           />
           <span className="mt-1 block text-xs text-slate-400">Leave blank for unlimited.</span>
         </label>
 
         <label className="block">
           <span className="text-sm font-medium text-slate-700">Sort order</span>
-          <input
+          <Input
             name="sortOrder"
             type="number"
             defaultValue={initial.sortOrder}
             title="Display order (lower shows first)"
-            className={field}
           />
         </label>
 
         <label className="block sm:col-span-2">
           <span className="text-sm font-medium text-slate-700">Stripe Price ID</span>
-          <input
+          <Input
             name="stripePriceId"
             defaultValue={initial.stripePriceId ?? ""}
             placeholder="price_..."
             title="Stripe recurring Price ID for checkout"
-            className={field}
           />
           <span className="mt-1 block text-xs text-slate-400">
             The recurring Stripe Price this plan checks out with. Leave blank for free plans.
@@ -137,13 +130,12 @@ export default function PlanForm({
 
       <label className="block">
         <span className="text-sm font-medium text-slate-700">Pricing-page bullets (one per line)</span>
-        <textarea
+        <Textarea
           name="features"
           rows={5}
           defaultValue={initial.features.join("\n")}
           placeholder={"Up to 10 event types\nCustom branding\nPriority support"}
           title="Marketing text shown on the billing page"
-          className={field}
         />
         <p className="mt-1 text-xs text-amber-600">
           Display text only — purely cosmetic. It does NOT control what this plan
