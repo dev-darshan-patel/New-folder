@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Bookify — Developer Guide</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --bg-alt: #f6f7f9;
+    --bg-card: #ffffff;
+    --text: #1a1d23;
+    --text-dim: #5b6270;
+    --border: #e3e6ea;
+    --accent: #4f46e5;
+    --accent-soft: #eef0fe;
+    --code-bg: #f2f3f7;
+    --free: #64748b;
+    --pro: #4f46e5;
+    --business: #a855f7;
+    --warn-bg: #fff7e6;
+    --warn-border: #f2c94c;
+    --ok-bg: #eafaf0;
+    --ok-border: #34c77b;
+    --danger-bg: #fdf0f0;
+    --danger-border: #e07070;
+    --shadow: 0 1px 2px rgba(20,20,40,0.04), 0 1px 8px rgba(20,20,40,0.03);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14161b;
+      --bg-alt: #1b1e25;
+      --bg-card: #1c1f26;
+      --text: #e7e9ee;
+      --text-dim: #9aa1ad;
+      --border: #2b2f38;
+      --accent: #8b85f8;
+      --accent-soft: #24244a;
+      --code-bg: #20232b;
+      --free: #94a3b8;
+      --pro: #8b85f8;
+      --business: #d09cf5;
+      --warn-bg: #2a2412;
+      --warn-border: #7a6320;
+      --ok-bg: #10261a;
+      --ok-border: #1f7a4c;
+      --danger-bg: #2a1414;
+      --danger-border: #7a3030;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 1px 8px rgba(0,0,0,0.25);
+    }
+  }
+  /* Viewer's explicit theme toggle wins over the OS media query, both ways. */
+  :root[data-theme="dark"] {
+    --bg: #14161b;
+    --bg-alt: #1b1e25;
+    --bg-card: #1c1f26;
+    --text: #e7e9ee;
+    --text-dim: #9aa1ad;
+    --border: #2b2f38;
+    --accent: #8b85f8;
+    --accent-soft: #24244a;
+    --code-bg: #20232b;
+    --free: #94a3b8;
+    --pro: #8b85f8;
+    --business: #d09cf5;
+    --warn-bg: #2a2412;
+    --warn-border: #7a6320;
+    --ok-bg: #10261a;
+    --ok-border: #1f7a4c;
+    --danger-bg: #2a1414;
+    --danger-border: #7a3030;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 1px 8px rgba(0,0,0,0.25);
+  }
+  :root[data-theme="light"] {
+    --bg: #ffffff;
+    --bg-alt: #f6f7f9;
+    --bg-card: #ffffff;
+    --text: #1a1d23;
+    --text-dim: #5b6270;
+    --border: #e3e6ea;
+    --accent: #4f46e5;
+    --accent-soft: #eef0fe;
+    --code-bg: #f2f3f7;
+    --free: #64748b;
+    --pro: #4f46e5;
+    --business: #a855f7;
+    --warn-bg: #fff7e6;
+    --warn-border: #f2c94c;
+    --ok-bg: #eafaf0;
+    --ok-border: #34c77b;
+    --danger-bg: #fdf0f0;
+    --danger-border: #e07070;
+    --shadow: 0 1px 2px rgba(20,20,40,0.04), 0 1px 8px rgba(20,20,40,0.03);
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.65;
+    font-size: 16px;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  a:focus-visible, button:focus-visible, input:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  code, pre {
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.88em;
+  }
+  code {
+    background: var(--code-bg);
+    padding: 0.15em 0.4em;
+    border-radius: 4px;
+  }
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    overflow-x: auto;
+  }
+  pre code { background: none; padding: 0; }
+
+  .layout { display: flex; max-width: 1500px; margin: 0 auto; }
+  #sidebar {
+    width: 290px;
+    flex-shrink: 0;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    padding: 24px 16px;
+    border-right: 1px solid var(--border);
+    background: var(--bg-alt);
+  }
+  #sidebar .brand {
+    font-weight: 700;
+    font-size: 1.15rem;
+    padding: 0 8px 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  #sidebar .brand .dot {
+    width: 10px; height: 10px; border-radius: 3px;
+    background: var(--accent);
+    display: inline-block;
+  }
+  #sidebar .group-title {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--text-dim);
+    padding: 16px 8px 6px;
+    font-weight: 700;
+  }
+  #sidebar a {
+    display: block;
+    padding: 5px 8px;
+    border-radius: 6px;
+    color: var(--text);
+    font-size: 0.875rem;
+  }
+  #sidebar a:hover { background: var(--accent-soft); text-decoration: none; }
+  #sidebar .toc-search {
+    width: 100%;
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    color: var(--text);
+    font-size: 0.85rem;
+    margin-bottom: 8px;
+  }
+  #content { flex: 1; min-width: 0; padding: 40px 56px 140px; max-width: 940px; }
+
+  h1, h2, h3, h4 { line-height: 1.3; scroll-margin-top: 20px; text-wrap: balance; }
+  h1 { font-size: 2.1rem; margin: 0 0 8px; }
+  h2 {
+    font-size: 1.5rem;
+    margin: 60px 0 16px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+  }
+  h3 { font-size: 1.18rem; margin: 32px 0 10px; }
+  h4 { font-size: 1rem; margin: 22px 0 8px; }
+  p { margin: 0 0 14px; }
+  ul, ol { margin: 0 0 14px; padding-left: 22px; }
+  li { margin-bottom: 5px; }
+  .lede { font-size: 1.12rem; color: var(--text-dim); margin-bottom: 24px; }
+  .subtitle { color: var(--text-dim); margin-top: 0; }
+
+  .part-divider { margin: 80px 0 8px; padding: 24px 0 0; }
+  .part-eyebrow {
+    font-size: 0.76rem;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: var(--accent);
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .part-divider h1 { margin-bottom: 6px; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0 22px;
+    font-size: 0.875rem;
+  }
+  .table-wrap { overflow-x: auto; margin: 12px 0 22px; }
+  .table-wrap table { margin: 0; }
+  th, td {
+    text-align: left;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+    font-variant-numeric: tabular-nums;
+  }
+  th {
+    font-size: 0.73rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-dim);
+    font-weight: 700;
+  }
+  tr:last-child td { border-bottom: none; }
+
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin: 16px 0;
+    box-shadow: var(--shadow);
+  }
+  .callout {
+    border-radius: 10px;
+    padding: 14px 18px;
+    margin: 18px 0;
+    border: 1px solid var(--border);
+    font-size: 0.94rem;
+  }
+  .callout.warn { background: var(--warn-bg); border-color: var(--warn-border); }
+  .callout.ok { background: var(--ok-bg); border-color: var(--ok-border); }
+  .callout.danger { background: var(--danger-bg); border-color: var(--danger-border); }
+  .callout strong { display: block; margin-bottom: 4px; }
+
+  .pill {
+    display: inline-block;
+    padding: 2px 9px;
+    border-radius: 100px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: white;
+    white-space: nowrap;
+  }
+  .pill.free { background: var(--free); }
+  .pill.pro { background: var(--pro); }
+  .pill.business { background: var(--business); }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  @media (max-width: 860px) {
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    #sidebar { display: none; }
+    #content { padding: 24px; max-width: 100%; }
+  }
+
+  /* Numbered walkthrough steps */
+  ol.steps { list-style: none; padding: 0; counter-reset: step; }
+  ol.steps > li {
+    counter-increment: step;
+    position: relative;
+    padding: 0 0 18px 44px;
+    margin: 0 0 0 14px;
+    border-left: 2px solid var(--border);
+  }
+  ol.steps > li:last-child { border-left-color: transparent; padding-bottom: 0; }
+  ol.steps > li::before {
+    content: counter(step);
+    position: absolute;
+    left: -15px;
+    top: 0;
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #fff;
+    font-size: 0.8rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  ol.steps > li .step-title { font-weight: 600; display: block; margin-bottom: 2px; }
+
+  .yes { color: #16a34a; font-weight: 700; }
+  .no { color: var(--text-dim); }
+  @media (prefers-color-scheme: dark) { .yes { color: #4ade80; } }
+
+  .flow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.85rem;
+    margin: 10px 0 18px;
+  }
+  .flow .node {
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.8rem;
+  }
+  .flow .arrow { color: var(--text-dim); }
+
+  .diagram-wrap {
+    background: var(--bg-alt);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    margin: 18px 0;
+    overflow-x: auto;
+  }
+  dl.defs { margin: 12px 0 22px; }
+  dl.defs dt { font-weight: 600; margin-top: 14px; }
+  dl.defs dd { margin: 2px 0 0; color: var(--text-dim); }
+
+  #back-to-top {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 100px;
+    padding: 10px 16px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    box-shadow: var(--shadow);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+  }
+  #back-to-top.show { opacity: 1; pointer-events: auto; }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    * { transition: none !important; }
+  }
+  svg text { font-family: inherit; fill: var(--text); }
+  footer {
+    margin-top: 80px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+
+<nav id="sidebar">
+  <div class="brand"><span class="dot"></span> Bookify Guide</div>
+  <input class="toc-search" id="tocSearch" type="text" placeholder="Filter sections…" aria-label="Filter sections" />
+  <div id="tocList">
+    <div class="group-title">Developer</div>
+    <a href="#tech-stack">Tech stack</a>
+    <a href="#architecture">Architecture</a>
+    <a href="#project-structure">Project structure</a>
+    <a href="#data-model">Data model</a>
+    <a href="#state-machines">State machines</a>
+    <a href="#scheduling-engine">Scheduling engine</a>
+    <a href="#adding-a-gate">Adding a feature gate</a>
+    <a href="#route-map">Route map</a>
+    <a href="#security-model">Security reference</a>
+    <a href="#cron">Scheduled jobs</a>
+    <a href="#env-vars">Environment variables</a>
+    <a href="#local-setup">Local setup</a>
+    <a href="#conventions">Conventions &amp; gotchas</a>
+    <a href="#deployment">Deployment</a>
+
+    <div class="group-title">Elsewhere</div>
+    <a href="PROJECT-GUIDE.html">→ User &amp; Admin Guide</a>
+  </div>
+</nav>
+
+<main id="content">
+
+<h1>Bookify — Developer Guide</h1>
+<p class="lede">Architecture, conventions, and the reasoning behind the decisions that matter. For what the product actually does and how a tenant or platform admin uses it, see the <a href="PROJECT-GUIDE.html">User &amp; Admin Guide</a> instead.</p>
+<div class="callout"><strong>Everything here was written from the code, not from memory.</strong> Where a number appears — a timeout, a retry limit, a grace period — it's the value the app actually uses today.</div>
+<p>New to the codebase? Start at <a href="#architecture">Architecture</a>, then <a href="#local-setup">Local setup</a> and <a href="#conventions">Conventions &amp; gotchas</a>. Unfamiliar product terms — tenant, event type, slot, feature gate, and the rest — are defined in the <a href="PROJECT-GUIDE.html#glossary">User Guide's glossary</a>.</p>
+
+<h2 id="tech-stack">Tech stack</h2>
+<div class="table-wrap">
+<table>
+<tr><th>Layer</th><th>Choice</th><th>Notes</th></tr>
+<tr><td>Framework</td><td>Next.js 16, App Router</td><td>Turbopack in dev. Server-first throughout.</td></tr>
+<tr><td>UI</td><td>React 19, Tailwind CSS 4</td><td>Radix UI primitives, <code>lucide-react</code> icons, <code>sonner</code> toasts</td></tr>
+<tr><td>Database</td><td>PostgreSQL via Prisma 6</td><td>Neon or Vercel Postgres. Pooled + direct connection strings.</td></tr>
+<tr><td>Auth</td><td>Custom JWT sessions</td><td><code>jose</code> for signing, <code>bcryptjs</code> for passwords, hand-rolled OIDC for social login</td></tr>
+<tr><td>2FA</td><td><code>otplib</code> + <code>qrcode</code></td><td>TOTP, plus hashed single-use backup codes</td></tr>
+<tr><td>Payments</td><td><code>stripe</code> SDK + Razorpay adapter</td><td>Both behind one shared provider interface</td></tr>
+<tr><td>Email</td><td><code>nodemailer</code></td><td>SMTP, Gmail or SES. Degrades to console logging with no config.</td></tr>
+<tr><td>File storage</td><td><code>@vercel/blob</code></td><td>Avatar uploads, served through an auth-checked proxy route</td></tr>
+<tr><td>Logging</td><td><code>pino</code></td><td>Structured JSON; <code>pino-pretty</code> in dev</td></tr>
+<tr><td>Dates</td><td><code>date-fns</code> + <code>@date-fns/tz</code></td><td>Timezone-correct arithmetic — the critical dependency for scheduling</td></tr>
+</table>
+</div>
+
+<h3>Commands</h3>
+<div class="table-wrap">
+<table>
+<tr><th>Command</th><th>Does</th></tr>
+<tr><td><code>npm run dev</code></td><td>Dev server on <code>localhost:3000</code></td></tr>
+<tr><td><code>npm run build</code></td><td>Production build — also type-checks</td></tr>
+<tr><td><code>npm run lint</code></td><td>ESLint</td></tr>
+<tr><td><code>npm run db:migrate</code></td><td>Create and apply a migration locally</td></tr>
+<tr><td><code>npm run db:deploy</code></td><td>Apply pending migrations (production)</td></tr>
+<tr><td><code>npm run db:seed</code></td><td>Seed a demo account</td></tr>
+<tr><td><code>npm run db:studio</code></td><td>Prisma Studio GUI</td></tr>
+<tr><td><code>npx tsc --noEmit</code></td><td>Type-check without building</td></tr>
+</table>
+</div>
+<p>Both <code>npx tsc --noEmit</code> and <code>npm run build</code> are worth running before committing.</p>
+
+<h2 id="architecture">Architecture</h2>
+
+<h3>Server-first, and no API layer</h3>
+<p>Data is read directly in async server components using Prisma. Mutations go through <strong>server actions</strong>. There is intentionally no REST or tRPC layer.</p>
+<p>The <code>/api</code> directory exists only for things that genuinely cannot be a page or an action: OAuth callbacks, payment webhooks, cron endpoints, file upload and binary/CSV responses.</p>
+<p>Client components are the exception rather than the rule — used only where real interactivity is required (auth forms, the booking widget, the copy-link button, the mobile drawer).</p>
+
+<div class="diagram-wrap">
+<svg viewBox="0 0 760 250" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;max-width:760px" role="img" aria-label="Request lifecycle: the browser reads data through server components that query Prisma directly, and writes through server actions that re-check ownership before writing.">
+  <defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="var(--text-dim)"/>
+    </marker>
+  </defs>
+  <style>
+    .a-box { fill: var(--bg-card); stroke: var(--border); stroke-width: 1.5; rx: 8; }
+    .a-t { font-size: 12.5px; font-weight: 700; }
+    .a-s { font-size: 10.5px; fill: var(--text-dim); }
+    .a-e { stroke: var(--text-dim); stroke-width: 1.5; fill: none; marker-end: url(#ar); }
+    .a-l { font-size: 10.5px; fill: var(--text-dim); }
+  </style>
+  <rect class="a-box" x="10" y="90" width="130" height="66"/>
+  <text class="a-t" x="24" y="115">Browser</text>
+  <text class="a-s" x="24" y="134">tenant · customer</text>
+  <text class="a-s" x="24" y="148">· admin</text>
+
+  <rect class="a-box" x="215" y="20" width="200" height="80"/>
+  <text class="a-t" x="229" y="45">Server Components</text>
+  <text class="a-s" x="229" y="63">async · read directly</text>
+  <text class="a-s" x="229" y="79">via Prisma</text>
+  <text class="a-s" x="229" y="93">tenant-scoped by userId</text>
+
+  <rect class="a-box" x="215" y="150" width="200" height="86"/>
+  <text class="a-t" x="229" y="175">Server Actions</text>
+  <text class="a-s" x="229" y="193">"use server" · mutations</text>
+  <text class="a-s" x="229" y="209">re-check ownership</text>
+  <text class="a-s" x="229" y="225">+ plan gate + role</text>
+
+  <rect class="a-box" x="490" y="90" width="150" height="66"/>
+  <text class="a-t" x="504" y="115">PostgreSQL</text>
+  <text class="a-s" x="504" y="134">via Prisma Client</text>
+  <text class="a-s" x="504" y="148">row-level tenancy</text>
+
+  <path class="a-e" d="M140,110 L215,70"/>
+  <text class="a-l" x="146" y="80">GET</text>
+  <path class="a-e" d="M140,140 L215,180"/>
+  <text class="a-l" x="146" y="176">POST</text>
+  <path class="a-e" d="M415,65 L490,105"/>
+  <path class="a-e" d="M415,185 L490,145"/>
+</svg>
+</div>
+
+<h3>Multi-tenancy</h3>
+<p>Tenancy is row-level by <code>userId</code>. Every event type, availability window and booking belongs to one tenant. The public site keys off the tenant's URL handle, and every dashboard action re-checks ownership in its <code>where</code> clause rather than trusting an ID from the form.</p>
+<p>The admin console is the single deliberate exception that reads across tenants.</p>
+
+<h3>Auth</h3>
+<p>Sessions are never delegated to a third party, even when the user authenticates with Google or Microsoft. A signed JWT is issued and stored in an <code>httpOnly</code> cookie regardless of how they signed in.</p>
+<p>Social login is a hand-rolled Authorization Code flow rather than a library. It verifies the returned identity token's <em>signature</em> against the provider's published keys — not merely trusting a userinfo response — and links to an existing account only by a <em>verified</em> email address. An unverified provider email is rejected outright rather than auto-linked, because auto-linking on an unverified address is an account-takeover vector.</p>
+<p>Sessions carry a version number. Bumping the stored version — on password change, suspension, or admin force-logout — invalidates every existing token instantly.</p>
+
+<h3>Timezone model</h3>
+<p>Two different representations, deliberately:</p>
+<ul>
+  <li><strong>Availability is timezone-naive</strong> — stored as a weekday plus minutes-from-midnight. “Monday, 540 to 1020” means 09:00–17:00 in whatever the tenant's timezone currently is. If they move timezone, their working hours move with them, which is what people expect.</li>
+  <li><strong>Bookings are absolute UTC instants.</strong> A booked appointment is a fixed moment in time and must not shift if anyone's timezone setting changes.</li>
+</ul>
+<p>Slot generation is the bridge: it takes the tenant's wall-clock availability, interprets it in their IANA timezone for a specific date, and produces UTC instants. Rendering goes the other way, formatting the stored UTC instant into whichever timezone the viewer is in.</p>
+<div class="callout warn"><strong>Do not "simplify" this into one representation.</strong> Storing availability in UTC breaks daylight-saving (a 9am start would drift to 8am or 10am for half the year). Storing bookings as wall-clock breaks the moment a timezone setting changes. Both halves are load-bearing.</div>
+
+<h3>Feature entitlements</h3>
+<p>A code-defined registry lists every gateable capability. Each plan holds an admin-editable array of the keys it grants. One helper resolves “does this plan include this capability?” and every gate in the app calls it — never a direct plan-name comparison like <code>plan === "BUSINESS"</code>, which is what made this hard to change before.</p>
+<p>The registry lives in code rather than the database on purpose: a key is only meaningful if a matching server-side check exists somewhere. An admin can turn an existing gate on or off per plan, but can't invent a new gate from the UI that nothing enforces.</p>
+
+<h2 id="project-structure">Project structure</h2>
+<pre><code>src/
+  app/                    Next.js App Router
+    (auth)/               Route group: login, signup, forgot-password
+                          (the group name is not in the URL)
+    dashboard/            Protected tenant area
+    admin/                Protected platform-admin area
+    [slug]/               Public tenant page + [eventSlug] booking widget
+    booking/[token]/      Invitee self-manage — no login
+    api/                  Only what must be raw HTTP: OAuth callbacks,
+                          webhooks, cron, uploads, CSV
+  components/
+    ui/                   Base primitives (button, card, input, table…)
+    admin/                Admin tables + dependency-free SVG charts
+    *.tsx                 Banners: announcement, deletion, impersonation,
+                          maintenance
+  lib/                    Server-only logic — grouped below
+</code></pre>
+
+<h4><code>src/lib/</code> by concern</h4>
+<div class="table-wrap">
+<table>
+<tr><th>Concern</th><th>Files</th></tr>
+<tr><td>Auth &amp; security</td><td><code>auth.ts</code>, <code>oauth.ts</code>, <code>oauth-login.ts</code>, <code>totp.ts</code>, <code>crypto.ts</code>, <code>csrf.ts</code>, <code>rate-limit.ts</code></td></tr>
+<tr><td>Scheduling</td><td><code>availability.ts</code>, <code>days.ts</code>, <code>booking-status.ts</code>, <code>team.ts</code>, <code>guests.ts</code>, <code>intake.ts</code>, <code>ics.ts</code></td></tr>
+<tr><td>Billing &amp; payments</td><td><code>stripe.ts</code>, <code>razorpay.ts</code>, <code>payments.ts</code>, <code>plans.ts</code>, <code>coupons.ts</code>, and <code>payments/</code> (provider interface, adapters, holds, release, refunds)</td></tr>
+<tr><td>Admin</td><td><code>admin-auth.ts</code>, <code>admin-audit.ts</code>, <code>admin-billing.ts</code>, <code>admin-metrics.ts</code>, <code>admin-users-query.ts</code>, <code>admin-bookings-query.ts</code></td></tr>
+<tr><td>Email</td><td><code>email.ts</code>, <code>email-render.ts</code>, <code>email-templates.ts</code>, <code>reminders.ts</code></td></tr>
+<tr><td>Integrations</td><td><code>google-calendar.ts</code>, <code>zoom.ts</code></td></tr>
+<tr><td>Product config</td><td><code>features.ts</code>, <code>feature-flags.ts</code>, <code>platform-config.ts</code>, <code>settings.ts</code>, <code>branding.ts</code></td></tr>
+<tr><td>Misc</td><td><code>prisma.ts</code> (client singleton), <code>slug.ts</code>, <code>format.ts</code>, <code>utils.ts</code>, <code>logger.ts</code>, <code>account-deletion.ts</code></td></tr>
+</table>
+</div>
+
+<h2 id="data-model">Data model</h2>
+<p>Twenty models in <code>prisma/schema.prisma</code>. The schema is heavily commented — those comments are the authoritative explanation of any individual field.</p>
+<div class="table-wrap">
+<table>
+<tr><th>Model</th><th>Purpose</th></tr>
+<tr><td><code>User</code></td><td>A tenant account: profile, plan and billing state, security (2FA, lockout, session version), branding, payment-provider connection state, deletion lifecycle timestamps, iCal feed token</td></tr>
+<tr><td><code>EventType</code></td><td>A bookable appointment type: duration, location, limits (incl. padding, booking window), unlisted flag, intake questions, price, assignment mode, capacity, recurring flag</td></tr>
+<tr><td><code>Availability</code></td><td>One weekly recurring window (weekday + minutes-from-midnight). Optionally scoped to a team member.</td></tr>
+<tr><td><code>DateOverride</code></td><td>A one-off exception for a specific date — closed, or custom hours</td></tr>
+<tr><td><code>Booking</code></td><td>An appointment: invitee details, UTC times, status, intake answers, guests, video link, recurring-series linkage, payment and payout state</td></tr>
+<tr><td><code>Session</code></td><td>One occurrence of a group event type, with its own capacity and atomically-managed seat counter</td></tr>
+<tr><td><code>TeamMember</code></td><td>A member of a tenant's team, with round-robin fairness tracking</td></tr>
+<tr><td><code>EventTypeMember</code></td><td>Join table — which team members are assigned to which event type</td></tr>
+<tr><td><code>CalendarConnection</code></td><td>A connected Google or Zoom account: encrypted tokens, granted scopes, busy-sync opt-in</td></tr>
+<tr><td><code>Plan</code></td><td>An admin-editable tier: price, event-type limit, granted feature keys, marketing bullets, checkout price ID</td></tr>
+<tr><td><code>PaymentApplication</code></td><td>A tenant's application to accept payments, with the admin's decision and reason. Never edited — resubmission creates a new row.</td></tr>
+<tr><td><code>PlatformSettings</code></td><td>Singleton row: payment credentials (test + live), OAuth app credentials, email provider config, maintenance mode, platform fee</td></tr>
+<tr><td><code>FeatureFlag</code></td><td>A global on/off kill-switch, independent of plans</td></tr>
+<tr><td><code>EmailTemplate</code></td><td>Admin-editable subject, HTML and text for one transactional email</td></tr>
+<tr><td><code>Coupon</code> / <code>CouponRedemption</code></td><td>Promo codes and who has redeemed them (once per account)</td></tr>
+<tr><td><code>Announcement</code></td><td>A dashboard banner shown to all tenants</td></tr>
+<tr><td><code>AdminAuditLog</code></td><td>Append-only record of every admin mutation</td></tr>
+<tr><td><code>AdminNote</code></td><td>Internal admin note on an account, never shown to the tenant</td></tr>
+<tr><td><code>RateLimit</code></td><td>Sliding-window counters, shared across serverless instances</td></tr>
+</table>
+</div>
+<p><strong>Enums:</strong> <code>AssignmentMode</code> (SOLO / ROUND_ROBIN / COLLECTIVE), <code>AdminRole</code> (SUPER_ADMIN / SUPPORT / READ_ONLY), <code>LocationType</code> (IN_PERSON / PHONE / GOOGLE_MEET / ZOOM), <code>BookingStatus</code> (CONFIRMED / PENDING / PENDING_PAYMENT / CANCELLED), <code>StripeMode</code> (TEST / LIVE), <code>CouponType</code> (TRIAL / STRIPE_PROMO).</p>
+<div class="callout"><strong>Why some state is a string rather than an enum.</strong> Payment and payout states are plain strings, matching the existing convention for admin roles and account status. It trades a little type safety for the ability to add a state without a schema migration — a reasonable call for states that were still settling.</div>
+
+<h2 id="state-machines">State machines</h2>
+
+<h3>Booking status</h3>
+<p>Three of the four statuses hold the time slot. Only <code>CANCELLED</code> releases it — which is why cancelling frees a slot with no extra bookkeeping.</p>
+<div class="flow">
+  <span class="node">PENDING</span><span class="arrow">— owner approves →</span>
+  <span class="node">CONFIRMED</span>
+</div>
+<div class="flow">
+  <span class="node">PENDING</span><span class="arrow">— owner declines →</span>
+  <span class="node">CANCELLED</span>
+</div>
+<div class="flow">
+  <span class="node">PENDING_PAYMENT</span><span class="arrow">— payment webhook →</span>
+  <span class="node">CONFIRMED</span>
+</div>
+<div class="flow">
+  <span class="node">PENDING_PAYMENT</span><span class="arrow">— 30 min with no payment →</span>
+  <span class="node">CANCELLED</span>
+</div>
+<div class="flow">
+  <span class="node">CONFIRMED</span><span class="arrow">— either side cancels →</span>
+  <span class="node">CANCELLED</span>
+</div>
+<p>Approval-required and paid are mutually exclusive, so a booking is never both <code>PENDING</code> and <code>PENDING_PAYMENT</code>.</p>
+
+<h3>Payout lifecycle</h3>
+<p>Independent of the booking's own status — money state and slot state are tracked separately on purpose.</p>
+<div class="flow">
+  <span class="node">HELD</span><span class="arrow">— 24h after appointment ends →</span>
+  <span class="node">RELEASED</span>
+</div>
+<div class="flow">
+  <span class="node">HELD</span><span class="arrow">— refund while held →</span>
+  <span class="node">REFUNDED</span>
+</div>
+<div class="flow">
+  <span class="node">RELEASED</span><span class="arrow">— refund after release →</span>
+  <span class="node">REVERSED</span>
+</div>
+<div class="flow">
+  <span class="node">HELD</span><span class="arrow">— transfer fails →</span>
+  <span class="node">RELEASE_FAILED</span><span class="arrow">— retried, max 5 attempts →</span>
+  <span class="node">RELEASED</span>
+</div>
+<p>Fee and amount are snapshotted at release time, so later changes to the platform's fee percentage never rewrite historical payouts. After 5 failed attempts a booking stops being retried and is surfaced in the admin payments view with the provider's error message.</p>
+
+<h2 id="scheduling-engine">Scheduling engine</h2>
+<p>The most delicate code in the project. Changes here deserve real care.</p>
+
+<h3>How slot generation works</h3>
+<ol>
+  <li>Look up the tenant's availability windows for the requested date's weekday.</li>
+  <li>Apply any date override — bail out entirely if the date is blocked, or substitute custom hours.</li>
+  <li>Walk the window in steps, producing candidate wall-clock start times.</li>
+  <li>Convert each wall-clock time to a UTC instant <em>in the tenant's timezone for that specific date</em>, so daylight-saving is handled correctly.</li>
+  <li>Drop anything already in the past, or inside the event type's minimum-notice horizon.</li>
+  <li>Drop everything for the day if it's beyond the event type's booking window (<code>maxAdvanceDays</code>).</li>
+  <li>Drop anything overlapping an existing booking whose status holds the slot — widened by the event type's padding, if any, so a booking blocks <code>[start − padding, end + padding]</code> rather than just its own window.</li>
+  <li>Drop everything for the day if a daily, weekly or monthly cap is already met.</li>
+  <li>For team event types, intersect against member availability — any member for round-robin, all members for collective.</li>
+  <li>Subtract connected-calendar busy windows, if the tenant has busy-sync enabled and their plan still grants it.</li>
+</ol>
+
+<h3>Double-booking prevention</h3>
+<p>Two independent layers, because the first one alone is a race condition:</p>
+<ol>
+  <li><strong>At read time</strong> — booked times aren't offered as slots.</li>
+  <li><strong>At write time</strong> — an overlap re-check runs inside the same transaction as the insert. If someone else took the slot in the seconds between page load and submit, the booking is refused with “that time was just booked”.</li>
+</ol>
+<p>Group sessions use a different mechanism suited to their shape: seats are claimed with a single conditional update that only succeeds while seats remain, making overbooking impossible even under heavy concurrency.</p>
+<div class="callout warn"><strong>Plan gates are enforced at read time, not by clearing settings.</strong> Calendar busy-sync checks the tenant's current plan at the moment busy data is fetched. It does <em>not</em> switch off the tenant's <code>syncBusyTimes</code> toggle on downgrade — so if they upgrade again, their preference is still there. The same principle applies everywhere: gates block <em>new</em> usage; they never destroy stored settings.</div>
+
+<h2 id="adding-a-gate">Adding a feature gate</h2>
+<p>The recipe, in order. Skipping step 2 is the classic mistake — a hidden control is not a gate.</p>
+<ol class="steps">
+  <li><span class="step-title">Add the key to the registry</span> Add an entry to the feature registry in <code>src/lib/features.ts</code> with a key, a human label and a one-line description. The admin checkbox grid and plan-seed defaults both read from this array, so nothing else needs updating for it to appear in the admin UI.</li>
+  <li><span class="step-title">Enforce it server-side</span> In the server action (or route handler, or data-fetching function) call the plan helper and refuse or drop the gated input when it returns false. <strong>This is the actual gate.</strong> Treat form input as hostile — assume the field was submitted even though the UI didn't render it.</li>
+  <li><span class="step-title">Preserve existing data on downgrade</span> When the gate is closed, fall back to the row's <em>existing</em> value rather than a hardcoded default. Otherwise a downgraded tenant who edits an unrelated field silently wipes settings they configured on a higher plan.</li>
+  <li><span class="step-title">Hide the control in the UI</span> Optional but expected — render an upgrade note in place of the gated control. This is a courtesy for the user, never a security boundary.</li>
+  <li><span class="step-title">Grant it on the right plans</span> Tick the new checkbox on whichever plans should include it, at <code>/admin/settings/plans</code>, and add a matching pricing-page bullet.</li>
+  <li><span class="step-title">Verify</span> <code>npx tsc --noEmit</code> and <code>npm run build</code>. Then check the downgrade path specifically — set an account to a plan without the gate, edit something unrelated, and confirm the gated data survived.</li>
+</ol>
+
+<h2 id="route-map">Route map</h2>
+<p>Static routes take precedence over the dynamic <code>/[slug]</code>, so a tenant handle must never collide with a reserved word like <code>dashboard</code>, <code>admin</code>, <code>login</code> or <code>api</code>.</p>
+
+<h4>Public</h4>
+<div class="table-wrap">
+<table>
+<tr><td><code>/</code></td><td>Marketing landing page</td></tr>
+<tr><td><code>/[slug]</code></td><td>A tenant's public page listing their event types (unlisted ones excluded)</td></tr>
+<tr><td><code>/[slug]/[eventSlug]</code></td><td>The booking page. Add <code>?embed=1</code> for the embeddable variant.</td></tr>
+<tr><td><code>/booking/[token]</code></td><td>Invitee self-manage — view, cancel</td></tr>
+<tr><td><code>/booking/[token]/reschedule</code></td><td>Invitee reschedule</td></tr>
+<tr><td><code>/recover/[token]</code></td><td>Restore a deleted account inside its recovery window</td></tr>
+<tr><td><code>/reset-password/[token]</code></td><td>One-time password reset</td></tr>
+<tr><td><code>/verify-email</code>, <code>/verify-email/[token]</code></td><td>Email verification prompt and confirmation</td></tr>
+</table>
+</div>
+
+<h4>Auth</h4>
+<div class="table-wrap">
+<table>
+<tr><td><code>/login</code>, <code>/login/2fa</code></td><td>Sign in, then the TOTP step if enabled</td></tr>
+<tr><td><code>/signup</code></td><td>Create a tenant account</td></tr>
+<tr><td><code>/forgot-password</code></td><td>Request a reset link</td></tr>
+</table>
+</div>
+
+<h4>Dashboard — tenant</h4>
+<div class="table-wrap">
+<table>
+<tr><td><code>/dashboard</code></td><td>Overview — shareable booking link, KPIs, bookings chart, upcoming/pending-approval lists</td></tr>
+<tr><td><code>/dashboard/event-types</code>, <code>/dashboard/event-types/[id]</code></td><td>List and edit event types</td></tr>
+<tr><td><code>/dashboard/event-types/[id]/sessions/[sessionId]</code></td><td>Manage one group session</td></tr>
+<tr><td><code>/dashboard/availability</code></td><td>Weekly hours + date overrides</td></tr>
+<tr><td><code>/dashboard/bookings</code>, <code>/new</code>, <code>/export</code></td><td>Bookings list, manual booking, CSV export</td></tr>
+<tr><td><code>/dashboard/team</code>, <code>/dashboard/team/[id]/availability</code></td><td>Team members and per-member hours</td></tr>
+<tr><td><code>/dashboard/branding</code>, <code>/dashboard/embed</code></td><td>Branding and embed snippet generator</td></tr>
+<tr><td><code>/dashboard/billing</code></td><td>Plans and subscription</td></tr>
+<tr><td><code>/dashboard/settings</code>, <code>/dashboard/settings/security</code></td><td>Profile, integrations, payments application, 2FA</td></tr>
+</table>
+</div>
+
+<h4>Admin — platform</h4>
+<div class="table-wrap">
+<table>
+<tr><td><code>/admin</code></td><td>Analytics overview (<code>?range=7|30|90</code>)</td></tr>
+<tr><td><code>/admin/users</code> + <code>/[id]</code>, <code>/[id]/edit</code>, <code>/new</code>, <code>/export</code></td><td>Tenant management</td></tr>
+<tr><td><code>/admin/bookings</code>, <code>/admin/bookings/export</code></td><td>Cross-tenant bookings explorer</td></tr>
+<tr><td><code>/admin/billing</code>, <code>/admin/payments</code></td><td>Subscription revenue; tenant-payment applications and payouts</td></tr>
+<tr><td><code>/admin/coupons</code>, <code>/admin/announcements</code>, <code>/admin/broadcast</code></td><td>Promo codes, banners, messaging</td></tr>
+<tr><td><code>/admin/audit</code></td><td>Append-only admin action log</td></tr>
+<tr><td><code>/admin/settings</code> + <code>/auth</code>, <code>/platform</code>, <code>/plans</code>, <code>/plans/[id]</code>, <code>/flags</code>, <code>/email</code>, <code>/email-templates</code>, <code>/email-templates/[key]</code></td><td>Platform configuration (super admin)</td></tr>
+</table>
+</div>
+
+<h4>API</h4>
+<div class="table-wrap">
+<table>
+<tr><td><code>/api/auth/[provider]/start</code>, <code>/callback</code></td><td>Google / Microsoft sign-in flow</td></tr>
+<tr><td><code>/api/calendar/google/start</code>, <code>/callback</code></td><td>Google Calendar connect flow</td></tr>
+<tr><td><code>/api/calendar/zoom/start</code>, <code>/callback</code></td><td>Zoom connect flow</td></tr>
+<tr><td><code>/api/calendar/feed/[token]</code></td><td>Read-only iCal subscription feed — no session, the token is the auth; optional <code>?eventType=</code></td></tr>
+<tr><td><code>/api/avatar/[userId]</code>, <code>/api/upload/avatar</code></td><td>Avatar serve (auth-checked proxy) and upload</td></tr>
+<tr><td><code>/api/stripe/webhook</code>, <code>/api/payments/webhook/[provider]</code></td><td>Payment provider webhooks — signature-verified</td></tr>
+<tr><td><code>/api/payments/onboarding/[provider]/start</code>, <code>/return</code></td><td>Provider Connect onboarding</td></tr>
+<tr><td><code>/api/cron/reminders</code>, <code>/api/cron/account-deletion</code></td><td>Scheduled jobs — see below</td></tr>
+</table>
+</div>
+
+<h2 id="security-model">Security reference</h2>
+
+<h3>Rate limits</h3>
+<p>Counters live in the database rather than process memory, so they hold across serverless instances.</p>
+<div class="table-wrap">
+<table>
+<tr><th>Action</th><th>Limit</th><th>Keyed by</th></tr>
+<tr><td>Signup</td><td>5 per hour</td><td>IP</td></tr>
+<tr><td>Login</td><td>10 per 5 min</td><td>IP</td></tr>
+<tr><td>Login</td><td>5 per 5 min</td><td>Email address</td></tr>
+<tr><td>2FA code submission</td><td>10 per 5 min</td><td>IP</td></tr>
+<tr><td>Slot fetch (public + reschedule)</td><td>60 per minute</td><td>IP</td></tr>
+<tr><td>Creating a booking</td><td>10 per 10 min</td><td>IP</td></tr>
+</table>
+</div>
+
+<h3>Other protections</h3>
+<div class="table-wrap">
+<table>
+<tr><th>Mechanism</th><th>Detail</th></tr>
+<tr><td>Account lockout</td><td>5 consecutive failed passwords → 15-minute lock, plus a notification email. Counters reset on success.</td></tr>
+<tr><td>Session invalidation</td><td>A version number in every JWT. Bumped on password change, suspension or force-logout, killing all existing sessions at once.</td></tr>
+<tr><td>Secrets at rest</td><td>Provider tokens, TOTP secrets and payment credentials are encrypted in the database.</td></tr>
+<tr><td>Password hashing</td><td>bcrypt. Backup codes are hashed too, and consumed on use.</td></tr>
+<tr><td>CSRF</td><td>Token checks on API routes.</td></tr>
+<tr><td>Upload validation</td><td>Avatars are checked by inspecting the file's actual magic bytes, not the claimed filename or content type, with a size cap.</td></tr>
+<tr><td>Payload caps</td><td>User-supplied text is length-limited server-side before storage.</td></tr>
+<tr><td>Password-reset enumeration</td><td>The reset endpoint returns the same response whether or not the address exists, so it can't be used to discover accounts.</td></tr>
+<tr><td>Admin area concealment</td><td><code>/admin</code> returns 404, not 403, to non-admins.</td></tr>
+<tr><td>Webhook authenticity</td><td>Payment webhooks verify the provider's signature before acting.</td></tr>
+<tr><td>Cron protection</td><td>Cron endpoints require a shared secret.</td></tr>
+</table>
+</div>
+
+<h2 id="cron">Scheduled jobs</h2>
+<p>Two endpoints must be called on a schedule. <strong>Nothing in the app triggers them by itself</strong> — if no scheduler is configured, reminders never send and deletions never progress.</p>
+<div class="table-wrap">
+<table>
+<tr><th>Endpoint</th><th>Does</th><th>Suggested frequency</th></tr>
+<tr><td><code>/api/cron/reminders</code></td><td>Sends due 24-hour and 1-hour reminder emails. The two windows don't overlap, so a booking never gets both at once.</td><td>Every few minutes</td></tr>
+<tr><td><code>/api/cron/account-deletion</code></td><td>Two steps: run the destructive cascade for accounts whose 48-hour grace period has elapsed, and permanently purge accounts past their 30-day recovery window.</td><td>Hourly or daily</td></tr>
+</table>
+</div>
+<p>Both accept the shared secret as a bearer token or query parameter, and both are idempotent — overlapping or repeated calls are safe, because completed work is stamped and skipped. A successful reminder call returns the counts it sent.</p>
+<div class="callout warn"><strong>Hosting-plan gotcha.</strong> The committed schedule runs reminders every 10 minutes, which requires a paid hosting tier. Free tiers often permit only once-daily scheduled jobs — in which case use any external ping service or a system crontab hitting the same URL instead. A once-daily reminder job would make 1-hour reminders useless.</div>
+
+<h2 id="env-vars">Environment variables</h2>
+<div class="table-wrap">
+<table>
+<tr><th>Variable</th><th>Purpose</th></tr>
+<tr><td><code>DATABASE_URL</code></td><td>Pooled Postgres connection — used at runtime</td></tr>
+<tr><td><code>DIRECT_URL</code></td><td>Unpooled connection — required for migrations</td></tr>
+<tr><td><code>AUTH_SECRET</code></td><td>Long random string signing session JWTs. Use a fresh value in production.</td></tr>
+<tr><td><code>NEXT_PUBLIC_APP_URL</code></td><td>Base URL used to build booking links and email content</td></tr>
+<tr><td><code>SMTP_HOST</code> / <code>PORT</code> / <code>USER</code> / <code>PASS</code> / <code>FROM</code></td><td>Fallback mail transport. Leave <code>SMTP_HOST</code> blank to log emails instead of sending. Superseded by the admin email settings.</td></tr>
+<tr><td><code>STRIPE_SECRET_KEY</code> and related</td><td>Zero-config <strong>test-mode-only</strong> fallback, ignored once credentials are set in the admin console</td></tr>
+<tr><td><code>CRON_SECRET</code></td><td>Bearer token protecting the cron endpoints</td></tr>
+<tr><td><code>LOG_LEVEL</code></td><td>Log verbosity — defaults to debug in development, info in production</td></tr>
+</table>
+</div>
+<div class="callout"><strong>Most configuration is not in env vars.</strong> Payment credentials, OAuth apps, email delivery, plans and flags all live in the database and are edited from the admin console, so they can change without a redeploy. Env vars cover only what's needed to boot and connect.</div>
+
+<h2 id="local-setup">Local setup</h2>
+<pre><code>git clone &lt;repo&gt;
+cd bookify
+npm install                 # postinstall runs `prisma generate`
+cp .env.example .env        # fill in DATABASE_URL / DIRECT_URL / AUTH_SECRET
+npm run db:migrate          # apply the schema
+npm run db:seed             # optional: demo account
+npm run dev                 # http://localhost:3000
+</code></pre>
+<p>Postgres is required even locally — SQLite was retired, and the two can't coexist in one Prisma schema. A free Neon database takes about two minutes to provision.</p>
+<p>To get admin access on your own account, set its admin role directly in the database (Prisma Studio is easiest). There's no self-serve path, by design.</p>
+
+<h2 id="conventions">Conventions &amp; gotchas</h2>
+<div class="callout warn">
+  <strong>This is not the Next.js you may remember</strong>
+  The project's <code>AGENTS.md</code> flags that this Next.js version has breaking changes from what older documentation and training data assume. Check the bundled docs under <code>node_modules/next/dist/docs/</code> before using an unfamiliar API.
+</div>
+<ul>
+  <li><strong>Mutations are server actions.</strong> New ones belong in an <code>actions.ts</code> beside the page that uses them, marked <code>"use server"</code>. Don't add REST endpoints for things an action can do.</li>
+  <li><strong>Always re-check ownership.</strong> Every tenant mutation filters by the current user's ID. Never trust a record ID from a form on its own.</li>
+  <li><strong>UI hiding is never a security boundary.</strong> Any control hidden by a plan gate or a role check must also be enforced in the code that receives the submission.</li>
+  <li><strong>Downgrades preserve data.</strong> When adding a gated field, the “not entitled” branch falls back to the existing stored value, not a default. Wiping a user's configuration because they changed plans is a bug.</li>
+  <li><strong>Store UTC, interpret in the tenant's timezone.</strong> Don't collapse the two-representation model described in <a href="#architecture">Architecture</a>.</li>
+  <li><strong>Test and live payment credentials never mix.</strong> There's no fallback between modes — a missing key in the active mode is an error, not a reason to reach for the other set.</li>
+  <li><strong>Tokens, not logins, for one-off invitee flows.</strong> Booking management, password reset and account recovery all use a random single-purpose token in an emailed link. Follow that pattern rather than inventing guest sessions.</li>
+  <li><strong>Email must never block the primary action.</strong> A booking succeeds even if its confirmation email throws. Wrap sends so a mail failure is logged, not fatal.</li>
+  <li><strong>Log with the structured logger.</strong> Use <code>logger</code> rather than <code>console.*</code> so production logs stay queryable.</li>
+</ul>
+
+<h2 id="deployment">Deployment</h2>
+<ol class="steps">
+  <li><span class="step-title">Provision Postgres</span> Get both a pooled and an unpooled (direct) connection string.</li>
+  <li><span class="step-title">Set environment variables</span> Database URLs, a <em>fresh</em> production <code>AUTH_SECRET</code>, the real <code>NEXT_PUBLIC_APP_URL</code>, and a fresh <code>CRON_SECRET</code>. Payment and mail credentials are optional here since they're configured in the admin console.</li>
+  <li><span class="step-title">Deploy</span> Push and import the repo into your host. The build runs <code>prisma generate</code> automatically and doesn't need a live database, though the running app does.</li>
+  <li><span class="step-title">Apply migrations</span> Run <code>npm run db:deploy</code> once against production to create the schema.</li>
+  <li><span class="step-title">Grant yourself admin</span> Set your account's admin role directly in the production database.</li>
+  <li><span class="step-title">Configure the platform</span> In <code>/admin</code>: email delivery first, then payment credentials, then check plans. No redeploy needed for any of it.</li>
+  <li><span class="step-title">Set up the schedulers</span> Point a scheduler at both cron endpoints — see <a href="#cron">Scheduled jobs</a> — and verify reminders actually arrive.</li>
+</ol>
+<div class="callout warn"><strong>Changing your domain later?</strong> Update <code>NEXT_PUBLIC_APP_URL</code> and redeploy, then separately update the redirect URLs registered with Google, Microsoft and Zoom. Those live on each provider's side and won't follow your env var — a mismatch breaks social login and calendar connections with a confusing error.</div>
+
+<footer>
+  Generated from the Bookify codebase as a point-in-time snapshot. Ask Claude Code to refresh it against current source when the app changes. Looking for the product guide instead? See the <a href="PROJECT-GUIDE.html">User &amp; Admin Guide</a>.
+</footer>
+
+</main>
+</div>
+
+<button id="back-to-top" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑ Top</button>
+
+<script>
+  window.addEventListener('scroll', function () {
+    var btn = document.getElementById('back-to-top');
+    if (window.scrollY > 600) btn.classList.add('show');
+    else btn.classList.remove('show');
+  });
+
+  var searchInput = document.getElementById('tocSearch');
+  searchInput.addEventListener('input', function () {
+    var q = this.value.trim().toLowerCase();
+    var links = document.querySelectorAll('#tocList a');
+    var groups = document.querySelectorAll('#tocList .group-title');
+    links.forEach(function (a) {
+      a.style.display = a.textContent.toLowerCase().includes(q) ? '' : 'none';
+    });
+    groups.forEach(function (g) {
+      var next = g.nextElementSibling;
+      var anyVisible = false;
+      while (next && !next.classList.contains('group-title')) {
+        if (next.tagName === 'A' && next.style.display !== 'none') anyVisible = true;
+        next = next.nextElementSibling;
+      }
+      g.style.display = (q === '' || anyVisible) ? '' : 'none';
+    });
+  });
+
+  var sections = Array.from(document.querySelectorAll('h2[id]'));
+  var navLinks = Array.from(document.querySelectorAll('#tocList a'));
+  function onScroll() {
+    var pos = window.scrollY + 100;
+    var current = null;
+    sections.forEach(function (s) {
+      if (s.offsetTop <= pos) current = s.id;
+    });
+    navLinks.forEach(function (a) {
+      var on = current && a.getAttribute('href') === '#' + current;
+      a.style.background = on ? 'var(--accent-soft)' : '';
+      a.style.fontWeight = on ? '600' : '';
+    });
+  }
+  document.addEventListener('scroll', onScroll);
+  onScroll();
+</script>
+</body>
+</html>

@@ -56,10 +56,14 @@ build, also type-checks) are the two checks worth running.
 
 ## Documentation
 
-- **[public/PROJECT-GUIDE.html](public/PROJECT-GUIDE.html)** — the full guide: user,
-  admin, and developer sections. Lives in `public/` so the running app serves it
-  at `/PROJECT-GUIDE.html` (linked from the dashboard and admin nav); open the file
-  directly in a browser to read it offline.
+- **[public/PROJECT-GUIDE.html](public/PROJECT-GUIDE.html)** — the User &amp; Admin
+  Guide: running a business on Bookify, and operating the platform. Lives in
+  `public/` so the running app serves it at `/PROJECT-GUIDE.html` (linked from
+  the dashboard and admin nav); open the file directly in a browser to read it
+  offline.
+- **[public/DEVELOPER-GUIDE.html](public/DEVELOPER-GUIDE.html)** — architecture,
+  conventions, data model and deployment, for anyone extending the codebase.
+  Served at `/DEVELOPER-GUIDE.html`; cross-linked with the User Guide above.
 - **[docs/deploy.md](docs/deploy.md)** — production deployment (Vercel + Neon).
 - **[docs/reminders-cron.md](docs/reminders-cron.md)** — the reminder cron setup.
 - **[CLAUDE.md](CLAUDE.md)** — architecture notes and conventions.
