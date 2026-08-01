@@ -34,7 +34,7 @@ export default function AdminActions({
     return (
       <Card className="mt-6">
         <CardContent className="p-5">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
             Admin actions
           </h2>
           <p className="mt-2 text-sm text-slate-400">
@@ -48,7 +48,7 @@ export default function AdminActions({
   return (
     <Card className="mt-6">
       <CardContent className="space-y-6 p-5">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+      <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
         Admin actions
       </h2>
 
@@ -60,7 +60,7 @@ export default function AdminActions({
           <select
             name="plan"
             defaultValue={target.plan}
-            className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-slate-900 outline-none focus:border-indigo-500"
+            className="rounded-lg border border-input px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring"
           >
             {plans.map((p) => (
               <option key={p.id} value={p.id}>
@@ -71,7 +71,7 @@ export default function AdminActions({
           <input
             name="reason"
             placeholder="Reason (optional)"
-            className="flex-1 rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-slate-900 outline-none focus:border-indigo-500"
+            className="flex-1 rounded-lg border border-input px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring"
           />
           <Button size="sm">Apply</Button>
         </form>
@@ -140,7 +140,7 @@ export default function AdminActions({
             <select
               name="role"
               defaultValue={target.adminRole ?? ""}
-              className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-slate-900 outline-none focus:border-indigo-500"
+              className="rounded-lg border border-input px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring"
             >
               <option value="">Not an admin</option>
               {ROLES.map((r) => (

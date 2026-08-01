@@ -21,11 +21,11 @@ export default async function TeamPage() {
   if (!(await planHasFeature(user.plan, "team_scheduling"))) {
     return (
       <div className="mx-auto max-w-6xl">
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">Team</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">Team</h1>
         <p className="mt-2 text-sm text-slate-600">
           Team scheduling (round-robin and collective booking) is available on the
           Business plan.{" "}
-          <Link href="/dashboard/billing" className="font-medium text-indigo-600 hover:underline">
+          <Link href="/dashboard/billing" className="font-medium text-primary hover:underline">
             Upgrade
           </Link>
           .
@@ -44,7 +44,7 @@ export default async function TeamPage() {
 
   return (
     <div className="mx-auto max-w-6xl">
-      <h1 className="text-2xl font-bold tracking-tight text-slate-900">Team</h1>
+      <h1 className="text-2xl font-bold tracking-tight text-foreground">Team</h1>
       <p className="mt-1 text-sm text-slate-600">
         Add teammates and set their hours so round-robin and collective event types
         know who&apos;s available.
@@ -54,8 +54,8 @@ export default async function TeamPage() {
         <CardContent className="p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="font-medium text-slate-900">{owner.name} (you)</p>
-              <p className="text-xs text-slate-500">
+              <p className="font-medium text-foreground">{owner.name} (you)</p>
+              <p className="text-xs text-muted-foreground">
                 {owner.active ? "Bookable in team event types" : "Not currently bookable"}
               </p>
             </div>
@@ -71,7 +71,7 @@ export default async function TeamPage() {
           </div>
           <Link
             href={`/dashboard/team/${owner.id}/availability`}
-            className="mt-3 inline-block text-sm font-medium text-indigo-600 hover:underline"
+            className="mt-3 inline-block text-sm font-medium text-primary hover:underline"
           >
             Set my team hours →
           </Link>
@@ -84,8 +84,8 @@ export default async function TeamPage() {
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-medium text-slate-900">{m.name}</p>
-                  {m.email && <p className="text-xs text-slate-500">{m.email}</p>}
+                  <p className="font-medium text-foreground">{m.name}</p>
+                  {m.email && <p className="text-xs text-muted-foreground">{m.email}</p>}
                 </div>
                 <div className="flex items-center gap-2">
                   <form action={setMemberActiveAction}>
@@ -108,7 +108,7 @@ export default async function TeamPage() {
               </div>
               <Link
                 href={`/dashboard/team/${m.id}/availability`}
-                className="mt-3 inline-block text-sm font-medium text-indigo-600 hover:underline"
+                className="mt-3 inline-block text-sm font-medium text-primary hover:underline"
               >
                 Set hours →
               </Link>
@@ -116,7 +116,7 @@ export default async function TeamPage() {
           </Card>
         ))}
         {others.length === 0 && (
-          <p className="rounded-2xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500">
+          <p className="rounded-2xl border border-dashed border-input p-6 text-center text-sm text-muted-foreground">
             No teammates yet.
           </p>
         )}

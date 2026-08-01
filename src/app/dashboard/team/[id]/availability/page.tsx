@@ -29,7 +29,7 @@ export default async function MemberAvailabilityPage({
 
   return (
     <div className="mx-auto max-w-6xl">
-      <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+      <h1 className="text-2xl font-bold tracking-tight text-foreground">
         {member.name}&apos;s hours
       </h1>
       <p className="mt-1 text-sm text-slate-600">
@@ -44,14 +44,14 @@ export default async function MemberAvailabilityPage({
           return (
             <div
               key={weekday}
-              className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-white p-4"
+              className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-white p-4"
             >
               <label className="flex w-32 items-center gap-2">
                 <input
                   type="checkbox"
                   name={`enabled-${weekday}`}
                   defaultChecked={enabled}
-                  className="h-4 w-4 rounded border-slate-300 text-indigo-600"
+                  className="h-4 w-4 rounded border-input text-primary"
                 />
                 <span className="text-sm font-medium text-slate-800">{day}</span>
               </label>
@@ -60,14 +60,14 @@ export default async function MemberAvailabilityPage({
                   type="time"
                   name={`start-${weekday}`}
                   defaultValue={w ? toHHMM(w.startMinutes) : "09:00"}
-                  className="rounded-lg border border-slate-300 px-2 py-1.5 text-slate-900 outline-none focus:border-indigo-500"
+                  className="rounded-lg border border-input px-2 py-1.5 text-foreground outline-none focus:border-ring"
                 />
                 <span>to</span>
                 <input
                   type="time"
                   name={`end-${weekday}`}
                   defaultValue={w ? toHHMM(w.endMinutes) : "17:00"}
-                  className="rounded-lg border border-slate-300 px-2 py-1.5 text-slate-900 outline-none focus:border-indigo-500"
+                  className="rounded-lg border border-input px-2 py-1.5 text-foreground outline-none focus:border-ring"
                 />
               </div>
             </div>

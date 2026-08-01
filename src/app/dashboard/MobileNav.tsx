@@ -78,13 +78,13 @@ export default function MobileNav({
   return (
     <>
       {/* Mobile top bar */}
-      <header className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3 md:hidden">
-        <Link href="/dashboard" className="text-lg font-bold text-slate-900">
-          Bookify<span className="text-indigo-600">.</span>
+      <header className="flex items-center justify-between border-b border-border bg-white px-4 py-3 md:hidden">
+        <Link href="/dashboard" className="text-lg font-bold text-foreground">
+          Bookify<span className="text-primary">.</span>
         </Link>
         <button
           onClick={() => setOpen(true)}
-          className="rounded-lg p-2 text-slate-600 hover:bg-slate-100"
+          className="rounded-lg p-2 text-slate-600 hover:bg-muted"
           aria-label="Open menu"
         >
           <Menu size={22} />
@@ -106,16 +106,16 @@ export default function MobileNav({
         }`}
       >
         {/* Drawer header */}
-        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+        <div className="flex items-center justify-between border-b border-border px-5 py-4">
           <div>
-            <p className="text-lg font-bold text-slate-900">
-              Bookify<span className="text-indigo-600">.</span>
+            <p className="text-lg font-bold text-foreground">
+              Bookify<span className="text-primary">.</span>
             </p>
-            <p className="truncate text-xs text-slate-500">{businessName}</p>
+            <p className="truncate text-xs text-muted-foreground">{businessName}</p>
           </div>
           <button
             onClick={() => setOpen(false)}
-            className="rounded-lg p-2 text-slate-400 hover:bg-slate-100"
+            className="rounded-lg p-2 text-slate-400 hover:bg-muted"
             aria-label="Close menu"
           >
             <X size={20} />
@@ -140,7 +140,7 @@ export default function MobileNav({
                         className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-colors ${
                           active
                             ? "bg-indigo-50 text-indigo-700"
-                            : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                            : "text-slate-600 hover:bg-muted hover:text-foreground"
                         }`}
                       >
                         <item.Icon size={18} />
@@ -154,7 +154,7 @@ export default function MobileNav({
             {isAdmin && (
               <Link
                 href="/admin"
-                className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-indigo-600 hover:bg-indigo-50"
+                className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-primary hover:bg-indigo-50"
               >
                 <Shield size={18} />
                 Admin console
@@ -164,7 +164,7 @@ export default function MobileNav({
               href="/PROJECT-GUIDE.html"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+              className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
             >
               <HelpCircle size={18} />
               Help & guide
@@ -173,11 +173,11 @@ export default function MobileNav({
         </nav>
 
         {/* Logout */}
-        <div className="border-t border-slate-200 px-3 py-4">
+        <div className="border-t border-border px-3 py-4">
           <form action={logoutAction}>
             <SubmitButton
               variant="ghost"
-              className="w-full justify-start gap-3 rounded-xl px-4 py-3 text-sm font-medium text-slate-500 hover:text-slate-900"
+              className="w-full justify-start gap-3 rounded-xl px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground"
             >
               <LogOut size={18} />
               Log out

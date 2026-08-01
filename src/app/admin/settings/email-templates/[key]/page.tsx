@@ -17,8 +17,8 @@ export default async function EditEmailTemplatePage({
   if (!viewer || viewer.adminRole !== "SUPER_ADMIN") {
     return (
       <div className="mx-auto max-w-6xl">
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">Email template</h1>
-        <p className="mt-2 text-sm text-slate-500">Restricted to Super Admins.</p>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">Email template</h1>
+        <p className="mt-2 text-sm text-muted-foreground">Restricted to Super Admins.</p>
       </div>
     );
   }
@@ -42,7 +42,7 @@ export default async function EditEmailTemplatePage({
     <div className="mx-auto max-w-6xl">
       <Link
         href="/admin/settings/email-templates"
-        className="text-sm text-slate-500 hover:text-indigo-600"
+        className="text-sm text-muted-foreground hover:text-primary"
       >
         ← All templates
       </Link>
@@ -50,7 +50,7 @@ export default async function EditEmailTemplatePage({
       <div className="mt-3 flex flex-wrap items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900">{def.name}</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">{def.name}</h1>
             <Badge variant={enabled ? "success" : "muted"}>
               {enabled ? "Active" : "Disabled"}
             </Badge>
@@ -58,7 +58,7 @@ export default async function EditEmailTemplatePage({
           <p className="mt-1 text-sm text-slate-600">
             {CATEGORY_LABELS[def.category]} · <span className="font-mono text-xs">{def.key}</span>
           </p>
-          <p className="mt-1 text-sm text-slate-500">{def.description}</p>
+          <p className="mt-1 text-sm text-muted-foreground">{def.description}</p>
         </div>
         <div className="flex items-center gap-2">
           <form action={toggleEmailTemplateAction}>

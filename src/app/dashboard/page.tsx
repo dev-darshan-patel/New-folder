@@ -79,16 +79,16 @@ export default async function DashboardOverview({
   return (
     <div className="mx-auto max-w-6xl">
       <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">
           Welcome, {user.name.split(" ")[0]}
         </h1>
-        <div className="flex rounded-lg border border-slate-200 bg-white p-0.5 text-sm">
+        <div className="flex rounded-lg border border-border bg-white p-0.5 text-sm">
           {RANGES.map((r) => (
             <Link
               key={r}
               href={`/dashboard?range=${r}`}
               className={`rounded-md px-3 py-1.5 font-medium ${
-                r === range ? "bg-slate-900 text-white" : "text-slate-600 hover:text-slate-900"
+                r === range ? "bg-slate-900 text-white" : "text-slate-600 hover:text-foreground"
               }`}
             >
               {r}d
@@ -109,7 +109,7 @@ export default async function DashboardOverview({
           <Link
             href={`/${user.slug}`}
             target="_blank"
-            className="mt-3 inline-block text-sm font-medium text-indigo-600 hover:underline"
+            className="mt-3 inline-block text-sm font-medium text-primary hover:underline"
           >
             Open booking page ↗
           </Link>
@@ -135,7 +135,7 @@ export default async function DashboardOverview({
 
       <Card className="mt-6">
         <CardContent className="p-5">
-          <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+          <p className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
             Bookings ({range}d)
           </p>
           <div className="mt-2">
@@ -146,7 +146,7 @@ export default async function DashboardOverview({
 
       {pending.length > 0 && (
         <section className="mt-8">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
             Awaiting approval
           </h2>
           <div className="mt-3 space-y-3">
@@ -154,7 +154,7 @@ export default async function DashboardOverview({
               <Card key={b.id} className="border-amber-200 bg-amber-50">
                 <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
                   <div>
-                    <p className="text-sm font-medium text-slate-900">{b.eventType.title}</p>
+                    <p className="text-sm font-medium text-foreground">{b.eventType.title}</p>
                     <p className="text-xs text-slate-600">
                       {fmt.format(b.startTime)} · {b.inviteeName}
                     </p>
@@ -180,24 +180,24 @@ export default async function DashboardOverview({
 
       <section className="mt-8">
         <div className="flex items-baseline justify-between">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
             Upcoming
           </h2>
-          <Link href="/dashboard/bookings" className="text-sm font-medium text-indigo-600 hover:underline">
+          <Link href="/dashboard/bookings" className="text-sm font-medium text-primary hover:underline">
             View all
           </Link>
         </div>
         <div className="mt-3 space-y-2">
           {upcoming.length === 0 ? (
-            <p className="rounded-2xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500">
+            <p className="rounded-2xl border border-dashed border-input p-6 text-center text-sm text-muted-foreground">
               No upcoming bookings.
             </p>
           ) : (
             upcoming.map((b) => (
               <Card key={b.id}>
                 <CardContent className="flex flex-wrap items-center justify-between gap-2 p-4">
-                  <p className="text-sm font-medium text-slate-900">{b.eventType.title}</p>
-                  <p className="text-sm text-slate-500">
+                  <p className="text-sm font-medium text-foreground">{b.eventType.title}</p>
+                  <p className="text-sm text-muted-foreground">
                     {fmt.format(b.startTime)} · {b.inviteeName}
                   </p>
                 </CardContent>
@@ -215,8 +215,8 @@ function StatCard({ href, label, value }: { href: string; label: string; value: 
     <Link href={href} className="block group">
       <Card className="transition-shadow hover:shadow-sm">
         <CardContent className="p-4">
-          <p className="text-xs text-slate-500">{label}</p>
-          <p className="mt-1 text-2xl font-bold text-slate-900">{value}</p>
+          <p className="text-xs text-muted-foreground">{label}</p>
+          <p className="mt-1 text-2xl font-bold text-foreground">{value}</p>
         </CardContent>
       </Card>
     </Link>
@@ -235,8 +235,8 @@ function Kpi({
   return (
     <Card className={highlight ? "border-amber-200 bg-amber-50" : ""}>
       <CardContent className="p-4">
-        <p className="text-xs text-slate-500">{label}</p>
-        <p className="mt-1 text-2xl font-bold text-slate-900">{value}</p>
+        <p className="text-xs text-muted-foreground">{label}</p>
+        <p className="mt-1 text-2xl font-bold text-foreground">{value}</p>
       </CardContent>
     </Card>
   );

@@ -12,8 +12,8 @@ export default async function AdminPlatformConfigPage() {
   if (!viewer || viewer.adminRole !== "SUPER_ADMIN") {
     return (
       <div className="mx-auto max-w-6xl">
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">Platform config</h1>
-        <p className="mt-2 text-sm text-slate-500">
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">Platform config</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
           Platform settings are restricted to Super Admins.
         </p>
       </div>
@@ -24,7 +24,7 @@ export default async function AdminPlatformConfigPage() {
 
   return (
     <div className="mx-auto max-w-6xl">
-      <h1 className="text-2xl font-bold tracking-tight text-slate-900">Platform config</h1>
+      <h1 className="text-2xl font-bold tracking-tight text-foreground">Platform config</h1>
       <p className="mt-1 text-sm text-slate-600">
         Operational switches for the whole platform — maintenance mode, signups, and support
         contact.
@@ -100,7 +100,7 @@ function Toggle({
         type="checkbox"
         name={name}
         defaultChecked={defaultChecked}
-        className="mt-1 h-4 w-4 rounded border-slate-300 text-indigo-600"
+        className="mt-1 h-4 w-4 rounded border-input text-primary"
       />
       <span>
         <span className="block text-sm font-medium text-slate-700">{label}</span>

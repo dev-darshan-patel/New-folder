@@ -24,8 +24,8 @@ export default async function AdminSettingsPage() {
   if (!viewer || viewer.adminRole !== "SUPER_ADMIN") {
     return (
       <div className="mx-auto max-w-6xl">
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">Settings</h1>
-        <p className="mt-2 text-sm text-slate-500">
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">Settings</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
           Platform settings are restricted to Super Admins.
         </p>
       </div>
@@ -37,7 +37,7 @@ export default async function AdminSettingsPage() {
 
   return (
     <div className="mx-auto max-w-6xl">
-      <h1 className="text-2xl font-bold tracking-tight text-slate-900">Stripe settings</h1>
+      <h1 className="text-2xl font-bold tracking-tight text-foreground">Stripe settings</h1>
       <p className="mt-1 text-sm text-slate-600">
         Store test and live Stripe credentials. Only one mode is active for the whole
         platform at a time — switching modes never mixes test and live keys.
@@ -64,7 +64,7 @@ export default async function AdminSettingsPage() {
                 name="stripeMode"
                 value="TEST"
                 defaultChecked={settings.stripeMode === "TEST"}
-                className="h-4 w-4 border-slate-300 text-indigo-600"
+                className="h-4 w-4 border-input text-primary"
               />
               Test mode
             </label>
@@ -74,7 +74,7 @@ export default async function AdminSettingsPage() {
                 name="stripeMode"
                 value="LIVE"
                 defaultChecked={settings.stripeMode === "LIVE"}
-                className="h-4 w-4 border-slate-300 text-indigo-600"
+                className="h-4 w-4 border-input text-primary"
               />
               Live mode
             </label>

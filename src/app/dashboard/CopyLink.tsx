@@ -18,7 +18,7 @@ export default function CopyLink({ url }: { url: string }) {
 
   return (
     <div className="flex items-center gap-2">
-      <code className="flex-1 truncate rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+      <code className="flex-1 truncate rounded-lg border border-border bg-slate-50 px-3 py-2 text-sm text-slate-700">
         {url}
       </code>
       <Button

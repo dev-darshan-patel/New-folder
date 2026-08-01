@@ -282,11 +282,11 @@ export default function EventTypeEditor({ initial }: { initial: Initial }) {
             name="requiresApproval"
             value="1"
             defaultChecked={initial.requiresApproval}
-            className="mt-0.5 h-4 w-4 rounded border-slate-300"
+            className="mt-0.5 h-4 w-4 rounded border-input"
           />
           <span>
             Require manual approval
-            <span className="block text-xs text-slate-500">
+            <span className="block text-xs text-muted-foreground">
               New bookings wait for you to approve or decline before they&apos;re confirmed.
             </span>
           </span>
@@ -301,11 +301,11 @@ export default function EventTypeEditor({ initial }: { initial: Initial }) {
           name="unlisted"
           value="1"
           defaultChecked={initial.unlisted}
-          className="mt-0.5 h-4 w-4 rounded border-slate-300"
+          className="mt-0.5 h-4 w-4 rounded border-input"
         />
         <span>
           Unlisted
-          <span className="block text-xs text-slate-500">
+          <span className="block text-xs text-muted-foreground">
             Hidden from your public booking page, but still bookable via its direct link.
           </span>
         </span>
@@ -317,17 +317,17 @@ export default function EventTypeEditor({ initial }: { initial: Initial }) {
         description="One-to-one by default. Switch to a group class or a repeating weekly series."
       >
       {initial.features.groupBookings && (
-        <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+        <div className="rounded-lg border border-border bg-slate-50 p-4">
           <label className="flex items-start gap-2 text-sm text-slate-700">
             <input
               type="checkbox"
               checked={isGroup}
               onChange={(e) => setIsGroup(e.target.checked)}
-              className="mt-0.5 h-4 w-4 rounded border-slate-300"
+              className="mt-0.5 h-4 w-4 rounded border-input"
             />
             <span>
               Group event (multiple attendees per session)
-              <span className="block text-xs text-slate-500">
+              <span className="block text-xs text-muted-foreground">
                 Instead of showing time slots from your weekly availability, you create each
                 class/session manually and invitees book into a shared spot up to the seat
                 limit. Ideal for classes, webinars, and workshops.
@@ -354,7 +354,7 @@ export default function EventTypeEditor({ initial }: { initial: Initial }) {
       )}
 
       {initial.features.recurringBookings && !isGroup && (
-        <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+        <div className="rounded-lg border border-border bg-slate-50 p-4">
           <label className="flex items-start gap-2 text-sm text-slate-700">
             <input
               type="checkbox"
@@ -362,11 +362,11 @@ export default function EventTypeEditor({ initial }: { initial: Initial }) {
               value="1"
               checked={allowRecurring}
               onChange={(e) => setAllowRecurring(e.target.checked)}
-              className="mt-0.5 h-4 w-4 rounded border-slate-300"
+              className="mt-0.5 h-4 w-4 rounded border-input"
             />
             <span>
               Allow recurring bookings
-              <span className="block text-xs text-slate-500">
+              <span className="block text-xs text-muted-foreground">
                 Invitees can book this as a weekly series (same weekday &amp; time, up to 8
                 sessions). Only for solo, non-group event types.
               </span>
@@ -422,7 +422,7 @@ export default function EventTypeEditor({ initial }: { initial: Initial }) {
                 className={`rounded-lg border px-3 py-1.5 text-sm font-medium ${
                   location === opt.v
                     ? "border-indigo-600 bg-indigo-50 text-indigo-700"
-                    : "border-slate-300 text-slate-700 hover:bg-slate-50"
+                    : "border-input text-slate-700 hover:bg-slate-50"
                 } ${disabled ? "cursor-not-allowed opacity-40" : ""}`}
               >
                 {opt.label}
@@ -472,7 +472,7 @@ export default function EventTypeEditor({ initial }: { initial: Initial }) {
                     checked={q.required}
                     onChange={(e) => update(i, { required: e.target.checked })}
                     title={`Make question ${i + 1} required`}
-                    className="h-4 w-4 rounded border-slate-300"
+                    className="h-4 w-4 rounded border-input"
                   />
                   Required
                 </label>
@@ -517,7 +517,7 @@ export default function EventTypeEditor({ initial }: { initial: Initial }) {
                 className={`rounded-lg border px-3 py-1.5 text-sm font-medium ${
                   mode === m
                     ? "border-indigo-600 bg-indigo-50 text-indigo-700"
-                    : "border-slate-300 text-slate-700 hover:bg-slate-50"
+                    : "border-input text-slate-700 hover:bg-slate-50"
                 }`}
               >
                 {m === "SOLO" ? "Solo" : m === "ROUND_ROBIN" ? "Round-robin" : "Collective"}
@@ -532,7 +532,7 @@ export default function EventTypeEditor({ initial }: { initial: Initial }) {
                     type="checkbox"
                     checked={pool.includes(m.id)}
                     onChange={() => togglePool(m.id)}
-                    className="h-4 w-4 rounded border-slate-300"
+                    className="h-4 w-4 rounded border-input"
                   />
                   {m.name}
                   {m.isOwner ? " (you)" : ""}
@@ -557,7 +557,7 @@ export default function EventTypeEditor({ initial }: { initial: Initial }) {
 function locationHint(location: LocationType, calendarConnected: boolean, zoomConnected: boolean) {
   if (location === "GOOGLE_MEET" || location === "ZOOM") {
     return (
-      <p className="mt-2 text-xs text-slate-500">
+      <p className="mt-2 text-xs text-muted-foreground">
         A unique {location === "GOOGLE_MEET" ? "Google Meet" : "Zoom"} link is created
         for each booking and included in the confirmation email and calendar invite.
       </p>
@@ -567,7 +567,7 @@ function locationHint(location: LocationType, calendarConnected: boolean, zoomCo
     return (
       <p className="mt-2 text-xs text-slate-400">
         Want a video link?{" "}
-        <Link href="/dashboard/settings" className="text-indigo-600 hover:underline">
+        <Link href="/dashboard/settings" className="text-primary hover:underline">
           Connect {!calendarConnected && !zoomConnected ? "Google Calendar or Zoom" : !calendarConnected ? "Google Calendar" : "Zoom"}
         </Link>{" "}
         to enable it.
@@ -581,9 +581,9 @@ function locationHint(location: LocationType, calendarConnected: boolean, zoomCo
 // upgrade prompt reused across every plan-gated field in this form.
 function UpgradeNote({ text }: { text: string }) {
   return (
-    <p className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500">
+    <p className="rounded-lg border border-dashed border-border bg-slate-50 px-3 py-2 text-xs text-muted-foreground">
       {text}{" "}
-      <Link href="/dashboard/billing" className="font-medium text-indigo-600 hover:underline">
+      <Link href="/dashboard/billing" className="font-medium text-primary hover:underline">
         See plans
       </Link>
     </p>
@@ -660,7 +660,7 @@ function PriceField({
 
   if (!pricing.canPrice) {
     return (
-      <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+      <div className="rounded-lg border border-border bg-slate-50 p-4">
         <p className="text-sm font-medium text-slate-800">Charge for this event type</p>
         <p className="mt-1 text-xs text-slate-600">{pricing.reason}</p>
       </div>
@@ -668,13 +668,13 @@ function PriceField({
   }
 
   return (
-    <div className="rounded-lg border border-slate-200 p-4">
+    <div className="rounded-lg border border-border p-4">
       <p className="text-sm font-medium text-slate-800">Charge for this event type</p>
       <p className="mt-1 text-xs text-slate-600">
         Leave blank to keep it free. Amount is charged when the customer books.
       </p>
       <div className="mt-3 flex items-center gap-2">
-        <span className="text-sm text-slate-500">{pricing.currency}</span>
+        <span className="text-sm text-muted-foreground">{pricing.currency}</span>
         <Input
           name="priceCents"
           type="number"
@@ -685,7 +685,7 @@ function PriceField({
           placeholder="Free"
           className="max-w-[10rem]"
         />
-        <span className="text-xs text-slate-500">(in smallest unit; 100 = 1.00)</span>
+        <span className="text-xs text-muted-foreground">(in smallest unit; 100 = 1.00)</span>
       </div>
     </div>
   );

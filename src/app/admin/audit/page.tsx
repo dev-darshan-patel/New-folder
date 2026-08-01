@@ -33,7 +33,7 @@ export default async function AdminAuditLogPage({
     {
       key: "when",
       header: "When",
-      cellClassName: "whitespace-nowrap text-slate-500",
+      cellClassName: "whitespace-nowrap text-muted-foreground",
       render: (e) => e.createdAt.toLocaleString(),
     },
     {
@@ -57,7 +57,7 @@ export default async function AdminAuditLogPage({
         e.targetUserId ? (
           <Link
             href={`/admin/users/${e.targetUserId}`}
-            className="text-indigo-600 hover:underline"
+            className="text-primary hover:underline"
           >
             {e.targetLabel ?? e.targetUserId}
           </Link>
@@ -68,7 +68,7 @@ export default async function AdminAuditLogPage({
     {
       key: "details",
       header: "Details",
-      cellClassName: "text-xs text-slate-500",
+      cellClassName: "text-xs text-muted-foreground",
       render: (e) => {
         let metadata: Record<string, unknown> | null = null;
         try {

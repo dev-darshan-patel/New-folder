@@ -13,7 +13,7 @@ export function FlagSwitcher({ flagKey, enabled }: { flagKey: string, enabled: b
 
   return (
     <div className="flex items-center gap-3">
-      <span className={`text-sm font-medium ${optimisticEnabled ? "text-slate-900" : "text-slate-500"}`}>
+      <span className={`text-sm font-medium ${optimisticEnabled ? "text-foreground" : "text-muted-foreground"}`}>
         {optimisticEnabled ? "Enabled" : "Disabled"}
       </span>
       <Switch 

@@ -24,8 +24,8 @@ export default async function EmailSettingsPage() {
   } catch {
     return (
       <div className="mx-auto max-w-6xl">
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">Email settings</h1>
-        <p className="mt-2 text-sm text-slate-500">Restricted to Super Admins.</p>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">Email settings</h1>
+        <p className="mt-2 text-sm text-muted-foreground">Restricted to Super Admins.</p>
       </div>
     );
   }
@@ -35,7 +35,7 @@ export default async function EmailSettingsPage() {
 
   return (
     <div className="mx-auto max-w-6xl">
-      <h1 className="text-2xl font-bold tracking-tight text-slate-900">Email settings</h1>
+      <h1 className="text-2xl font-bold tracking-tight text-foreground">Email settings</h1>
       <p className="mt-1 text-sm text-slate-600">
         Choose one email provider for outgoing booking confirmations, reminders, and
         notifications. Only one provider is active at a time.
@@ -56,7 +56,7 @@ export default async function EmailSettingsPage() {
                     name="emailProvider"
                     value={p}
                     defaultChecked={provider === p}
-                    className="h-4 w-4 border-slate-300 text-indigo-600"
+                    className="h-4 w-4 border-input text-primary"
                   />
                   {p === "NONE"
                     ? "None (log to console)"

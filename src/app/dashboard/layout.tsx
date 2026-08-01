@@ -55,9 +55,9 @@ export default async function DashboardLayout({
       <DeletionBanner />
       <MobileNav businessName={user.businessName} isAdmin={!!user.adminRole} />
       <div className="flex flex-1">
-        <aside className="hidden w-60 flex-col border-r border-slate-200 bg-white p-5 md:flex">
-          <Link href="/dashboard" className="text-lg font-bold text-slate-900">
-            Bookify<span className="text-indigo-600">.</span>
+        <aside className="hidden w-60 flex-col border-r border-border bg-white p-5 md:flex">
+          <Link href="/dashboard" className="text-lg font-bold text-foreground">
+            Bookify<span className="text-primary">.</span>
           </Link>
 
           {/* User identity strip */}
@@ -66,7 +66,7 @@ export default async function DashboardLayout({
             className="mt-3 flex items-center gap-2.5 rounded-lg p-1.5 transition-colors hover:bg-slate-50"
             title="Account settings"
           >
-            <span className="relative shrink-0 h-8 w-8 overflow-hidden rounded-full border border-slate-200 bg-indigo-100">
+            <span className="relative shrink-0 h-8 w-8 overflow-hidden rounded-full border border-border bg-indigo-100">
               {user.avatarUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element -- user-uploaded blob avatar; next/image adds no value at this fixed 32px size and would need remotePatterns config
                 <img
@@ -75,14 +75,14 @@ export default async function DashboardLayout({
                   className="h-full w-full object-cover"
                 />
               ) : (
-                <span className="flex h-full w-full items-center justify-center text-xs font-bold text-indigo-600">
+                <span className="flex h-full w-full items-center justify-center text-xs font-bold text-primary">
                   {user.name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase()}
                 </span>
               )}
             </span>
             <span className="min-w-0 flex-1">
               <span className="block truncate text-sm font-medium text-slate-800">{user.name}</span>
-              <span className="block truncate text-xs text-slate-500">{user.businessName}</span>
+              <span className="block truncate text-xs text-muted-foreground">{user.businessName}</span>
             </span>
           </Link>
 
@@ -99,11 +99,11 @@ export default async function DashboardLayout({
             href="/PROJECT-GUIDE.html"
             target="_blank"
             rel="noopener noreferrer"
-            className="rounded-lg px-3 py-2 text-sm font-medium text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
+            className="rounded-lg px-3 py-2 text-sm font-medium text-slate-400 transition-colors hover:bg-muted hover:text-slate-700"
           >
             Help & guide ↗
           </a>
-          <LogoutButton className="w-full justify-start text-slate-500" />
+          <LogoutButton className="w-full justify-start text-muted-foreground" />
         </aside>
 
         <main className="flex-1 px-6 py-8 sm:px-10">

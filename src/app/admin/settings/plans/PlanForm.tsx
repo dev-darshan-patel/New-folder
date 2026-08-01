@@ -20,7 +20,7 @@ type Initial = {
 };
 
 const field =
-  "mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100";
+  "mt-1 w-full rounded-lg border border-input px-3 py-2 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-indigo-100";
 
 export default function PlanForm({
   mode,
@@ -52,7 +52,7 @@ export default function PlanForm({
                 value={initial.id}
                 disabled
                 title="Plan ID (immutable)"
-                className={`${field} bg-slate-50 text-slate-500`}
+                className={`${field} bg-slate-50 text-muted-foreground`}
               />
             </>
           )}
@@ -88,7 +88,7 @@ export default function PlanForm({
             defaultValue={initial.priceMonthly}
             disabled={initial.isSystem}
             title="Numeric monthly price for MRR math"
-            className={`${field} ${initial.isSystem ? "bg-slate-50 text-slate-500" : ""}`}
+            className={`${field} ${initial.isSystem ? "bg-slate-50 text-muted-foreground" : ""}`}
           />
           {initial.isSystem && (
             <span className="mt-1 block text-xs text-slate-400">The FREE plan is always $0.</span>
@@ -167,11 +167,11 @@ export default function PlanForm({
                 type="checkbox"
                 name={`feature_${f.key}`}
                 defaultChecked={initial.featureKeys.includes(f.key)}
-                className="mt-0.5 h-4 w-4 rounded border-slate-300"
+                className="mt-0.5 h-4 w-4 rounded border-input"
               />
               <span>
                 <span className="block font-medium">{f.label}</span>
-                <span className="block text-xs text-slate-500">{f.description}</span>
+                <span className="block text-xs text-muted-foreground">{f.description}</span>
               </span>
             </label>
           ))}
@@ -185,7 +185,7 @@ export default function PlanForm({
             name="active"
             defaultChecked={initial.active}
             disabled={initial.isSystem}
-            className="h-4 w-4 rounded border-slate-300"
+            className="h-4 w-4 rounded border-input"
           />
           Active (shown on billing page)
         </label>

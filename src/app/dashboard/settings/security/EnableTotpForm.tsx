@@ -54,7 +54,7 @@ export default function EnableTotpForm({ secret, qrDataUrl }: Props) {
   return (
     <Card>
       <CardContent className="p-6">
-      <p className="font-semibold text-slate-900">Scan this QR code</p>
+      <p className="font-semibold text-foreground">Scan this QR code</p>
       <p className="mt-1 text-sm text-slate-600">
         Use Google Authenticator, Authy, 1Password, or any other TOTP app.
       </p>
@@ -64,15 +64,15 @@ export default function EnableTotpForm({ secret, qrDataUrl }: Props) {
         <img
           src={qrDataUrl}
           alt="TOTP QR code"
-          className="rounded-lg border border-slate-200"
+          className="rounded-lg border border-border"
           width={180}
           height={180}
         />
         <div>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-muted-foreground">
             Or enter this secret manually:
           </p>
-          <code className="mt-1 block break-all rounded bg-slate-100 px-2 py-1 font-mono text-xs text-slate-700">
+          <code className="mt-1 block break-all rounded bg-muted px-2 py-1 font-mono text-xs text-slate-700">
             {secret}
           </code>
         </div>

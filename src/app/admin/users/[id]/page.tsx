@@ -71,17 +71,17 @@ export default async function AdminUserDetail({
 
   return (
     <div className="mx-auto max-w-6xl">
-      <Link href="/admin/users" className="text-sm font-medium text-slate-500 hover:text-slate-900">
+      <Link href="/admin/users" className="text-sm font-medium text-muted-foreground hover:text-foreground">
         ← All users
       </Link>
 
       <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">{user.businessName}</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">{user.businessName}</h1>
           {viewer.adminRole === "SUPER_ADMIN" && (
             <Link
               href={`/admin/users/${user.id}/edit`}
-              className="rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"
+              className="rounded-lg border border-input bg-white px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"
             >
               Edit
             </Link>
@@ -105,14 +105,14 @@ export default async function AdminUserDetail({
           )}
           <span
             className={`rounded-full px-3 py-1 text-sm font-medium ${
-              user.plan === "FREE" ? "bg-slate-100 text-slate-600" : "bg-indigo-100 text-indigo-700"
+              user.plan === "FREE" ? "bg-muted text-slate-600" : "bg-indigo-100 text-indigo-700"
             }`}
           >
             {planCfg.name} · ${planCfg.priceMonthly}/mo
           </span>
         </div>
       </div>
-      <p className="mt-1 text-sm text-slate-500">
+      <p className="mt-1 text-sm text-muted-foreground">
         {user.email} · {user.name} · joined {user.createdAt.toLocaleDateString()}
       </p>
       <p className="mt-1 text-xs text-slate-400">
@@ -121,7 +121,7 @@ export default async function AdminUserDetail({
         {stripeUrl && (
           <>
             {" · "}
-            <a href={stripeUrl} target="_blank" className="text-indigo-600 hover:underline">
+            <a href={stripeUrl} target="_blank" className="text-primary hover:underline">
               View in Stripe ↗
             </a>
           </>
@@ -152,7 +152,7 @@ export default async function AdminUserDetail({
             <p className="font-medium text-slate-800" style={{ color: user.brandColor }}>
               {user.brandColor} · {user.brandFont}
             </p>
-            {user.welcomeMessage && <p className="text-slate-500">“{user.welcomeMessage}”</p>}
+            {user.welcomeMessage && <p className="text-muted-foreground">“{user.welcomeMessage}”</p>}
           </div>
         </div>
       </Section>
@@ -206,20 +206,20 @@ export default async function AdminUserDetail({
           {bookings.length === 0 && <li className="py-2 text-sm text-slate-400">No bookings yet.</li>}
         </NoteList>
         {totalBookingPages > 1 && (
-          <div className="flex items-center justify-between border-t border-slate-100 pt-3 text-sm text-slate-500">
+          <div className="flex items-center justify-between border-t border-slate-100 pt-3 text-sm text-muted-foreground">
             <span>
               Page {bookingPage} of {totalBookingPages}
             </span>
             <div className="flex gap-2">
               <Link
                 href={`/admin/users/${id}?bpage=${Math.max(1, bookingPage - 1)}`}
-                className="rounded-lg border border-slate-300 px-3 py-1 hover:bg-slate-50"
+                className="rounded-lg border border-input px-3 py-1 hover:bg-slate-50"
               >
                 ← Prev
               </Link>
               <Link
                 href={`/admin/users/${id}?bpage=${Math.min(totalBookingPages, bookingPage + 1)}`}
-                className="rounded-lg border border-slate-300 px-3 py-1 hover:bg-slate-50"
+                className="rounded-lg border border-input px-3 py-1 hover:bg-slate-50"
               >
                 Next →
               </Link>
@@ -255,7 +255,7 @@ export default async function AdminUserDetail({
               rows={2}
               required
               placeholder="Add an internal note (not visible to the user)…"
-              className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500"
+              className="flex-1 rounded-lg border border-input px-3 py-2 text-sm text-foreground outline-none focus:border-ring"
             />
             <SubmitButton>Add</SubmitButton>
           </form>
@@ -276,8 +276,8 @@ function Mini({ label, value }: { label: string; value: string }) {
   return (
     <Card>
       <CardContent className="p-4">
-        <p className="text-xs text-slate-500">{label}</p>
-        <p className="mt-1 truncate font-semibold text-slate-900">{value}</p>
+        <p className="text-xs text-muted-foreground">{label}</p>
+        <p className="mt-1 truncate font-semibold text-foreground">{value}</p>
       </CardContent>
     </Card>
   );
@@ -287,7 +287,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   return (
     <Card className="mt-6">
       <CardContent className="p-5">
-        <h2 className="mb-1 text-sm font-semibold uppercase tracking-wide text-slate-500">{title}</h2>
+        <h2 className="mb-1 text-sm font-semibold uppercase tracking-wide text-muted-foreground">{title}</h2>
         {children}
       </CardContent>
     </Card>

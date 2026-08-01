@@ -27,7 +27,7 @@ export default async function RecoverAccountPage({
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-6">
-      <h1 className="text-2xl font-bold tracking-tight text-slate-900">Restore your account</h1>
+      <h1 className="text-2xl font-bold tracking-tight text-foreground">Restore your account</h1>
       {error === "invalid" && (
         <p className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
           This recovery link is invalid or has expired.

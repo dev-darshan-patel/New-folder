@@ -34,10 +34,10 @@ export default async function EditUserPage({
   return (
     <div className="mx-auto max-w-6xl">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">Edit user</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">Edit user</h1>
         <Link
           href={`/admin/users/${id}`}
-          className="text-sm text-slate-500 hover:text-slate-900"
+          className="text-sm text-muted-foreground hover:text-foreground"
         >
           ← Back to user
         </Link>

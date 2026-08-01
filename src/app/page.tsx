@@ -13,8 +13,8 @@ export default async function Home() {
   return (
     <div className="flex min-h-screen flex-col">
       <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-5">
-        <span className="text-lg font-bold tracking-tight text-slate-900">
-          Bookify<span className="text-indigo-600">.</span>
+        <span className="text-lg font-bold tracking-tight text-foreground">
+          Bookify<span className="text-primary">.</span>
         </span>
         <nav className="flex items-center gap-4 text-sm">
           {homeHref ? (
@@ -41,10 +41,10 @@ export default async function Home() {
       </header>
 
       <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col items-center justify-center px-6 py-20 text-center">
-        <p className="mb-4 text-sm font-semibold uppercase tracking-widest text-indigo-600">
+        <p className="mb-4 text-sm font-semibold uppercase tracking-widest text-primary">
           Scheduling for small business
         </p>
-        <h1 className="text-4xl font-bold tracking-tight text-slate-900 sm:text-6xl">
+        <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-6xl">
           Let customers book you in a click
         </h1>
         <p className="mt-6 max-w-xl text-lg text-slate-600">

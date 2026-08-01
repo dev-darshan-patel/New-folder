@@ -23,8 +23,8 @@ export default async function EmailTemplatesPage({
   if (!viewer || viewer.adminRole !== "SUPER_ADMIN") {
     return (
       <div className="mx-auto max-w-6xl">
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">Email templates</h1>
-        <p className="mt-2 text-sm text-slate-500">Restricted to Super Admins.</p>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">Email templates</h1>
+        <p className="mt-2 text-sm text-muted-foreground">Restricted to Super Admins.</p>
       </div>
     );
   }
@@ -60,7 +60,7 @@ export default async function EmailTemplatesPage({
 
   return (
     <div className="mx-auto max-w-6xl">
-      <h1 className="text-2xl font-bold tracking-tight text-slate-900">Email templates</h1>
+      <h1 className="text-2xl font-bold tracking-tight text-foreground">Email templates</h1>
       <p className="mt-1 text-sm text-slate-600">
         Edit every transactional email the platform sends. Disabled templates fall back to the
         built-in default, so delivery never breaks.
@@ -71,7 +71,7 @@ export default async function EmailTemplatesPage({
         <CardContent className="p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="text-sm font-semibold text-slate-900">Global branding</h2>
+              <h2 className="text-sm font-semibold text-foreground">Global branding</h2>
               <p className="mt-0.5 text-sm text-slate-600">
                 The header, accent color, and footer wrapping every email.
               </p>
@@ -81,7 +81,7 @@ export default async function EmailTemplatesPage({
               {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
               <a
                 href="/admin/settings/email-templates/export"
-                className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                className="rounded-lg border border-input px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
               >
                 Export JSON
               </a>
@@ -108,7 +108,7 @@ export default async function EmailTemplatesPage({
           name="q"
           defaultValue={q ?? ""}
           placeholder="Search templates…"
-          className="w-full max-w-sm rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+          className="w-full max-w-sm rounded-lg border border-input px-3 py-2 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-indigo-100"
         />
       </form>
 
@@ -118,7 +118,7 @@ export default async function EmailTemplatesPage({
           if (items.length === 0) return null;
           return (
             <section key={cat}>
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
                 {CATEGORY_LABELS[cat]}
               </h2>
               <div className="mt-3 space-y-3">
@@ -131,7 +131,7 @@ export default async function EmailTemplatesPage({
                           <div className="flex items-center gap-2">
                             <Link
                               href={`/admin/settings/email-templates/${def.key}`}
-                              className="font-medium text-slate-900 hover:text-indigo-600 hover:underline"
+                              className="font-medium text-foreground hover:text-primary hover:underline"
                             >
                               {def.name}
                             </Link>
@@ -166,7 +166,7 @@ export default async function EmailTemplatesPage({
           );
         })}
         {filtered.length === 0 && (
-          <p className="text-sm text-slate-500">No templates match &ldquo;{q}&rdquo;.</p>
+          <p className="text-sm text-muted-foreground">No templates match &ldquo;{q}&rdquo;.</p>
         )}
       </div>
     </div>

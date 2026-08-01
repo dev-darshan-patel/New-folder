@@ -37,7 +37,7 @@ export default async function BillingPage({
 
   return (
     <div className="mx-auto max-w-6xl">
-      <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+      <h1 className="text-2xl font-bold tracking-tight text-foreground">
         Plans &amp; Billing
       </h1>
       <p className="mt-1 text-sm text-slate-600">
@@ -77,7 +77,7 @@ export default async function BillingPage({
       <Card className="mt-6">
         <CardContent className="p-4">
           <p className="text-sm font-medium text-slate-700">Promo code</p>
-          <p className="mt-1 text-xs text-slate-500">
+          <p className="mt-1 text-xs text-muted-foreground">
             Enter a code on upgrade — trial codes activate instantly; Stripe codes apply at
             checkout.
           </p>
@@ -100,11 +100,11 @@ export default async function BillingPage({
                 {isCurrent && <Badge>Current</Badge>}
               </CardHeader>
               <CardContent className="flex flex-1 flex-col">
-                <p className="text-2xl font-bold text-slate-900">{plan.priceLabel}</p>
+                <p className="text-2xl font-bold text-foreground">{plan.priceLabel}</p>
                 <ul className="mt-4 flex-1 space-y-2 text-sm text-slate-600">
                   {plan.features.map((f) => (
                     <li key={f} className="flex gap-2">
-                      <Check size={16} className="mt-0.5 shrink-0 text-indigo-600" />
+                      <Check size={16} className="mt-0.5 shrink-0 text-primary" />
                       {f}
                     </li>
                   ))}
@@ -158,7 +158,7 @@ export default async function BillingPage({
             <p className="text-sm font-semibold text-slate-700">
               Dev tools — switch plan without Stripe
             </p>
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 text-xs text-muted-foreground">
               Only visible in development. Use this to test feature gating.
             </p>
             <div className="mt-3 flex flex-wrap gap-2">

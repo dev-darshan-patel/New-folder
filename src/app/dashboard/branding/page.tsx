@@ -11,7 +11,7 @@ export default async function BrandingPage() {
 
   return (
     <div className="mx-auto max-w-6xl">
-      <h1 className="text-2xl font-bold tracking-tight text-slate-900">Branding</h1>
+      <h1 className="text-2xl font-bold tracking-tight text-foreground">Branding</h1>
       <p className="mt-1 text-sm text-slate-600">
         Customize how your booking page and embedded widget look.
       </p>

@@ -13,8 +13,8 @@ export default async function AdminPlansPage() {
   if (!viewer || viewer.adminRole !== "SUPER_ADMIN") {
     return (
       <div className="mx-auto max-w-6xl">
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">Plans</h1>
-        <p className="mt-2 text-sm text-slate-500">Restricted to Super Admins.</p>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">Plans</h1>
+        <p className="mt-2 text-sm text-muted-foreground">Restricted to Super Admins.</p>
       </div>
     );
   }
@@ -28,7 +28,7 @@ export default async function AdminPlansPage() {
 
   return (
     <div className="mx-auto max-w-6xl">
-      <h1 className="text-2xl font-bold tracking-tight text-slate-900">Plans</h1>
+      <h1 className="text-2xl font-bold tracking-tight text-foreground">Plans</h1>
       <p className="mt-1 text-sm text-slate-600">
         Create, edit, and retire subscription tiers. Prices, limits, and feature gates apply
         across the app. FREE is a system plan and can&apos;t be deleted.
@@ -44,7 +44,7 @@ export default async function AdminPlansPage() {
                   <div className="flex items-center gap-2">
                     <Link
                       href={`/admin/settings/plans/${p.id}`}
-                      className="font-medium text-slate-900 hover:text-indigo-600 hover:underline"
+                      className="font-medium text-foreground hover:text-primary hover:underline"
                     >
                       {p.name}
                     </Link>
@@ -98,7 +98,7 @@ export default async function AdminPlansPage() {
 
       <Card className="mt-8">
         <CardContent className="p-5">
-          <h2 className="text-sm font-semibold text-slate-900">Create a new plan</h2>
+          <h2 className="text-sm font-semibold text-foreground">Create a new plan</h2>
           <p className="mt-0.5 mb-4 text-sm text-slate-600">
             Add a new tier. It becomes selectable when assigning plans and (if active) appears on
             the billing page.

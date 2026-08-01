@@ -84,7 +84,7 @@ export default function GroupBookingWidget({
   }, [result]);
 
   if (result?.ok && result.redirectUrl) {
-    return <p className="mt-10 text-center text-sm text-slate-500">Redirecting…</p>;
+    return <p className="mt-10 text-center text-sm text-muted-foreground">Redirecting…</p>;
   }
 
   if (result?.ok) {
@@ -93,7 +93,7 @@ export default function GroupBookingWidget({
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-600 text-white">
           <Check size={22} />
         </div>
-        <h2 className="mt-4 text-lg font-semibold text-slate-900">You&apos;re in!</h2>
+        <h2 className="mt-4 text-lg font-semibold text-foreground">You&apos;re in!</h2>
         <p className="mt-1 text-sm text-slate-600">{result.when}</p>
         {result.meetingUrl && (
           <a
@@ -106,7 +106,7 @@ export default function GroupBookingWidget({
             {result.meetingProvider === "zoom" ? "Join Zoom Meeting" : "Join Google Meet"}
           </a>
         )}
-        <p className="mt-3 text-sm text-slate-500">
+        <p className="mt-3 text-sm text-muted-foreground">
           A confirmation has been sent to your email.
         </p>
         <a
@@ -142,7 +142,7 @@ export default function GroupBookingWidget({
           <h2 className="text-sm font-semibold text-slate-700">Upcoming sessions</h2>
           <div className="mt-3 space-y-2">
             {sessions.length === 0 && (
-              <p className="rounded-lg border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500">
+              <p className="rounded-lg border border-dashed border-input p-6 text-center text-sm text-muted-foreground">
                 No sessions scheduled yet — please check back soon.
               </p>
             )}
@@ -158,14 +158,14 @@ export default function GroupBookingWidget({
                     setFormError(null);
                   }}
                   style={full ? undefined : { color: accent }}
-                  className={`flex w-full items-center justify-between rounded-lg border border-slate-200 px-4 py-3 text-sm font-medium transition-colors ${
+                  className={`flex w-full items-center justify-between rounded-lg border border-border px-4 py-3 text-sm font-medium transition-colors ${
                     full
                       ? "cursor-not-allowed opacity-60"
                       : "hover:border-slate-400 hover:bg-slate-50"
                   }`}
                 >
                   <span>{fmtSession(s.startUtc, viewerTz)}</span>
-                  <span className={`text-xs ${full ? "text-red-600" : "text-slate-500"}`}>
+                  <span className={`text-xs ${full ? "text-red-600" : "text-muted-foreground"}`}>
                     {full ? "Full" : `${s.seatsLeft} seat${s.seatsLeft === 1 ? "" : "s"} left`}
                   </span>
                 </button>
@@ -207,7 +207,7 @@ export default function GroupBookingWidget({
               variant="link"
               size="sm"
               onClick={() => setSelected(null)}
-              className="h-auto p-0 text-xs text-slate-500 hover:text-slate-900"
+              className="h-auto p-0 text-xs text-muted-foreground hover:text-foreground"
             >
               ← Back
             </Button>

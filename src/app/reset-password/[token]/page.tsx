@@ -21,7 +21,7 @@ export default async function ResetPasswordPage({
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-6">
-      <h1 className="text-2xl font-bold tracking-tight text-slate-900">Set a new password</h1>
+      <h1 className="text-2xl font-bold tracking-tight text-foreground">Set a new password</h1>
       {valid ? (
         <>
           <p className="mt-2 text-sm text-slate-600">

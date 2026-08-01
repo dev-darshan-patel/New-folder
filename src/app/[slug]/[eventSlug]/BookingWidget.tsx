@@ -123,7 +123,7 @@ export default function BookingWidget({
 
   if (result?.ok && result.redirectUrl) {
     return (
-      <p className="mt-10 text-center text-sm text-slate-500">Redirecting…</p>
+      <p className="mt-10 text-center text-sm text-muted-foreground">Redirecting…</p>
     );
   }
 
@@ -133,7 +133,7 @@ export default function BookingWidget({
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-amber-500 text-white">
           <Clock size={22} />
         </div>
-        <h2 className="mt-4 text-lg font-semibold text-slate-900">
+        <h2 className="mt-4 text-lg font-semibold text-foreground">
           Request received
         </h2>
         {result.series ? (
@@ -141,7 +141,7 @@ export default function BookingWidget({
         ) : (
           <p className="mt-1 text-sm text-slate-600">{result.when}</p>
         )}
-        <p className="mt-3 text-sm text-slate-500">
+        <p className="mt-3 text-sm text-muted-foreground">
           {result.series ? "These sessions aren't" : "This booking isn't"} confirmed yet — we&apos;ll email you once
           {result.series ? " they're" : " it's"} approved.
         </p>
@@ -162,7 +162,7 @@ export default function BookingWidget({
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-600 text-white">
           <Check size={22} />
         </div>
-        <h2 className="mt-4 text-lg font-semibold text-slate-900">
+        <h2 className="mt-4 text-lg font-semibold text-foreground">
           You&apos;re booked!
         </h2>
         {result.series ? (
@@ -181,7 +181,7 @@ export default function BookingWidget({
             {result.meetingProvider === "zoom" ? "Join Zoom Meeting" : "Join Google Meet"}
           </a>
         )}
-        <p className="mt-3 text-sm text-slate-500">
+        <p className="mt-3 text-sm text-muted-foreground">
           {result.series
             ? "A confirmation with all calendar invites has been sent to your email."
             : "A confirmation has been sent to your email."}
@@ -233,7 +233,7 @@ export default function BookingWidget({
               className={`rounded-lg border px-3 py-2 text-sm transition-colors ${
                 selectedDay === day.iso
                   ? "text-white"
-                  : "border-slate-200 text-slate-700 hover:border-slate-300"
+                  : "border-border text-slate-700 hover:border-input"
               }`}
             >
               {day.label}
@@ -269,7 +269,7 @@ export default function BookingWidget({
                       setSelectedSlot(slot);
                       setFormError(null);
                     }}
-                    className="w-full rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-medium transition-colors hover:border-slate-400 hover:bg-slate-50"
+                    className="w-full rounded-lg border border-border px-4 py-2.5 text-sm font-medium transition-colors hover:border-slate-400 hover:bg-slate-50"
                   >
                     {fmtTime(slot.startUtc, viewerTz)}
                   </button>
@@ -336,7 +336,7 @@ export default function BookingWidget({
                 variant="link"
                 size="sm"
                 onClick={() => setSelectedSlot(null)}
-                className="h-auto p-0 text-xs text-slate-500 hover:text-slate-900"
+                className="h-auto p-0 text-xs text-muted-foreground hover:text-foreground"
               >
                 ← Back
               </Button>

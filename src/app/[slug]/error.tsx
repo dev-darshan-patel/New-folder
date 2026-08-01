@@ -16,7 +16,7 @@ export default function BusinessPageError({
 
   return (
     <div className="mx-auto flex min-h-[60vh] w-full max-w-md flex-col items-center justify-center px-6 text-center">
-      <h1 className="text-xl font-bold tracking-tight text-slate-900">
+      <h1 className="text-xl font-bold tracking-tight text-foreground">
         This page couldn&apos;t load
       </h1>
       <p className="mt-2 text-sm text-slate-600">

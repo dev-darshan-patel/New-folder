@@ -39,7 +39,7 @@ function SecretRow({
   return (
     <div>
       <label className="mb-1 block text-xs font-medium text-slate-600">{label}</label>
-      <p className="mb-1 text-xs text-slate-500">{maskTail(currentValue)}</p>
+      <p className="mb-1 text-xs text-muted-foreground">{maskTail(currentValue)}</p>
       <Input type="password" name={name} placeholder="Leave blank to keep existing" />
       {currentValue && (
         <form action={formAction} className="mt-1 inline-block">
@@ -88,13 +88,13 @@ export default function RazorpaySettingsForm({
           <option value="TEST">Test</option>
           <option value="LIVE">Live</option>
         </NativeSelect>
-        <p className="mt-1 text-xs text-slate-500">
+        <p className="mt-1 text-xs text-muted-foreground">
           Test and live credentials never mix — whichever mode is active, only that mode&apos;s
           keys are used.
         </p>
       </div>
 
-      <fieldset className="space-y-3 rounded-md border border-slate-200 p-4">
+      <fieldset className="space-y-3 rounded-md border border-border p-4">
         <legend className="px-1 text-xs font-medium text-slate-600">Test credentials</legend>
         <div>
           <label className="mb-1 block text-xs font-medium text-slate-600">Key ID</label>
@@ -114,7 +114,7 @@ export default function RazorpaySettingsForm({
         />
       </fieldset>
 
-      <fieldset className="space-y-3 rounded-md border border-slate-200 p-4">
+      <fieldset className="space-y-3 rounded-md border border-border p-4">
         <legend className="px-1 text-xs font-medium text-slate-600">Live credentials</legend>
         <div>
           <label className="mb-1 block text-xs font-medium text-slate-600">Key ID</label>

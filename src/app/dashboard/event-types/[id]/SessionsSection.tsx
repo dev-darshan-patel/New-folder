@@ -35,9 +35,9 @@ export default async function SessionsSection({
   });
 
   return (
-    <section className="mt-10 border-t border-slate-200 pt-8">
-      <h2 className="text-lg font-semibold text-slate-900">Sessions</h2>
-      <p className="mt-1 text-sm text-slate-500">
+    <section className="mt-10 border-t border-border pt-8">
+      <h2 className="text-lg font-semibold text-foreground">Sessions</h2>
+      <p className="mt-1 text-sm text-muted-foreground">
         Each session is one date/time invitees can book into ({durationMinutes} min,
         up to {defaultCapacity} attendees). All times shown in your timezone (
         {businessTimezone}).
@@ -45,7 +45,7 @@ export default async function SessionsSection({
 
       <form
         action={createSessionAction}
-        className="mt-4 flex flex-wrap items-end gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4"
+        className="mt-4 flex flex-wrap items-end gap-3 rounded-lg border border-border bg-slate-50 p-4"
       >
         <input type="hidden" name="eventTypeId" value={eventTypeId} />
         <label className="block">
@@ -66,11 +66,11 @@ export default async function SessionsSection({
       </form>
 
       <div className="mt-6">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           Upcoming
         </h3>
         {upcoming.length === 0 ? (
-          <p className="mt-3 rounded-lg border border-dashed border-slate-300 p-4 text-center text-sm text-slate-500">
+          <p className="mt-3 rounded-lg border border-dashed border-input p-4 text-center text-sm text-muted-foreground">
             No upcoming sessions. Add one above.
           </p>
         ) : (
@@ -78,11 +78,11 @@ export default async function SessionsSection({
             {upcoming.map((s) => (
               <li
                 key={s.id}
-                className="flex items-center justify-between rounded-lg border border-slate-200 bg-white p-3 text-sm"
+                className="flex items-center justify-between rounded-lg border border-border bg-white p-3 text-sm"
               >
                 <div>
-                  <p className="font-medium text-slate-900">{fmt.format(s.startTime)}</p>
-                  <p className="text-xs text-slate-500">
+                  <p className="font-medium text-foreground">{fmt.format(s.startTime)}</p>
+                  <p className="text-xs text-muted-foreground">
                     {s.seatsTaken} / {s.capacity} booked
                     {s.meetingUrl && (
                       <>
@@ -91,7 +91,7 @@ export default async function SessionsSection({
                           href={s.meetingUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-indigo-600 hover:underline"
+                          className="text-primary hover:underline"
                         >
                           {s.meetingProvider === "zoom" ? "Zoom link" : "Meet link"}
                         </a>
@@ -120,18 +120,18 @@ export default async function SessionsSection({
 
       {past.length > 0 && (
         <div className="mt-6 opacity-60">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             Past &amp; canceled
           </h3>
           <ul className="mt-3 space-y-2">
             {past.map((s) => (
               <li
                 key={s.id}
-                className="flex items-center justify-between rounded-lg border border-slate-200 bg-white p-3 text-sm"
+                className="flex items-center justify-between rounded-lg border border-border bg-white p-3 text-sm"
               >
                 <div>
                   <p className="font-medium text-slate-700">{fmt.format(s.startTime)}</p>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-muted-foreground">
                     {s.cancelled ? "Canceled" : `${s.seatsTaken} / ${s.capacity} attended`}
                   </p>
                 </div>

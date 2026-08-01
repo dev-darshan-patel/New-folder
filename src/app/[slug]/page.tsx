@@ -54,10 +54,10 @@ export default async function BusinessPage({
         <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-indigo-100 text-2xl font-bold text-indigo-700">
           {user.businessName.charAt(0).toUpperCase()}
         </div>
-        <h1 className="mt-4 text-2xl font-bold tracking-tight text-slate-900">
+        <h1 className="mt-4 text-2xl font-bold tracking-tight text-foreground">
           {user.businessName}
         </h1>
-        <p className="mt-1 text-sm text-slate-500">Select a meeting to book.</p>
+        <p className="mt-1 text-sm text-muted-foreground">Select a meeting to book.</p>
       </div>
 
       <ul className="mt-10 space-y-3">
@@ -66,11 +66,11 @@ export default async function BusinessPage({
             <Link href={`/${user.slug}/${et.slug}`}>
               <Card className="transition-shadow hover:shadow-md">
                 <CardContent className="p-5">
-                  <p className="font-semibold text-slate-900">{et.title}</p>
+                  <p className="font-semibold text-foreground">{et.title}</p>
                   {et.description && (
                     <p className="mt-1 text-sm text-slate-600">{et.description}</p>
                   )}
-                  <p className="mt-2 text-sm font-medium text-indigo-600">
+                  <p className="mt-2 text-sm font-medium text-primary">
                     {et.durationMinutes} min
                     {et.priceCents != null && et.currency ? (
                       <span className="ml-2 rounded bg-indigo-50 px-2 py-0.5 text-xs">
@@ -87,7 +87,7 @@ export default async function BusinessPage({
         {user.eventTypes.length === 0 && (
           <li>
             <Card className="border-dashed">
-              <CardContent className="p-6 text-center text-sm text-slate-500">
+              <CardContent className="p-6 text-center text-sm text-muted-foreground">
                 This business has no bookable meetings right now.
               </CardContent>
             </Card>

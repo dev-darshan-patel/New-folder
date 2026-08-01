@@ -20,7 +20,7 @@ export default function DashboardError({
       <Card>
         <CardContent className="p-8 text-center">
           <p className="text-sm font-semibold text-destructive">Error</p>
-          <h1 className="mt-2 text-xl font-bold tracking-tight text-slate-900">
+          <h1 className="mt-2 text-xl font-bold tracking-tight text-foreground">
             This page couldn&apos;t load
           </h1>
           <p className="mt-2 text-sm text-slate-600">

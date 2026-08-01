@@ -27,14 +27,14 @@ export default async function ReschedulePage({
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-2xl flex-col px-6 py-12">
-      <div className="border-b border-slate-200 pb-6">
-        <p className="text-sm font-medium text-indigo-600">
+      <div className="border-b border-border pb-6">
+        <p className="text-sm font-medium text-primary">
           {booking.user.businessName}
         </p>
-        <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">
+        <h1 className="mt-1 text-2xl font-bold tracking-tight text-foreground">
           Reschedule: {booking.eventType.title}
         </h1>
-        <p className="mt-1 text-sm text-slate-500">
+        <p className="mt-1 text-sm text-muted-foreground">
           Currently {currentWhen}. Pick a new time below.
         </p>
       </div>

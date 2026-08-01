@@ -27,14 +27,14 @@ export default function SidebarNav({
   const styles =
     variant === "dark"
       ? {
-          groupTitle: "text-slate-500",
+          groupTitle: "text-muted-foreground",
           link: "text-slate-300 hover:bg-slate-800 hover:text-white",
           active: "bg-slate-800 text-white",
         }
       : {
           groupTitle: "text-slate-400",
-          link: "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
-          active: "bg-slate-100 font-semibold text-slate-900",
+          link: "text-slate-600 hover:bg-muted hover:text-foreground",
+          active: "bg-muted font-semibold text-foreground",
         };
 
   return (

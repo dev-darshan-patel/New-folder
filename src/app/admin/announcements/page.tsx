@@ -18,7 +18,7 @@ type AnnouncementRow = Awaited<
 >[number];
 
 const LEVEL_BADGE: Record<string, string> = {
-  INFO: "bg-slate-100 text-slate-700",
+  INFO: "bg-muted text-slate-700",
   WARNING: "bg-amber-100 text-amber-700",
   CRITICAL: "bg-red-100 text-red-700",
 };
@@ -40,7 +40,7 @@ export default async function AdminAnnouncementsPage() {
     {
       key: "message",
       header: "Message",
-      cellClassName: "text-slate-900",
+      cellClassName: "text-foreground",
       render: (a) =>
         a.message.length > 80 ? `${a.message.slice(0, 80)}…` : a.message,
     },
@@ -118,7 +118,7 @@ export default async function AdminAnnouncementsPage() {
 
   return (
     <div className="mx-auto max-w-6xl">
-      <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+      <h1 className="text-2xl font-bold tracking-tight text-foreground">
         Announcements
       </h1>
       <p className="mt-1 text-sm text-slate-600">
@@ -178,9 +178,9 @@ export default async function AdminAnnouncementsPage() {
         columns={columns}
         rowKey={(a) => a.id}
         rowClassName="align-top hover:bg-slate-50"
-        containerClassName="mt-8 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"
+        containerClassName="mt-8 overflow-hidden rounded-xl border border-border bg-white shadow-sm"
         emptyMessage="No announcements yet."
-        emptyClassName="px-4 py-8 text-center text-slate-500"
+        emptyClassName="px-4 py-8 text-center text-muted-foreground"
       />
     </div>
   );

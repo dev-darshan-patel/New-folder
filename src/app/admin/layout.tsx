@@ -60,7 +60,7 @@ export default async function AdminLayout({
 
   return (
     <div className="flex min-h-screen bg-slate-50">
-      <aside className="hidden w-60 flex-col border-r border-slate-200 bg-slate-900 p-5 text-slate-100 md:flex">
+      <aside className="hidden w-60 flex-col border-r border-border bg-slate-900 p-5 text-slate-100 md:flex">
         <Link href="/admin" className="text-lg font-bold">
           Admin<span className="text-indigo-400">.</span>
         </Link>
@@ -98,7 +98,7 @@ export default async function AdminLayout({
           ← Back to app
         </Link>
         <div className="mt-1">
-          <LogoutButton className="w-full justify-start text-slate-500 hover:bg-slate-800 hover:text-white" />
+          <LogoutButton className="w-full justify-start text-muted-foreground hover:bg-slate-800 hover:text-white" />
         </div>
       </aside>
 

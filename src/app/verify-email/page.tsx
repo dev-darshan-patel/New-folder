@@ -16,19 +16,19 @@ export default async function VerifyEmailPendingPage() {
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-6">
-      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-indigo-100 text-indigo-600">
+      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-indigo-100 text-primary">
         <Mail size={22} />
       </div>
-      <h1 className="mt-5 text-center text-2xl font-bold tracking-tight text-slate-900">
+      <h1 className="mt-5 text-center text-2xl font-bold tracking-tight text-foreground">
         Verify your email
       </h1>
       <p className="mt-3 text-center text-sm text-slate-600">
         We sent a verification link to{" "}
-        <strong className="text-slate-900">{user.email}</strong>. Click it to
+        <strong className="text-foreground">{user.email}</strong>. Click it to
         activate your account — you&apos;ll get access to your dashboard right
         after.
       </p>
-      <p className="mt-4 text-center text-xs text-slate-500">
+      <p className="mt-4 text-center text-xs text-muted-foreground">
         Didn&apos;t get it? Check your spam folder, or resend below.
       </p>
 
@@ -41,7 +41,7 @@ export default async function VerifyEmailPendingPage() {
           <SubmitButton
             variant="link"
             size="sm"
-            className="h-auto p-0 text-xs text-slate-500 hover:text-slate-800"
+            className="h-auto p-0 text-xs text-muted-foreground hover:text-slate-800"
           >
             Use a different account
           </SubmitButton>

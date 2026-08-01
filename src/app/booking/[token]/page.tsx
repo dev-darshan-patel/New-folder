@@ -58,10 +58,10 @@ export default async function ManageBookingPage({
     <div className="mx-auto flex min-h-screen w-full max-w-lg flex-col justify-center px-6 py-12">
       <Card>
       <CardContent className="p-8">
-        <p className="text-sm font-medium text-indigo-600">
+        <p className="text-sm font-medium text-primary">
           {booking.user.businessName}
         </p>
-        <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">
+        <h1 className="mt-1 text-2xl font-bold tracking-tight text-foreground">
           {booking.eventType.title}
         </h1>
 
@@ -97,8 +97,8 @@ export default async function ManageBookingPage({
         </dl>
 
         {siblings.length > 1 && (
-          <div className="mt-6 rounded-lg border border-slate-200 p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+          <div className="mt-6 rounded-lg border border-border p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               All sessions in this series
             </p>
             <ul className="mt-2 space-y-1 text-sm">
@@ -109,7 +109,7 @@ export default async function ManageBookingPage({
                       s.status === "CANCELLED"
                         ? "text-slate-400 line-through"
                         : s.id === booking.id
-                          ? "font-medium text-slate-900"
+                          ? "font-medium text-foreground"
                           : "text-slate-600"
                     }
                   >
@@ -118,7 +118,7 @@ export default async function ManageBookingPage({
                   {s.id !== booking.id && s.manageToken && s.status !== "CANCELLED" && (
                     <Link
                       href={`/booking/${s.manageToken}`}
-                      className="text-xs text-indigo-600 hover:underline"
+                      className="text-xs text-primary hover:underline"
                     >
                       Manage
                     </Link>
@@ -186,9 +186,9 @@ export default async function ManageBookingPage({
         )}
 
         {canceled && (
-          <p className="mt-8 rounded-lg bg-slate-50 px-4 py-3 text-center text-sm text-slate-500">
+          <p className="mt-8 rounded-lg bg-slate-50 px-4 py-3 text-center text-sm text-muted-foreground">
             This booking has been canceled. To book again, visit{" "}
-            <Link href={`/${booking.user.slug}`} className="text-indigo-600 hover:underline">
+            <Link href={`/${booking.user.slug}`} className="text-primary hover:underline">
               {booking.user.businessName}
             </Link>
             .
@@ -196,7 +196,7 @@ export default async function ManageBookingPage({
         )}
 
         {!canceled && past && (
-          <p className="mt-8 rounded-lg bg-slate-50 px-4 py-3 text-center text-sm text-slate-500">
+          <p className="mt-8 rounded-lg bg-slate-50 px-4 py-3 text-center text-sm text-muted-foreground">
             This booking has already taken place.
           </p>
         )}
@@ -209,8 +209,8 @@ export default async function ManageBookingPage({
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex justify-between gap-4">
-      <dt className="text-slate-500">{label}</dt>
-      <dd className="text-right text-slate-900">{value}</dd>
+      <dt className="text-muted-foreground">{label}</dt>
+      <dd className="text-right text-foreground">{value}</dd>
     </div>
   );
 }

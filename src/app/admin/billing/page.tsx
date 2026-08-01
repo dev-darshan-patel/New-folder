@@ -19,8 +19,8 @@ export default async function AdminBillingPage() {
   } catch {
     return (
       <div className="mx-auto max-w-6xl">
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">Billing</h1>
-        <p className="mt-2 text-sm text-slate-500">Restricted to admins.</p>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">Billing</h1>
+        <p className="mt-2 text-sm text-muted-foreground">Restricted to admins.</p>
       </div>
     );
   }
@@ -41,7 +41,7 @@ export default async function AdminBillingPage() {
     {
       key: "plan",
       header: "Plan",
-      cellClassName: "font-medium text-slate-900",
+      cellClassName: "font-medium text-foreground",
       render: (r) => r.plan,
     },
     { key: "count", header: "Paid accounts", align: "right", render: (r) => r.count },
@@ -62,7 +62,7 @@ export default async function AdminBillingPage() {
         <>
           <Link
             href={`/admin/users/${u.id}`}
-            className="font-medium text-slate-900 hover:text-indigo-600"
+            className="font-medium text-foreground hover:text-primary"
           >
             {u.businessName}
           </Link>
@@ -160,7 +160,7 @@ export default async function AdminBillingPage() {
 
   return (
     <div className="mx-auto max-w-6xl">
-      <h1 className="text-2xl font-bold tracking-tight text-slate-900">Billing</h1>
+      <h1 className="text-2xl font-bold tracking-tight text-foreground">Billing</h1>
       <p className="mt-1 text-sm text-slate-600">Subscription health across all tenants.</p>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-4">
@@ -191,7 +191,7 @@ export default async function AdminBillingPage() {
 
       {invoices === null ? (
         <Card className="mt-4">
-          <CardContent className="p-4 text-sm text-slate-500">
+          <CardContent className="p-4 text-sm text-muted-foreground">
             Stripe is not configured (or unreachable) — invoice history unavailable. Configure it
             at{" "}
             <Link href="/admin/settings" className="text-indigo-500 hover:underline">
@@ -219,8 +219,8 @@ function Stat({ label, value }: { label: string; value: string | number }) {
   return (
     <Card>
       <CardContent className="p-4">
-        <p className="text-xs text-slate-500">{label}</p>
-        <p className="mt-1 text-xl font-bold text-slate-900">{value}</p>
+        <p className="text-xs text-muted-foreground">{label}</p>
+        <p className="mt-1 text-xl font-bold text-foreground">{value}</p>
       </CardContent>
     </Card>
   );

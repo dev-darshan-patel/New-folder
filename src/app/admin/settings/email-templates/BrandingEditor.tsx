@@ -15,7 +15,7 @@ type Initial = {
 };
 
 const field =
-  "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100";
+  "w-full rounded-lg border border-input px-3 py-2 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-indigo-100";
 
 export default function BrandingEditor({ initial }: { initial: Initial }) {
   const [state, formAction, pending] = useActionState<TemplateFormState, FormData>(
@@ -79,7 +79,7 @@ export default function BrandingEditor({ initial }: { initial: Initial }) {
               value={accent}
               onChange={(e) => setAccent(e.target.value)}
               title="Pick the accent color"
-              className="h-9 w-12 cursor-pointer rounded border border-slate-300"
+              className="h-9 w-12 cursor-pointer rounded border border-input"
             />
             <input
               name="emailAccentColor"
@@ -131,11 +131,11 @@ export default function BrandingEditor({ initial }: { initial: Initial }) {
 
       <div>
         <p className="text-sm font-semibold text-slate-700">Preview</p>
-        <div className="mt-2 rounded-xl border border-slate-200 bg-slate-100 p-3">
+        <div className="mt-2 rounded-xl border border-border bg-muted p-3">
           <iframe
             title="Branding preview"
             srcDoc={previewHtml}
-            className="h-[380px] w-full rounded-lg border border-slate-200 bg-white"
+            className="h-[380px] w-full rounded-lg border border-border bg-white"
           />
         </div>
       </div>

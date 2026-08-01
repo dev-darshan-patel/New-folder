@@ -74,7 +74,7 @@ export default async function BookingPage({
       )}
       {embed && <EmbedResizer />}
 
-      <div className="border-b border-slate-200 pb-6">
+      <div className="border-b border-border pb-6">
         {brand.logoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -86,10 +86,10 @@ export default async function BookingPage({
         <p className="text-sm font-medium" style={{ color: brand.color }}>
           {user.businessName}
         </p>
-        <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">
+        <h1 className="mt-1 text-2xl font-bold tracking-tight text-foreground">
           {eventType.title}
         </h1>
-        <p className="mt-1 text-sm text-slate-500">
+        <p className="mt-1 text-sm text-muted-foreground">
           {eventType.durationMinutes} min
           {eventType.priceCents != null && eventType.currency && (
             <>

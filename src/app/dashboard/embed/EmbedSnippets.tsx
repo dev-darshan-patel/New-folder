@@ -65,10 +65,10 @@ export default function EmbedSnippets({
 
       <div>
         <p className="text-sm font-semibold text-slate-700">Live preview</p>
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-muted-foreground">
           This is exactly what visitors see, with your branding applied.
         </p>
-        <div className="mt-2 overflow-hidden rounded-2xl border border-slate-200">
+        <div className="mt-2 overflow-hidden rounded-2xl border border-border">
           <iframe
             key={previewSrc}
             src={previewSrc}
@@ -105,7 +105,7 @@ function Snippet({
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm font-semibold text-slate-800">{title}</p>
-          <p className="text-xs text-slate-500">{desc}</p>
+          <p className="text-xs text-muted-foreground">{desc}</p>
         </div>
         <Button
           type="button"
@@ -116,7 +116,7 @@ function Snippet({
           {copied ? "Copied!" : "Copy"}
         </Button>
       </div>
-      <pre className="mt-2 overflow-x-auto rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">
+      <pre className="mt-2 overflow-x-auto rounded-lg border border-border bg-slate-50 p-3 text-xs text-slate-700">
         <code>{code}</code>
       </pre>
     </div>

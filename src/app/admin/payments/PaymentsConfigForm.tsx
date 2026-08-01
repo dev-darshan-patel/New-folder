@@ -30,13 +30,13 @@ export default function PaymentsConfigForm({
           type="checkbox"
           name="stripeForIndiaEnabled"
           defaultChecked={stripeForIndiaEnabled}
-          className="mt-1 h-4 w-4 rounded border-slate-300 text-primary focus:ring-ring"
+          className="mt-1 h-4 w-4 rounded border-input text-primary focus:ring-ring"
         />
         <span>
           <span className="block text-sm font-medium text-slate-700">
             Offer Stripe to Indian tenants
           </span>
-          <span className="block text-xs text-slate-500">
+          <span className="block text-xs text-muted-foreground">
             Default OFF. Only enable after verifying Stripe onboarding actually works with a
             real Indian account — Stripe&apos;s India marketplace onboarding is restricted.
           </span>
@@ -57,9 +57,9 @@ export default function PaymentsConfigForm({
             max="30"
             required
           />
-          <span className="text-sm text-slate-500">%</span>
+          <span className="text-sm text-muted-foreground">%</span>
         </div>
-        <p className="mt-1 text-xs text-slate-500">
+        <p className="mt-1 text-xs text-muted-foreground">
           Deducted from each payout at release time. Between 0 and 30.
         </p>
       </div>

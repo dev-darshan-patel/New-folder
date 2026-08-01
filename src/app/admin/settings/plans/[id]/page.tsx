@@ -14,8 +14,8 @@ export default async function EditPlanPage({
   if (!viewer || viewer.adminRole !== "SUPER_ADMIN") {
     return (
       <div className="mx-auto max-w-6xl">
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">Plan</h1>
-        <p className="mt-2 text-sm text-slate-500">Restricted to Super Admins.</p>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">Plan</h1>
+        <p className="mt-2 text-sm text-muted-foreground">Restricted to Super Admins.</p>
       </div>
     );
   }
@@ -29,12 +29,12 @@ export default async function EditPlanPage({
 
   return (
     <div className="mx-auto max-w-6xl">
-      <Link href="/admin/settings/plans" className="text-sm text-slate-500 hover:text-indigo-600">
+      <Link href="/admin/settings/plans" className="text-sm text-muted-foreground hover:text-primary">
         ← All plans
       </Link>
 
       <div className="mt-3 flex items-center gap-2">
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">{plan.name}</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">{plan.name}</h1>
         {plan.isSystem && <Badge variant="secondary">System</Badge>}
         <Badge variant={plan.active ? "success" : "muted"}>{plan.active ? "Active" : "Hidden"}</Badge>
       </div>

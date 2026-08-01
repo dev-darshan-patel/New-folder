@@ -51,14 +51,14 @@ export default function PendingApplicationRow({
     <div className="border-b border-slate-100 p-4 last:border-b-0">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <div>
-          <p className="font-medium text-slate-900">{businessName}</p>
-          <p className="text-xs text-slate-500">
+          <p className="font-medium text-foreground">{businessName}</p>
+          <p className="text-xs text-muted-foreground">
             {email} · {country} · Applied {appliedAt}
           </p>
         </div>
       </div>
       <p className="mt-2 text-sm text-slate-700">{businessDescription}</p>
-      <p className="mt-1 text-xs text-slate-500">Expected price range: {expectedPriceRange}</p>
+      <p className="mt-1 text-xs text-muted-foreground">Expected price range: {expectedPriceRange}</p>
 
       {!showRejectForm ? (
         <div className="mt-3 flex gap-2">

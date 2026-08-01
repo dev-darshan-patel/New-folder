@@ -98,7 +98,7 @@ export default async function AdminBookings({
         <>
           <Link
             href={`/admin/users/${b.userId}`}
-            className="font-medium text-slate-900 hover:text-indigo-600"
+            className="font-medium text-foreground hover:text-primary"
           >
             {b.user.businessName}
           </Link>
@@ -137,7 +137,7 @@ export default async function AdminBookings({
     {
       key: "with",
       header: "With",
-      cellClassName: "text-slate-500",
+      cellClassName: "text-muted-foreground",
       render: (b) => b.teamMember?.name ?? "—",
     },
     {
@@ -229,7 +229,7 @@ export default async function AdminBookings({
               Apply
             </SubmitButton>
             {(parsed.q || parsed.status || parsed.businessId || sp.dateFrom || sp.dateTo) && (
-              <Link href="/admin/bookings" className="text-sm text-slate-500 hover:text-slate-900">
+              <Link href="/admin/bookings" className="text-sm text-muted-foreground hover:text-foreground">
                 Clear
               </Link>
             )}
@@ -260,8 +260,8 @@ function Stat({ label, value, sub }: { label: string; value: string | number; su
   return (
     <Card>
       <CardContent className="p-4">
-        <p className="text-xs text-slate-500">{label}</p>
-        <p className="mt-1 text-xl font-bold text-slate-900">{value}</p>
+        <p className="text-xs text-muted-foreground">{label}</p>
+        <p className="mt-1 text-xl font-bold text-foreground">{value}</p>
         {sub && <p className="mt-0.5 text-xs text-slate-400">{sub}</p>}
       </CardContent>
     </Card>
@@ -271,7 +271,7 @@ function Stat({ label, value, sub }: { label: string; value: string | number; su
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
-      <span className="block text-xs font-medium text-slate-500">{label}</span>
+      <span className="block text-xs font-medium text-muted-foreground">{label}</span>
       {children}
     </label>
   );

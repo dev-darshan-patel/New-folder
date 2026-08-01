@@ -31,12 +31,12 @@ export default async function SecurityPage() {
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">Security</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">Security</h1>
         <p className="mt-1 text-sm text-slate-600">
           Two-factor authentication adds a second step to every sign-in.
         </p>
         <p className="mt-2 text-sm">
-          <Link href="/dashboard/settings" className="text-indigo-600 hover:underline">
+          <Link href="/dashboard/settings" className="text-primary hover:underline">
             ← Account settings
           </Link>
         </p>
@@ -59,7 +59,7 @@ export default async function SecurityPage() {
       ) : (
         <Card>
           <CardContent className="p-6">
-          <p className="font-medium text-slate-900">Turn on two-factor auth</p>
+          <p className="font-medium text-foreground">Turn on two-factor auth</p>
           <p className="mt-1 text-sm text-slate-600">
             You&apos;ll scan a QR code in Google Authenticator, Authy, or 1Password.
           </p>

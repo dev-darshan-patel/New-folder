@@ -18,7 +18,7 @@ export default function BusySyncToggle({
         type="checkbox"
         defaultChecked={initialEnabled}
         disabled={pending}
-        className="h-4 w-4 rounded border-slate-300 text-primary focus:ring-ring"
+        className="h-4 w-4 rounded border-input text-primary focus:ring-ring"
         onChange={(e) => {
           const enabled = e.target.checked;
           startTransition(async () => {

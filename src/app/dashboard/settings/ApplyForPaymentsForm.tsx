@@ -30,7 +30,7 @@ export default function ApplyForPaymentsForm({ countries }: { countries: Country
             </option>
           ))}
         </NativeSelect>
-        <p className="mt-1 text-xs text-slate-500">
+        <p className="mt-1 text-xs text-muted-foreground">
           India tenants are served by Razorpay; other countries by Stripe.
         </p>
       </div>
@@ -55,7 +55,7 @@ export default function ApplyForPaymentsForm({ countries }: { countries: Country
         <input
           type="checkbox"
           name="agree"
-          className="mt-0.5 h-4 w-4 rounded border-slate-300 text-primary focus:ring-ring"
+          className="mt-0.5 h-4 w-4 rounded border-input text-primary focus:ring-ring"
         />
         <span>
           I agree that customer payments are held by the platform until 24 hours after each

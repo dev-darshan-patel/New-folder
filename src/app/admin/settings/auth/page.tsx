@@ -22,8 +22,8 @@ export default async function AdminAuthSettingsPage() {
   if (!viewer || viewer.adminRole !== "SUPER_ADMIN") {
     return (
       <div className="mx-auto max-w-6xl">
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">Sign-in providers</h1>
-        <p className="mt-2 text-sm text-slate-500">
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">Sign-in providers</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
           Platform settings are restricted to Super Admins.
         </p>
       </div>
@@ -45,7 +45,7 @@ export default async function AdminAuthSettingsPage() {
 
   return (
     <div className="mx-auto max-w-6xl">
-      <h1 className="text-2xl font-bold tracking-tight text-slate-900">Sign-in providers</h1>
+      <h1 className="text-2xl font-bold tracking-tight text-foreground">Sign-in providers</h1>
       <p className="mt-1 text-sm text-slate-600">
         Let businesses sign up and log in with Google or Microsoft instead of (or in addition
         to) a password.
@@ -105,8 +105,8 @@ export default async function AdminAuthSettingsPage() {
           }
         />
 
-        <div className="mt-10 border-t border-slate-200 pt-6">
-          <h2 className="text-lg font-semibold text-slate-900">Meeting link integrations</h2>
+        <div className="mt-10 border-t border-border pt-6">
+          <h2 className="text-lg font-semibold text-foreground">Meeting link integrations</h2>
           <p className="mt-1 text-sm text-slate-600">
             Separate from sign-in — these let tenants auto-generate a video link for
             their own bookings. Each tenant connects their own account under their
@@ -135,8 +135,8 @@ export default async function AdminAuthSettingsPage() {
               />
               <p className="text-xs text-slate-400">
                 Create a &quot;General App&quot; (OAuth) on Zoom Marketplace with scopes{" "}
-                <code className="rounded bg-slate-100 px-1">meeting:write:meeting</code> and{" "}
-                <code className="rounded bg-slate-100 px-1">user:read:user</code>.
+                <code className="rounded bg-muted px-1">meeting:write:meeting</code> and{" "}
+                <code className="rounded bg-muted px-1">user:read:user</code>.
               </p>
             </>
           }
@@ -174,7 +174,7 @@ function ProviderPanel({
   return (
     <Card className="mt-8">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-base font-semibold text-slate-900">{title}</CardTitle>
+        <CardTitle className="text-base font-semibold text-foreground">{title}</CardTitle>
         <Badge variant={ready ? "success" : "muted"}>
           {ready ? "Configured" : "Not configured"}
         </Badge>
@@ -183,7 +183,7 @@ function ProviderPanel({
         <div className="rounded-lg bg-slate-50 p-3 text-xs text-slate-600">
           <p>
             Create credentials at{" "}
-            <a href={setupHref} target="_blank" className="text-indigo-600 hover:underline">
+            <a href={setupHref} target="_blank" className="text-primary hover:underline">
               {setupHref.replace("https://", "")}
             </a>
             , then register this redirect URI:

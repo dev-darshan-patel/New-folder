@@ -76,7 +76,7 @@ export default async function AdminUsers({
           <div className="flex items-center gap-2">
             <Link
               href={`/admin/users/${u.id}`}
-              className="font-medium text-slate-900 hover:text-indigo-600"
+              className="font-medium text-foreground hover:text-primary"
             >
               {u.businessName}
             </Link>
@@ -115,7 +115,7 @@ export default async function AdminUsers({
       key: "subscriptionStatus",
       header: "Status",
       align: "right",
-      cellClassName: "text-slate-500",
+      cellClassName: "text-muted-foreground",
       render: (u) => (
         <div className="flex items-center justify-end gap-1.5">
           <span>{u.subscriptionStatus ?? "—"}</span>
@@ -127,7 +127,7 @@ export default async function AdminUsers({
       key: "planRenewsAt",
       header: "Renews / Ends",
       align: "right",
-      cellClassName: "text-slate-500",
+      cellClassName: "text-muted-foreground",
       render: (u) =>
         u.planRenewsAt ? (
           <span className={u.cancelAtPeriodEnd ? "text-amber-700" : undefined}>
@@ -142,14 +142,14 @@ export default async function AdminUsers({
       key: "planCancelRequestedAt",
       header: "Canceled on",
       align: "right",
-      cellClassName: "text-slate-500",
+      cellClassName: "text-muted-foreground",
       render: (u) => u.planCancelRequestedAt?.toLocaleDateString() ?? "—",
     },
     {
       key: "deletionRequestedAt",
       header: "Deletion",
       align: "right",
-      cellClassName: "text-slate-500",
+      cellClassName: "text-muted-foreground",
       render: (u) => {
         if (u.deletedAt) {
           return (
@@ -187,7 +187,7 @@ export default async function AdminUsers({
       key: "createdAt",
       header: "Joined",
       sortable: true,
-      cellClassName: "text-slate-500",
+      cellClassName: "text-muted-foreground",
       render: (u) => u.createdAt.toLocaleDateString(),
     },
   ];
@@ -236,7 +236,7 @@ export default async function AdminUsers({
                 name="hasBookings"
                 value="1"
                 defaultChecked={parsed.hasBookings}
-                className="h-4 w-4 rounded border-slate-300"
+                className="h-4 w-4 rounded border-input"
               />
               Has bookings
             </label>
@@ -246,7 +246,7 @@ export default async function AdminUsers({
                 name="showDeleted"
                 value="1"
                 defaultChecked={parsed.showDeleted}
-                className="h-4 w-4 rounded border-slate-300"
+                className="h-4 w-4 rounded border-input"
               />
               Show deleted
             </label>
@@ -254,7 +254,7 @@ export default async function AdminUsers({
               Apply
             </SubmitButton>
             {(parsed.q || parsed.plan || parsed.hasBookings || parsed.showDeleted) && (
-              <Link href="/admin/users" className="text-sm text-slate-500 hover:text-slate-900">
+              <Link href="/admin/users" className="text-sm text-muted-foreground hover:text-foreground">
                 Clear
               </Link>
             )}

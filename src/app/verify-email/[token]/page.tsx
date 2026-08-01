@@ -52,7 +52,7 @@ export default async function VerifyEmailPage({
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-6">
-      <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+      <h1 className="text-2xl font-bold tracking-tight text-foreground">
         Email verification
       </h1>
       {expired ? (
@@ -66,7 +66,7 @@ export default async function VerifyEmailPage({
             Your email address has been verified. You&apos;re all set!
           </p>
           <p className="mt-4 text-sm text-slate-600">
-            <Link href="/dashboard" className="font-medium text-indigo-600 underline">
+            <Link href="/dashboard" className="font-medium text-primary underline">
               Go to your dashboard
             </Link>
           </p>

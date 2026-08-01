@@ -42,7 +42,7 @@ export default async function BookingsPage() {
   return (
     <div className="mx-auto max-w-6xl">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">Bookings</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">Bookings</h1>
         <div className="flex gap-2">
           {canManualBook && (
             <Button asChild size="sm">
@@ -135,14 +135,14 @@ function Section({
   const hasItems = items.some(Boolean) && items.flat().length > 0;
   return (
     <section className="mt-8">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+      <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
         {title}
       </h2>
       <div className="mt-3 space-y-3">
         {hasItems ? (
           children
         ) : empty ? (
-          <p className="rounded-2xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500">
+          <p className="rounded-2xl border border-dashed border-input p-6 text-center text-sm text-muted-foreground">
             {empty}
           </p>
         ) : null}
@@ -170,7 +170,7 @@ function Row(props: {
     <Card className={props.muted ? "opacity-60" : ""}>
       <CardContent className="p-4">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <p className="font-medium text-slate-900">
+        <p className="font-medium text-foreground">
           {props.title}
           {props.series && (
             <span className="ml-2 rounded bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700">
@@ -178,27 +178,27 @@ function Row(props: {
             </span>
           )}
         </p>
-        <p className="text-sm text-slate-500">{props.when}</p>
+        <p className="text-sm text-muted-foreground">{props.when}</p>
       </div>
       <p className="mt-1 text-sm text-slate-600">
         {props.name} &middot; {props.email}
       </p>
-      {props.with && <p className="mt-1 text-xs text-slate-500">With: {props.with}</p>}
+      {props.with && <p className="mt-1 text-xs text-muted-foreground">With: {props.with}</p>}
       {props.meetingUrl && (
         <p className="mt-1 text-sm">
           <a
             href={props.meetingUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="font-medium text-indigo-600 hover:underline"
+            className="font-medium text-primary hover:underline"
           >
             {props.meetingProvider === "zoom" ? "Join Zoom Meeting" : "Join Google Meet"} ↗
           </a>
         </p>
       )}
-      {props.notes && <p className="mt-1 text-sm text-slate-500">&ldquo;{props.notes}&rdquo;</p>}
+      {props.notes && <p className="mt-1 text-sm text-muted-foreground">&ldquo;{props.notes}&rdquo;</p>}
       {props.guests && props.guests.length > 0 && (
-        <p className="mt-1 text-xs text-slate-500">
+        <p className="mt-1 text-xs text-muted-foreground">
           Guests: {props.guests.map((g) => g.name || g.email).join(", ")}
         </p>
       )}
@@ -206,7 +206,7 @@ function Row(props: {
         <dl className="mt-2 space-y-0.5 text-sm">
           {props.answers.map((a, i) => (
             <div key={i} className="flex gap-2">
-              <dt className="text-slate-500">{a.label}:</dt>
+              <dt className="text-muted-foreground">{a.label}:</dt>
               <dd className="text-slate-700">{a.value}</dd>
             </div>
           ))}
@@ -214,7 +214,7 @@ function Row(props: {
       )}
       {props.manageToken && (
         <div className="mt-3 flex gap-3 border-t border-slate-100 pt-3 text-sm">
-          <Button asChild variant="link" className="h-auto p-0 text-indigo-600">
+          <Button asChild variant="link" className="h-auto p-0 text-primary">
             <Link href={`/booking/${props.manageToken}/reschedule`}>
               Reschedule
             </Link>
@@ -249,16 +249,16 @@ function PendingRow(props: {
     <Card className="border-amber-200 bg-amber-50">
       <CardContent className="p-4">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <p className="font-medium text-slate-900">{props.title}</p>
-          <p className="text-sm text-slate-500">{props.when}</p>
+          <p className="font-medium text-foreground">{props.title}</p>
+          <p className="text-sm text-muted-foreground">{props.when}</p>
         </div>
         <p className="mt-1 text-sm text-slate-600">
           {props.name} &middot; {props.email}
         </p>
-        {props.with && <p className="mt-1 text-xs text-slate-500">With: {props.with}</p>}
-        {props.notes && <p className="mt-1 text-sm text-slate-500">&ldquo;{props.notes}&rdquo;</p>}
+        {props.with && <p className="mt-1 text-xs text-muted-foreground">With: {props.with}</p>}
+        {props.notes && <p className="mt-1 text-sm text-muted-foreground">&ldquo;{props.notes}&rdquo;</p>}
         {props.guests && props.guests.length > 0 && (
-          <p className="mt-1 text-xs text-slate-500">
+          <p className="mt-1 text-xs text-muted-foreground">
             Guests: {props.guests.map((g) => g.name || g.email).join(", ")}
           </p>
         )}

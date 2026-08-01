@@ -27,7 +27,7 @@ export default async function EmbedPage() {
 
   return (
     <div className="mx-auto max-w-6xl">
-      <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+      <h1 className="text-2xl font-bold tracking-tight text-foreground">
         Embed on your website
       </h1>
       <p className="mt-1 text-sm text-slate-600">
@@ -51,7 +51,7 @@ export default async function EmbedPage() {
           )}
         </div>
       ) : eventTypes.length === 0 ? (
-        <p className="mt-6 rounded-2xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500">
+        <p className="mt-6 rounded-2xl border border-dashed border-input p-6 text-center text-sm text-muted-foreground">
           Create an event type first, then come back to embed it.
         </p>
       ) : (

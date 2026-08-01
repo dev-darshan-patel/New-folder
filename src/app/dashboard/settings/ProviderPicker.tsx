@@ -55,7 +55,7 @@ export default function ProviderPicker({
           </form>
         ))}
       </div>
-      <p className="text-xs text-slate-500">
+      <p className="text-xs text-muted-foreground">
         You can switch providers whenever you have no in-flight payments.
       </p>
     </div>

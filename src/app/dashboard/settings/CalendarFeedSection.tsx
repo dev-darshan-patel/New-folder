@@ -25,7 +25,7 @@ function FeedUrl({ label, url }: { label: string; url: string }) {
     <div className="mt-3">
       <p className="text-xs font-medium text-slate-700">{label}</p>
       <div className="mt-1 flex items-center gap-2">
-        <code className="min-w-0 flex-1 truncate rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+        <code className="min-w-0 flex-1 truncate rounded-lg border border-border bg-slate-50 px-3 py-2 text-xs text-slate-600">
           {url}
         </code>
         <Button type="button" size="sm" variant="outline" onClick={copy} className="shrink-0">
@@ -50,10 +50,10 @@ export default function CalendarFeedSection({
     <Card>
       <CardContent className="p-6">
         <div className="flex items-center gap-2">
-          <CalendarClock size={18} className="text-slate-500" />
-          <h2 className="font-semibold text-slate-900">Calendar subscription</h2>
+          <CalendarClock size={18} className="text-muted-foreground" />
+          <h2 className="font-semibold text-foreground">Calendar subscription</h2>
         </div>
-        <p className="mt-1 text-xs text-slate-500">
+        <p className="mt-1 text-xs text-muted-foreground">
           Paste this link into Google Calendar, Apple Calendar or Outlook to see your
           bookings there automatically. It&apos;s read-only and updates on its own —
           you don&apos;t need to connect an account.
@@ -66,7 +66,7 @@ export default function CalendarFeedSection({
             <button
               type="button"
               onClick={() => setShowPerType((v) => !v)}
-              className="text-xs font-medium text-indigo-600 hover:underline"
+              className="text-xs font-medium text-primary hover:underline"
             >
               {showPerType ? "Hide" : "Show"} one link per event type
             </button>
@@ -99,7 +99,7 @@ export default function CalendarFeedSection({
           >
             {pending ? "Generating…" : "Generate new link"}
           </Button>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-muted-foreground">
             Anyone with this link can see your booking times. Generate a new one to
             revoke access.
           </p>

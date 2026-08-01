@@ -34,13 +34,13 @@ export default async function AvailabilityPage() {
 
   return (
     <div className="mx-auto max-w-6xl">
-      <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+      <h1 className="text-2xl font-bold tracking-tight text-foreground">
         Availability
       </h1>
       <p className="mt-1 text-sm text-slate-600">
         Set the hours you&apos;re available each week. Times are in your timezone
         ({user.timezone}) —{" "}
-        <Link href="/dashboard/settings#timezone" className="font-medium text-indigo-600 hover:underline">
+        <Link href="/dashboard/settings#timezone" className="font-medium text-primary hover:underline">
           change it
         </Link>
         .
@@ -58,7 +58,7 @@ export default async function AvailabilityPage() {
                     type="checkbox"
                     name={`enabled-${weekday}`}
                     defaultChecked={enabled}
-                    className="h-4 w-4 rounded border-slate-300 text-indigo-600"
+                    className="h-4 w-4 rounded border-input text-primary"
                   />
                   <span className="text-sm font-medium text-slate-800">{day}</span>
                 </label>
@@ -90,7 +90,7 @@ export default async function AvailabilityPage() {
       </form>
 
       <div className="mt-10">
-        <h2 className="text-lg font-semibold text-slate-900">Date overrides</h2>
+        <h2 className="text-lg font-semibold text-foreground">Date overrides</h2>
         <p className="mt-1 text-sm text-slate-600">
           Close a specific date or set one-off hours — without touching your
           weekly schedule above.
@@ -109,7 +109,7 @@ export default async function AvailabilityPage() {
                 <CardContent className="flex items-center justify-between p-4">
                   <div>
                     <p className="text-sm font-medium text-slate-800">{o.date}</p>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-muted-foreground">
                       {o.type === "BLOCKED"
                         ? "Closed all day"
                         : `Custom hours: ${toHHMM(o.startMinutes!)}–${toHHMM(o.endMinutes!)}`}

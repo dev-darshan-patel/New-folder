@@ -99,14 +99,14 @@ export default async function SettingsPage({
   return (
     <div className="mx-auto max-w-6xl space-y-8">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">Account settings</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">Account settings</h1>
         <p className="mt-1 text-sm text-slate-600">Manage your profile and password.</p>
       </div>
 
       <Card>
         <CardContent className="p-6">
-        <h2 className="font-semibold text-slate-900">Profile</h2>
-        <p className="mt-1 text-xs text-slate-500">
+        <h2 className="font-semibold text-foreground">Profile</h2>
+        <p className="mt-1 text-xs text-muted-foreground">
           Your email is{" "}
           <span className="font-medium text-slate-700">{user.email}</span>.
         </p>
@@ -132,14 +132,14 @@ export default async function SettingsPage({
 
       <Card>
         <CardContent className="p-6">
-        <h2 className="font-semibold text-slate-900">Password</h2>
+        <h2 className="font-semibold text-foreground">Password</h2>
         <PasswordForm hasPassword={Boolean(user.passwordHash)} />
         </CardContent>
       </Card>
 
       <Card>
         <CardContent className="p-6">
-        <h2 className="font-semibold text-slate-900">Integrations</h2>
+        <h2 className="font-semibold text-foreground">Integrations</h2>
         <p className="mt-1 text-sm text-slate-600">
           Connect Google Calendar or Zoom to auto-generate a video link for online
           event types and add each booking to your calendar.
@@ -157,9 +157,9 @@ export default async function SettingsPage({
           </p>
         )}
 
-        <div className="mt-4 flex items-center justify-between rounded-xl border border-slate-200 p-4">
+        <div className="mt-4 flex items-center justify-between rounded-xl border border-border p-4">
           <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-600">
+            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-slate-600">
               <Calendar size={18} />
             </span>
             <div>
@@ -169,7 +169,7 @@ export default async function SettingsPage({
                   Connected{connection.accountEmail ? ` — ${connection.accountEmail}` : ""}
                 </p>
               ) : (
-                <p className="text-xs text-slate-500">Not connected</p>
+                <p className="text-xs text-muted-foreground">Not connected</p>
               )}
             </div>
           </div>
@@ -190,15 +190,15 @@ export default async function SettingsPage({
           <BusySyncToggle action={toggleBusySyncAction} initialEnabled={connection.syncBusyTimes} />
         )}
         {connection && canBusySync && !hasFreeBusyScope(connection.scope) && (
-          <p className="mt-3 text-xs text-slate-500">
+          <p className="mt-3 text-xs text-muted-foreground">
             Reconnect Google Calendar to enable busy-time sync (blocks slots when
             you&apos;re busy elsewhere on your calendar).
           </p>
         )}
         {connection && !canBusySync && (
-          <p className="mt-3 text-xs text-slate-500">
+          <p className="mt-3 text-xs text-muted-foreground">
             Calendar busy-sync isn&apos;t available on your current plan.{" "}
-            <Link href="/dashboard/billing" className="font-medium text-indigo-600 hover:underline">
+            <Link href="/dashboard/billing" className="font-medium text-primary hover:underline">
               See plans
             </Link>
           </p>
@@ -214,9 +214,9 @@ export default async function SettingsPage({
           </p>
         )}
 
-        <div className="mt-4 flex items-center justify-between rounded-xl border border-slate-200 p-4">
+        <div className="mt-4 flex items-center justify-between rounded-xl border border-border p-4">
           <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-600">
+            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-slate-600">
               <Video size={18} />
             </span>
             <div>
@@ -226,7 +226,7 @@ export default async function SettingsPage({
                   Connected{zoomConnection.accountEmail ? ` — ${zoomConnection.accountEmail}` : ""}
                 </p>
               ) : (
-                <p className="text-xs text-slate-500">Not connected</p>
+                <p className="text-xs text-muted-foreground">Not connected</p>
               )}
             </div>
           </div>
@@ -249,14 +249,14 @@ export default async function SettingsPage({
 
       <Card>
         <CardContent className="p-6">
-          <h2 className="font-semibold text-slate-900">Accept payments</h2>
+          <h2 className="font-semibold text-foreground">Accept payments</h2>
           <p className="mt-1 text-sm text-slate-600">
             Charge customers when they book a paid event type. Applications are reviewed by
             our team before your account can accept payments.
           </p>
 
           {!canAcceptPayments ? (
-            <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
+            <div className="mt-4 rounded-lg border border-border bg-slate-50 p-4">
               <p className="text-sm font-medium text-slate-800">
                 Accepting payments isn&apos;t available on your current plan.
               </p>
@@ -346,7 +346,7 @@ export default async function SettingsPage({
 
       <Card>
         <CardContent className="p-6">
-        <h2 className="font-semibold text-slate-900">Two-factor authentication</h2>
+        <h2 className="font-semibold text-foreground">Two-factor authentication</h2>
         <p className="mt-1 text-sm text-slate-600">
           {user.totpEnabled
             ? "2FA is enabled on your account."
@@ -354,7 +354,7 @@ export default async function SettingsPage({
         </p>
         <Link
           href="/dashboard/settings/security"
-          className="mt-3 inline-block text-sm font-medium text-indigo-600 hover:underline"
+          className="mt-3 inline-block text-sm font-medium text-primary hover:underline"
         >
           {user.totpEnabled ? "Manage 2FA →" : "Enable 2FA →"}
         </Link>

@@ -87,10 +87,10 @@ export function AdminTable<T>(props: AdminTableProps<T>) {
       {hasHeader && (
         <CardHeader className="border-b bg-muted/40 px-4 py-4 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
           <div>
-            {title && <h2 className="text-sm font-semibold text-slate-900">{title}</h2>}
+            {title && <h2 className="text-sm font-semibold text-foreground">{title}</h2>}
             {description && <p className="mt-1 text-sm text-slate-600">{description}</p>}
             {totalRows !== undefined && (
-              <p className="mt-2 text-xs font-medium text-slate-500">
+              <p className="mt-2 text-xs font-medium text-muted-foreground">
                 {rows.length > 0
                   ? `Showing ${firstRow}-${lastRow} of ${total}`
                   : `0 of ${total}`}
@@ -123,8 +123,8 @@ export function AdminTable<T>(props: AdminTableProps<T>) {
                       <Link
                         href={sortHref(col.key, nextDir)}
                         className={cn(
-                          "inline-flex items-center gap-1 rounded-md px-1 py-0.5 hover:bg-slate-100 hover:text-slate-900",
-                          active && "bg-slate-100 text-slate-900",
+                          "inline-flex items-center gap-1 rounded-md px-1 py-0.5 hover:bg-muted hover:text-foreground",
+                          active && "bg-muted text-foreground",
                         )}
                       >
                         {col.header}

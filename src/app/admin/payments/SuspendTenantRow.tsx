@@ -44,8 +44,8 @@ export default function SuspendTenantRow({
     <div className="border-b border-slate-100 p-4 last:border-b-0">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <div>
-          <p className="font-medium text-slate-900">{businessName}</p>
-          <p className="text-xs text-slate-500">
+          <p className="font-medium text-foreground">{businessName}</p>
+          <p className="text-xs text-muted-foreground">
             {email} · {country}
           </p>
         </div>

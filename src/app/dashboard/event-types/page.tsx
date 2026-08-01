@@ -59,7 +59,7 @@ export default async function EventTypesPage({
 
   return (
     <div className="mx-auto max-w-6xl">
-      <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+      <h1 className="text-2xl font-bold tracking-tight text-foreground">
         Event Types
       </h1>
       <p className="mt-1 text-sm text-slate-600">
@@ -94,8 +94,8 @@ export default async function EventTypesPage({
               <CardContent className="p-4">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="truncate font-medium text-slate-900">{et.title}</p>
-                    <p className="text-sm text-slate-500">{et.durationMinutes} min</p>
+                    <p className="truncate font-medium text-foreground">{et.title}</p>
+                    <p className="text-sm text-muted-foreground">{et.durationMinutes} min</p>
                   </div>
                   <div className="flex shrink-0 items-center gap-1.5">
                     {!et.active && <Badge variant="muted">Inactive</Badge>}
@@ -146,7 +146,7 @@ export default async function EventTypesPage({
         })}
         {eventTypes.length === 0 && (
           <Card className="sm:col-span-2">
-            <CardContent className="border-dashed p-6 text-center text-sm text-slate-500">
+            <CardContent className="border-dashed p-6 text-center text-sm text-muted-foreground">
               No event types yet. Create one below.
             </CardContent>
           </Card>

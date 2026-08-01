@@ -17,12 +17,12 @@ export default async function NewBookingPage() {
   return (
     <div className="mx-auto max-w-6xl">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">New booking</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">New booking</h1>
         <p className="mt-1 text-sm text-slate-600">
           Add a booking for a customer you took over the phone or in person.
         </p>
         <p className="mt-2 text-sm">
-          <Link href="/dashboard/bookings" className="text-indigo-600 hover:underline">
+          <Link href="/dashboard/bookings" className="text-primary hover:underline">
             ← Back to bookings
           </Link>
         </p>

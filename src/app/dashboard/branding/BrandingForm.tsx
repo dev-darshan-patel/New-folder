@@ -42,7 +42,7 @@ export default function BrandingForm({
                 type="color"
                 value={color}
                 onChange={(e) => setColor(e.target.value)}
-                className="h-10 w-14 cursor-pointer rounded border border-slate-300"
+                className="h-10 w-14 cursor-pointer rounded border border-input"
               />
               <Input
                 name="brandColor"
@@ -101,7 +101,7 @@ export default function BrandingForm({
       <div>
         <p className="text-sm font-medium text-slate-700">Live preview</p>
         <div
-          className="mt-2 rounded-2xl border border-slate-200 bg-white p-6"
+          className="mt-2 rounded-2xl border border-border bg-white p-6"
           style={{ fontFamily: stack }}
         >
           {logoUrl ? (
@@ -118,7 +118,7 @@ export default function BrandingForm({
           <p className="text-sm font-medium" style={{ color }}>
             {initial.businessName}
           </p>
-          <h3 className="mt-1 text-xl font-bold text-slate-900">
+          <h3 className="mt-1 text-xl font-bold text-foreground">
             30 Minute Meeting
           </h3>
           {welcome && <p className="mt-2 text-sm text-slate-600">{welcome}</p>}

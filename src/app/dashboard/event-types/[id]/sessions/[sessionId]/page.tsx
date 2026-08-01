@@ -46,11 +46,11 @@ export default async function SessionRosterPage({
     <div className="mx-auto max-w-6xl">
       <Link
         href={`/dashboard/event-types/${eventTypeId}`}
-        className="text-sm font-medium text-slate-500 hover:text-slate-900"
+        className="text-sm font-medium text-muted-foreground hover:text-foreground"
       >
         ← {session.eventType.title}
       </Link>
-      <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-900">
+      <h1 className="mt-2 text-2xl font-bold tracking-tight text-foreground">
         {fmt.format(session.startTime)}
       </h1>
       <p className="mt-1 text-sm text-slate-600">
@@ -63,7 +63,7 @@ export default async function SessionRosterPage({
             href={session.meetingUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="font-medium text-indigo-600 hover:underline"
+            className="font-medium text-primary hover:underline"
           >
             {session.meetingProvider === "zoom" ? "Zoom link" : "Meet link"} ↗
           </a>
@@ -74,14 +74,14 @@ export default async function SessionRosterPage({
       <CardContent className="p-4">
         <h2 className="text-sm font-semibold text-slate-700">Attendees</h2>
         {session.bookings.length === 0 ? (
-          <p className="mt-3 text-sm text-slate-500">
+          <p className="mt-3 text-sm text-muted-foreground">
             No bookings yet.
           </p>
         ) : (
           <ul className="mt-3 divide-y divide-slate-100">
             {session.bookings.map((b) => (
               <li key={b.id} className="py-3 text-sm">
-                <p className="font-medium text-slate-900">
+                <p className="font-medium text-foreground">
                   {b.inviteeName}
                   {b.status === "PENDING" && (
                     <span className="ml-2 rounded bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
@@ -91,7 +91,7 @@ export default async function SessionRosterPage({
                 </p>
                 <p className="text-slate-600">{b.inviteeEmail}</p>
                 {b.notes && (
-                  <p className="mt-1 text-slate-500">&ldquo;{b.notes}&rdquo;</p>
+                  <p className="mt-1 text-muted-foreground">&ldquo;{b.notes}&rdquo;</p>
                 )}
               </li>
             ))}

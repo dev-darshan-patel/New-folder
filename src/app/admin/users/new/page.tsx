@@ -14,10 +14,10 @@ export default async function NewUserPage() {
   return (
     <div className="mx-auto max-w-6xl">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">Create user</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">Create user</h1>
         <Link
           href="/admin/users"
-          className="text-sm text-slate-500 hover:text-slate-900"
+          className="text-sm text-muted-foreground hover:text-foreground"
         >
           ← Back to users
         </Link>

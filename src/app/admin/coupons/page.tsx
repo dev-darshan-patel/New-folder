@@ -36,7 +36,7 @@ export default async function AdminCouponsPage() {
     {
       key: "code",
       header: "Code",
-      cellClassName: "font-mono font-medium text-slate-900",
+      cellClassName: "font-mono font-medium text-foreground",
       render: (c) => c.code,
     },
     {
@@ -129,7 +129,7 @@ export default async function AdminCouponsPage() {
 
   return (
     <div className="mx-auto max-w-6xl">
-      <h1 className="text-2xl font-bold tracking-tight text-slate-900">Coupons</h1>
+      <h1 className="text-2xl font-bold tracking-tight text-foreground">Coupons</h1>
       <p className="mt-1 text-sm text-slate-600">
         Promo codes for billing. Trial codes grant a plan without Stripe; Stripe promo codes
         apply a promotion at Checkout.
@@ -218,9 +218,9 @@ export default async function AdminCouponsPage() {
         columns={columns}
         rowKey={(c) => c.id}
         rowClassName="align-top hover:bg-slate-50"
-        containerClassName="mt-8 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"
+        containerClassName="mt-8 overflow-hidden rounded-xl border border-border bg-white shadow-sm"
         emptyMessage="No coupons yet."
-        emptyClassName="px-4 py-8 text-center text-slate-500"
+        emptyClassName="px-4 py-8 text-center text-muted-foreground"
       />
     </div>
   );

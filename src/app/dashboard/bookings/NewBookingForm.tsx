@@ -105,7 +105,7 @@ export default function NewBookingForm({
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-slate-500">No open times that day.</p>
+              <p className="text-sm text-muted-foreground">No open times that day.</p>
             )}
           </div>
         )}
@@ -131,7 +131,7 @@ export default function NewBookingForm({
                 type="checkbox"
                 checked={notify}
                 onChange={(e) => setNotify(e.target.checked)}
-                className="h-4 w-4 rounded border-slate-300 text-primary focus:ring-ring"
+                className="h-4 w-4 rounded border-input text-primary focus:ring-ring"
               />
               Email the customer a confirmation
             </label>

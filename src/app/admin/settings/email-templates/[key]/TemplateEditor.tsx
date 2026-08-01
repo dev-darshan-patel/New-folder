@@ -76,7 +76,7 @@ export default function TemplateEditor({ templateKey, vars, initial, brand }: Pr
               onChange={(e) => setSubject(e.target.value)}
               onFocus={() => setActiveField("subject")}
               title="Email subject line"
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+              className="w-full rounded-lg border border-input px-3 py-2 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-indigo-100"
             />
           </div>
 
@@ -90,7 +90,7 @@ export default function TemplateEditor({ templateKey, vars, initial, brand }: Pr
               onFocus={() => setActiveField("html")}
               rows={12}
               title="HTML email body"
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 font-mono text-xs text-slate-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+              className="w-full rounded-lg border border-input px-3 py-2 font-mono text-xs text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-indigo-100"
             />
             <p className="text-xs text-slate-400">
               Rendered inside the shared branded header/footer shell.
@@ -107,7 +107,7 @@ export default function TemplateEditor({ templateKey, vars, initial, brand }: Pr
               onFocus={() => setActiveField("text")}
               rows={8}
               title="Plain-text email body"
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 font-mono text-xs text-slate-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+              className="w-full rounded-lg border border-input px-3 py-2 font-mono text-xs text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-indigo-100"
             />
             <p className="text-xs text-slate-400">
               Fallback for clients that don&rsquo;t render HTML. Keep it in sync.
@@ -129,9 +129,9 @@ export default function TemplateEditor({ templateKey, vars, initial, brand }: Pr
         </form>
 
         {/* Variable palette */}
-        <div className="mt-8 rounded-xl border border-slate-200 bg-slate-50 p-4">
+        <div className="mt-8 rounded-xl border border-border bg-slate-50 p-4">
           <p className="text-sm font-semibold text-slate-700">Available variables</p>
-          <p className="mt-0.5 text-xs text-slate-500">
+          <p className="mt-0.5 text-xs text-muted-foreground">
             Click to insert into the {activeField === "html" ? "HTML" : activeField} field.
           </p>
           <div className="mt-3 space-y-1.5">
@@ -140,10 +140,10 @@ export default function TemplateEditor({ templateKey, vars, initial, brand }: Pr
                 key={v.name}
                 type="button"
                 onClick={() => insertVar(v.name)}
-                className="flex w-full items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2 text-left hover:border-indigo-300 hover:bg-indigo-50"
+                className="flex w-full items-center justify-between gap-3 rounded-lg border border-border bg-white px-3 py-2 text-left hover:border-indigo-300 hover:bg-indigo-50"
               >
-                <code className="text-xs font-semibold text-indigo-600">{`{{${v.name}}}`}</code>
-                <span className="truncate text-xs text-slate-500">{v.description}</span>
+                <code className="text-xs font-semibold text-primary">{`{{${v.name}}}`}</code>
+                <span className="truncate text-xs text-muted-foreground">{v.description}</span>
               </button>
             ))}
           </div>
@@ -156,14 +156,14 @@ export default function TemplateEditor({ templateKey, vars, initial, brand }: Pr
       <div className="lg:sticky lg:top-6 lg:self-start">
         <div className="flex items-center justify-between">
           <p className="text-sm font-semibold text-slate-700">Live preview</p>
-          <div className="flex gap-1 rounded-lg border border-slate-200 p-0.5">
+          <div className="flex gap-1 rounded-lg border border-border p-0.5">
             {(["desktop", "mobile"] as const).map((d) => (
               <button
                 key={d}
                 type="button"
                 onClick={() => setDevice(d)}
                 className={`rounded-md px-3 py-1 text-xs font-medium capitalize ${
-                  device === d ? "bg-indigo-600 text-white" : "text-slate-600 hover:bg-slate-100"
+                  device === d ? "bg-indigo-600 text-white" : "text-slate-600 hover:bg-muted"
                 }`}
               >
                 {d}
@@ -172,16 +172,16 @@ export default function TemplateEditor({ templateKey, vars, initial, brand }: Pr
           </div>
         </div>
 
-        <div className="mt-3 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm">
+        <div className="mt-3 rounded-lg border border-border bg-white px-4 py-2 text-sm">
           <span className="text-slate-400">Subject: </span>
           <span className="font-medium text-slate-800">{previewSubject}</span>
         </div>
 
-        <div className="mt-3 flex justify-center rounded-xl border border-slate-200 bg-slate-100 p-4">
+        <div className="mt-3 flex justify-center rounded-xl border border-border bg-muted p-4">
           <iframe
             title="Email preview"
             srcDoc={previewHtml}
-            className="h-[600px] rounded-lg border border-slate-200 bg-white transition-all"
+            className="h-[600px] rounded-lg border border-border bg-white transition-all"
             style={{ width: device === "mobile" ? 375 : "100%" }}
           />
         </div>
@@ -196,9 +196,9 @@ function TestSend({ templateKey }: { templateKey: string }) {
   const [pending, start] = useTransition();
 
   return (
-    <div className="mt-8 rounded-xl border border-slate-200 p-4">
+    <div className="mt-8 rounded-xl border border-border p-4">
       <p className="text-sm font-semibold text-slate-700">Send a test</p>
-      <p className="mt-0.5 text-xs text-slate-500">
+      <p className="mt-0.5 text-xs text-muted-foreground">
         Sends this template filled with sample data using the active email provider.
       </p>
       <div className="mt-3 flex flex-wrap items-center gap-2">

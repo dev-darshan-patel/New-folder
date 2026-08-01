@@ -76,7 +76,7 @@ export default async function AdminPaymentsPage() {
   return (
     <div className="mx-auto max-w-6xl space-y-8">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">Payments</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">Payments</h1>
         <p className="mt-1 text-sm text-slate-600">
           Approve applications and manage payment access across tenants.
         </p>
@@ -85,7 +85,7 @@ export default async function AdminPaymentsPage() {
       {user.adminRole === "SUPER_ADMIN" && (
         <>
           <section>
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
               Platform config
             </h2>
             <Card className="mt-3">
@@ -99,7 +99,7 @@ export default async function AdminPaymentsPage() {
           </section>
 
           <section>
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
               Razorpay credentials
             </h2>
             <Card className="mt-3">
@@ -124,7 +124,7 @@ export default async function AdminPaymentsPage() {
           <h2 className="text-sm font-semibold uppercase tracking-wide text-red-600">
             Failed payouts ({failedPayouts.length})
           </h2>
-          <p className="mt-1 text-xs text-slate-500">
+          <p className="mt-1 text-xs text-muted-foreground">
             Release attempts that hit an error. Fix the underlying cause (finish
             tenant onboarding, correct the bank account) then click Retry.
             Attempts hard-capped at 5 to prevent runaway loops.
@@ -135,10 +135,10 @@ export default async function AdminPaymentsPage() {
                 <div key={b.id} className="border-b border-slate-100 p-4 last:border-b-0">
                   <div className="flex flex-wrap items-baseline justify-between gap-2">
                     <div>
-                      <p className="font-medium text-slate-900">
+                      <p className="font-medium text-foreground">
                         {b.user.businessName} · {b.eventType.title}
                       </p>
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs text-muted-foreground">
                         {b.user.email} · {b.paymentProvider} ·{" "}
                         {b.amountCents != null && b.currency
                           ? `${(b.amountCents / 100).toFixed(2)} ${b.currency}`
@@ -162,10 +162,10 @@ export default async function AdminPaymentsPage() {
       )}
 
       <section>
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
           Payments ledger ({ledger.length})
         </h2>
-        <p className="mt-1 text-xs text-slate-500">
+        <p className="mt-1 text-xs text-muted-foreground">
           Recent paid bookings across all tenants. Refund works whether the
           payout is still held on the platform or already released to the
           tenant — reversed first if needed.
@@ -173,16 +173,16 @@ export default async function AdminPaymentsPage() {
         <Card className="mt-3">
           <CardContent className="p-0">
             {ledger.length === 0 ? (
-              <p className="p-6 text-sm text-slate-500">No paid bookings yet.</p>
+              <p className="p-6 text-sm text-muted-foreground">No paid bookings yet.</p>
             ) : (
               ledger.map((b) => (
                 <div key={b.id} className="border-b border-slate-100 p-4 last:border-b-0">
                   <div className="flex flex-wrap items-baseline justify-between gap-2">
                     <div>
-                      <p className="font-medium text-slate-900">
+                      <p className="font-medium text-foreground">
                         {b.user.businessName} · {b.eventType.title}
                       </p>
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs text-muted-foreground">
                         {b.inviteeEmail} · {b.paymentProvider} ·{" "}
                         {b.amountCents != null && b.currency
                           ? `${(b.amountCents / 100).toFixed(2)} ${b.currency}`
@@ -196,7 +196,7 @@ export default async function AdminPaymentsPage() {
                     {b.paymentStatus === "PAID" ? (
                       <RefundButton bookingId={b.id} />
                     ) : (
-                      <span className="rounded bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
+                      <span className="rounded bg-muted px-2 py-0.5 text-xs font-medium text-slate-600">
                         Refunded
                       </span>
                     )}
@@ -209,13 +209,13 @@ export default async function AdminPaymentsPage() {
       </section>
 
       <section>
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
           Pending applications ({pending.length})
         </h2>
         <Card className="mt-3">
           <CardContent className="p-0">
             {pending.length === 0 ? (
-              <p className="p-6 text-sm text-slate-500">
+              <p className="p-6 text-sm text-muted-foreground">
                 No applications waiting. New submissions will appear here.
               </p>
             ) : (
@@ -237,13 +237,13 @@ export default async function AdminPaymentsPage() {
       </section>
 
       <section>
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
           Approved / suspended tenants ({tenants.length})
         </h2>
         <Card className="mt-3">
           <CardContent className="p-0">
             {tenants.length === 0 ? (
-              <p className="p-6 text-sm text-slate-500">
+              <p className="p-6 text-sm text-muted-foreground">
                 No tenants have been approved for payments yet.
               </p>
             ) : (

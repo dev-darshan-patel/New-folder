@@ -75,7 +75,7 @@ export default function AvatarUpload({ currentUrl, initials, size = 80 }: Props)
         onClick={() => !uploading && inputRef.current?.click()}
         title="Click to upload a profile photo"
         style={{ width: size, height: size }}
-        className="group relative shrink-0 cursor-pointer overflow-hidden rounded-full border-2 border-slate-200 bg-indigo-100 transition-opacity hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-500"
+        className="group relative shrink-0 cursor-pointer overflow-hidden rounded-full border-2 border-border bg-indigo-100 transition-opacity hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-500"
       >
         {displayed ? (
           // eslint-disable-next-line @next/next/no-img-element -- user-uploaded blob avatar / local object-URL preview; next/image can't optimize these and would need remotePatterns config
@@ -86,7 +86,7 @@ export default function AvatarUpload({ currentUrl, initials, size = 80 }: Props)
           />
         ) : (
           <span
-            className="flex h-full w-full items-center justify-center text-xl font-bold text-indigo-600"
+            className="flex h-full w-full items-center justify-center text-xl font-bold text-primary"
             aria-hidden
           >
             {initials}
@@ -123,7 +123,7 @@ export default function AvatarUpload({ currentUrl, initials, size = 80 }: Props)
 
       <div className="min-w-0">
         <p className="text-sm font-medium text-slate-700">Profile photo</p>
-        <p className="text-xs text-slate-500">JPEG, PNG, WebP or GIF · max 5 MB</p>
+        <p className="text-xs text-muted-foreground">JPEG, PNG, WebP or GIF · max 5 MB</p>
         <div className="mt-2 flex gap-3">
           <Button
             type="button"
@@ -148,7 +148,7 @@ export default function AvatarUpload({ currentUrl, initials, size = 80 }: Props)
           )}
         </div>
         {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
-        {uploading && <p className="mt-1 text-xs text-slate-500">Uploading…</p>}
+        {uploading && <p className="mt-1 text-xs text-muted-foreground">Uploading…</p>}
       </div>
     </div>
   );

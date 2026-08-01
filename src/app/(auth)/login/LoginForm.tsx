@@ -67,7 +67,7 @@ export default function LoginForm({ showEmailDivider }: { showEmailDivider: bool
         </div>
 
         <div className="flex justify-end">
-          <Link href="/forgot-password" className="text-sm font-medium text-indigo-600 hover:underline">
+          <Link href="/forgot-password" className="text-sm font-medium text-primary hover:underline">
             Forgot password?
           </Link>
         </div>
@@ -86,7 +86,7 @@ export default function LoginForm({ showEmailDivider }: { showEmailDivider: bool
 
       <p className="mt-6 text-center text-sm text-slate-600">
         Don&apos;t have an account?{" "}
-        <Link href="/signup" className="font-medium text-indigo-600 hover:underline">
+        <Link href="/signup" className="font-medium text-primary hover:underline">
           Sign up
         </Link>
       </p>

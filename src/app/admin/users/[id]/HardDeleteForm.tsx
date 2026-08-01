@@ -12,8 +12,8 @@ export default function HardDeleteForm({ userId, slug }: { userId: string; slug:
   return (
     <form action={hardDeleteUserAction} className="space-y-2">
       <input type="hidden" name="userId" value={userId} />
-      <p className="text-xs text-slate-500">
-        Type <code className="rounded bg-slate-100 px-1">{slug}</code> to permanently delete this
+      <p className="text-xs text-muted-foreground">
+        Type <code className="rounded bg-muted px-1">{slug}</code> to permanently delete this
         account and all its data.
       </p>
       <div className="flex gap-2">

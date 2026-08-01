@@ -49,7 +49,7 @@ export function AreaChart({
   return (
     <div>
       <div className="flex items-baseline justify-between">
-        <span className="text-2xl font-bold text-slate-900">
+        <span className="text-2xl font-bold text-foreground">
           {prefix}
           {last.toLocaleString()}
         </span>
@@ -82,7 +82,7 @@ export function BarChart({
 
   return (
     <div>
-      <span className="text-2xl font-bold text-slate-900">{total.toLocaleString()}</span>
+      <span className="text-2xl font-bold text-foreground">{total.toLocaleString()}</span>
       <svg viewBox={`0 0 ${W} ${H}`} className="mt-2 w-full" preserveAspectRatio="none">
         {points.map((p, i) => {
           const h = (p.value / max) * (H - PAD.top - PAD.bottom);
