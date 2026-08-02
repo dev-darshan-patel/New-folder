@@ -1,14 +1,13 @@
 import { ImageResponse } from "next/og";
 import { BRAND_COLOR, PRODUCT_NAME } from "@/lib/brand";
 
-export const size = { width: 180, height: 180 };
+export const size = { width: 64, height: 64 };
 export const contentType = "image/png";
 
-// Apple touch icons must be a raster format (iOS doesn't render SVG here),
-// so this one is code-generated via ImageResponse rather than a static file
-// like icon.svg. iOS applies its own corner-rounding/mask, so this is a plain
-// square fill — no rx needed.
-export default function AppleIcon() {
+// Was a static icon.svg with a hardcoded "B" — converted to code generation
+// (like apple-icon.tsx and opengraph-image.tsx) so the favicon follows
+// PRODUCT_NAME too. A static SVG can't read an env var at request time.
+export default function Icon() {
   return new ImageResponse(
     (
       <div
@@ -18,9 +17,10 @@ export default function AppleIcon() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
+          borderRadius: 14,
           background: BRAND_COLOR,
           color: "#ffffff",
-          fontSize: 108,
+          fontSize: 36,
           fontWeight: 700,
           fontFamily: "Arial, Helvetica, sans-serif",
         }}

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
+import { PRODUCT_NAME } from "@/lib/brand";
 import LogoutButton from "@/components/LogoutButton";
 import ImpersonationBanner from "@/components/ImpersonationBanner";
 import DeletionBanner from "@/components/DeletionBanner";
@@ -57,7 +58,7 @@ export default async function DashboardLayout({
       <div className="flex flex-1">
         <aside className="hidden w-60 flex-col border-r border-border bg-white p-5 md:flex">
           <Link href="/dashboard" className="text-lg font-bold text-foreground">
-            Bookify<span className="text-primary">.</span>
+            {PRODUCT_NAME}<span className="text-primary">.</span>
           </Link>
 
           {/* User identity strip */}

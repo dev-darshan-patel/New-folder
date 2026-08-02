@@ -1,4 +1,4 @@
-import { BRAND_COLOR } from "@/lib/brand";
+import { BRAND_COLOR, PRODUCT_NAME } from "@/lib/brand";
 // Pure, dependency-free email-rendering helpers shared by the server
 // (src/lib/email-templates.ts) and the client editor preview. No "server-only"
 // here so the admin editor can render a live preview without a round-trip.
@@ -14,7 +14,7 @@ export type EmailBrand = {
 };
 
 export const DEFAULT_BRAND = {
-  name: "Bookify",
+  name: PRODUCT_NAME,
   logoUrl: "",
   accentColor: BRAND_COLOR,
   footerText: "You're receiving this because you have a booking or an account with us.",

@@ -1,5 +1,6 @@
 import nodemailer from "nodemailer";
 import { getPlatformSettings } from "@/lib/settings";
+import { PRODUCT_NAME } from "@/lib/brand";
 import logger from "@/lib/logger";
 
 type Attachment = {
@@ -36,7 +37,7 @@ async function createTransport() {
         secure: false,
         auth: { user: settings.gmailSmtpUser, pass: settings.gmailSmtpPass },
       }),
-      from: settings.gmailSmtpFrom || `Bookify <${settings.gmailSmtpUser}>`,
+      from: settings.gmailSmtpFrom || `${PRODUCT_NAME} <${settings.gmailSmtpUser}>`,
     };
   }
 
@@ -53,7 +54,7 @@ async function createTransport() {
         secure: false,
         auth: { user: settings.sesSmtpUser, pass: settings.sesSmtpPass },
       }),
-      from: settings.sesFromAddress || "Bookify <no-reply@example.com>",
+      from: settings.sesFromAddress || `${PRODUCT_NAME} <no-reply@example.com>`,
     };
   }
 
@@ -70,7 +71,7 @@ async function createTransport() {
         ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
         : undefined,
     }),
-    from: process.env.SMTP_FROM || "Bookify <no-reply@example.com>",
+    from: process.env.SMTP_FROM || `${PRODUCT_NAME} <no-reply@example.com>`,
   };
 }
 

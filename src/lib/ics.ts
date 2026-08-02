@@ -1,4 +1,5 @@
 // Minimal iCalendar (.ics) generator for booking invites.
+import { PRODUCT_NAME } from "@/lib/brand";
 
 type IcsInput = {
   uid: string;
@@ -58,7 +59,7 @@ export function buildIcsFeed(params: {
   const lines = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//Bookify//Scheduling//EN",
+    `PRODID:-//${PRODUCT_NAME}//Scheduling//EN`,
     "CALSCALE:GREGORIAN",
     `X-WR-CALNAME:${escapeText(params.calendarName)}`,
     // Hint to clients about how often to re-poll the feed.

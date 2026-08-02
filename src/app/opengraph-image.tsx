@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
-import { BRAND_COLOR } from "@/lib/brand";
+import { BRAND_COLOR, PRODUCT_NAME } from "@/lib/brand";
 
-export const alt = "Bookify — Scheduling for small business";
+export const alt = `${PRODUCT_NAME} — Scheduling for small business`;
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -41,10 +41,10 @@ export default function Image() {
               fontWeight: 700,
             }}
           >
-            B
+            {PRODUCT_NAME[0]?.toUpperCase()}
           </div>
           <div style={{ display: "flex", fontSize: 84, fontWeight: 700, color: "#ffffff" }}>
-            Bookify<span style={{ color: "#818cf8" }}>.</span>
+            {PRODUCT_NAME}<span style={{ color: "#818cf8" }}>.</span>
           </div>
         </div>
         <div

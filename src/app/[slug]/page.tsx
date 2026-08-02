@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
+import { PRODUCT_NAME } from "@/lib/brand";
 import { isPublicBookingAllowed } from "@/lib/platform-config";
 import { formatPrice } from "@/lib/payments";
 import MaintenanceNotice from "@/components/MaintenanceNotice";
@@ -27,7 +28,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const user = await getBusiness(slug);
-  if (!user || user.suspended || user.deletedAt) return { title: "Bookify" };
+  if (!user || user.suspended || user.deletedAt) return { title: PRODUCT_NAME };
   return {
     title: `Book with ${user.businessName}`,
     description: `Select a meeting to book with ${user.businessName}.`,

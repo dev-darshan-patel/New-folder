@@ -2,6 +2,7 @@ import { cache } from "react";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
+import { PRODUCT_NAME } from "@/lib/brand";
 import { resolveBranding } from "@/lib/branding";
 import { parseQuestions } from "@/lib/intake";
 import { isPublicBookingAllowed } from "@/lib/platform-config";
@@ -29,7 +30,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug, eventSlug } = await params;
   const found = await getEventTypeForBooking(slug, eventSlug);
-  if (!found) return { title: "Bookify" };
+  if (!found) return { title: PRODUCT_NAME };
   return {
     title: `${found.eventType.title} — ${found.user.businessName}`,
     description: `Book a ${found.eventType.durationMinutes}-minute ${found.eventType.title} with ${found.user.businessName}.`,

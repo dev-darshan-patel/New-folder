@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
+import { PRODUCT_NAME } from "@/lib/brand";
 import { Button } from "@/components/ui/button";
 
 export default async function Home() {
@@ -14,7 +15,7 @@ export default async function Home() {
     <div className="flex min-h-screen flex-col">
       <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-5">
         <span className="text-lg font-bold tracking-tight text-foreground">
-          Bookify<span className="text-primary">.</span>
+          {PRODUCT_NAME}<span className="text-primary">.</span>
         </span>
         <nav className="flex items-center gap-4 text-sm">
           {homeHref ? (
@@ -76,7 +77,7 @@ export default async function Home() {
       </main>
 
       <footer className="border-t border-slate-100 py-6 text-center text-sm text-slate-400">
-        © {new Date().getFullYear()} Bookify. A scheduling platform for small business.
+        © {new Date().getFullYear()} {PRODUCT_NAME}. A scheduling platform for small business.
       </footer>
     </div>
   );

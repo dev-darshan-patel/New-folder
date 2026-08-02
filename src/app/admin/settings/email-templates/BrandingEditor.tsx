@@ -4,7 +4,7 @@ import { useActionState, useState } from "react";
 import { wrapHtml } from "@/lib/email-render";
 import { updateEmailBrandingAction, type TemplateFormState } from "./actions";
 import { SubmitButton } from "@/components/ui/submit-button";
-import { BRAND_COLOR } from "@/lib/brand";
+import { BRAND_COLOR, PRODUCT_NAME } from "@/lib/brand";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -49,7 +49,7 @@ export default function BrandingEditor({ initial }: { initial: Initial }) {
             name="emailBrandName"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Bookify"
+            placeholder={PRODUCT_NAME}
             title="Brand name shown in the email header"
           />
         </div>

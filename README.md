@@ -76,6 +76,7 @@ build, also type-checks) are the two checks worth running.
   Served at `/DEVELOPER-GUIDE.html`; cross-linked with the User Guide above.
 - **[docs/deploy.md](docs/deploy.md)** — production deployment (Vercel + Neon).
 - **[docs/reminders-cron.md](docs/reminders-cron.md)** — the reminder cron setup.
+- **[REBRANDING.md](REBRANDING.md)** — white-labeling the product name/logo for a client.
 - **[CLAUDE.md](CLAUDE.md)** — architecture notes and conventions.
 
 ## License

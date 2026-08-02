@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
+import { PRODUCT_NAME } from "@/lib/brand";
 import { makeQrDataUrl, decryptTotpSecret } from "@/lib/totp";
 import { beginTotpSetupAction } from "./actions";
 import EnableTotpForm from "./EnableTotpForm";
@@ -24,7 +25,7 @@ export default async function SecurityPage() {
     qrData = await makeQrDataUrl({
       secret: plainSecret,
       email: user.email,
-      appName: "Bookify",
+      appName: PRODUCT_NAME,
     });
   }
 

@@ -1,5 +1,6 @@
 import { requireAdminRole } from "@/lib/admin-auth";
 import { getPlatformSettings } from "@/lib/settings";
+import { PRODUCT_NAME } from "@/lib/brand";
 import {
   updateEmailSettingsAction,
   clearEmailSecretAction,
@@ -116,10 +117,10 @@ export default async function EmailSettingsPage() {
               <Input
                 name="gmailSmtpFrom"
                 defaultValue={settings.gmailSmtpFrom ?? ""}
-                placeholder={`Bookify <you@gmail.com>`}
+                placeholder={`${PRODUCT_NAME} <you@gmail.com>`}
               />
               <p className="text-xs text-slate-400">
-                Defaults to &ldquo;Bookify &lt;gmail address&gt;&rdquo; if left blank.
+                Defaults to &ldquo;{PRODUCT_NAME} &lt;gmail address&gt;&rdquo; if left blank.
               </p>
             </div>
           </CardContent>
@@ -180,7 +181,7 @@ export default async function EmailSettingsPage() {
               <Input
                 name="sesFromAddress"
                 defaultValue={settings.sesFromAddress ?? ""}
-                placeholder="Bookify <no-reply@yourdomain.com>"
+                placeholder={`${PRODUCT_NAME} <no-reply@yourdomain.com>`}
               />
               <p className="text-xs text-slate-400">
                 Must be a verified address or domain in your SES account.
