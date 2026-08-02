@@ -398,6 +398,7 @@
 <p class="lede">Architecture, conventions, and the reasoning behind the decisions that matter. For what the product actually does and how a tenant or platform admin uses it, see the <a href="PROJECT-GUIDE.html">User &amp; Admin Guide</a> instead.</p>
 <div class="callout"><strong>Everything here was written from the code, not from memory.</strong> Where a number appears — a timeout, a retry limit, a grace period — it's the value the app actually uses today.</div>
 <p>New to the codebase? Start at <a href="#architecture">Architecture</a>, then <a href="#local-setup">Local setup</a> and <a href="#conventions">Conventions &amp; gotchas</a>. Unfamiliar product terms — tenant, event type, slot, feature gate, and the rest — are defined in the <a href="PROJECT-GUIDE.html#glossary">User Guide's glossary</a>.</p>
+<p>Selling or white-labeling this codebase for a client? <code>REBRANDING.md</code> at the repo root covers changing the platform's own product name (one env var, plus the couple of things that need a one-time manual step). <code>LICENSE.md</code> has the commercial licensing terms this codebase ships under.</p>
 
 <h2 id="tech-stack">Tech stack</h2>
 <div class="table-wrap">
@@ -410,7 +411,7 @@
 <tr><td>2FA</td><td><code>otplib</code> + <code>qrcode</code></td><td>TOTP, plus hashed single-use backup codes</td></tr>
 <tr><td>Payments</td><td><code>stripe</code> SDK + Razorpay adapter</td><td>Both behind one shared provider interface</td></tr>
 <tr><td>Email</td><td><code>nodemailer</code></td><td>SMTP, Gmail or SES. Degrades to console logging with no config.</td></tr>
-<tr><td>File storage</td><td><code>@vercel/blob</code></td><td>Avatar uploads, served through an auth-checked proxy route</td></tr>
+<tr><td>File storage</td><td>Pluggable <code>StorageProvider</code></td><td>Avatar uploads. S3-compatible (AWS S3, R2, Spaces, B2, MinIO), Vercel Blob, or local disk — configured at <code>/admin/settings/storage</code>, env vars as zero-config fallback</td></tr>
 <tr><td>Logging</td><td><code>pino</code></td><td>Structured JSON; <code>pino-pretty</code> in dev</td></tr>
 <tr><td>Dates</td><td><code>date-fns</code> + <code>@date-fns/tz</code></td><td>Timezone-correct arithmetic — the critical dependency for scheduling</td></tr>
 </table>
@@ -743,7 +744,7 @@
 <tr><th>Mechanism</th><th>Detail</th></tr>
 <tr><td>Account lockout</td><td>5 consecutive failed passwords → 15-minute lock, plus a notification email. Counters reset on success.</td></tr>
 <tr><td>Session invalidation</td><td>A version number in every JWT. Bumped on password change, suspension or force-logout, killing all existing sessions at once.</td></tr>
-<tr><td>Secrets at rest</td><td>Provider tokens, TOTP secrets and payment credentials are encrypted in the database.</td></tr>
+<tr><td>Secrets at rest</td><td>Every secret in the database is AES-256-GCM encrypted: TOTP secrets, Google/Zoom OAuth tokens, and everything configured at <code>/admin/settings</code> — Stripe/Razorpay keys, sign-in-provider client secrets, SMTP passwords, storage credentials. Reads decrypt centrally so call sites never handle ciphertext.</td></tr>
 <tr><td>Password hashing</td><td>bcrypt. Backup codes are hashed too, and consumed on use.</td></tr>
 <tr><td>CSRF</td><td>Token checks on API routes.</td></tr>
 <tr><td>Upload validation</td><td>Avatars are checked by inspecting the file's actual magic bytes, not the claimed filename or content type, with a size cap.</td></tr>
@@ -774,14 +775,17 @@
 <tr><td><code>DATABASE_URL</code></td><td>Pooled Postgres connection — used at runtime</td></tr>
 <tr><td><code>DIRECT_URL</code></td><td>Unpooled connection — required for migrations</td></tr>
 <tr><td><code>AUTH_SECRET</code></td><td>Long random string signing session JWTs. Use a fresh value in production.</td></tr>
+<tr><td><code>ENCRYPTION_KEY</code></td><td><strong>Required in production</strong> — 64 hex characters (32 bytes) AES-256-GCM key encrypting every secret described in <a href="#security-model">Security reference</a>. The app refuses to store them in plaintext without it. Back it up outside the database: losing it makes every already-encrypted row unrecoverable.</td></tr>
 <tr><td><code>NEXT_PUBLIC_APP_URL</code></td><td>Base URL used to build booking links and email content</td></tr>
+<tr><td><code>NEXT_PUBLIC_PRODUCT_NAME</code></td><td>White-labels the platform's own name — wordmarks, page titles, the favicon letter, calendar feed <code>PRODID</code>, default email From-name. Falls back to &ldquo;Bookify&rdquo;. See <code>REBRANDING.md</code> at the repo root for what this does and doesn't cover.</td></tr>
 <tr><td><code>SMTP_HOST</code> / <code>PORT</code> / <code>USER</code> / <code>PASS</code> / <code>FROM</code></td><td>Fallback mail transport. Leave <code>SMTP_HOST</code> blank to log emails instead of sending. Superseded by the admin email settings.</td></tr>
 <tr><td><code>STRIPE_SECRET_KEY</code> and related</td><td>Zero-config <strong>test-mode-only</strong> fallback, ignored once credentials are set in the admin console</td></tr>
+<tr><td><code>STORAGE_PROVIDER</code>, <code>BLOB_*</code>, <code>S3_*</code></td><td>Zero-config fallback for file storage, ignored once credentials are set at <code>/admin/settings/storage</code>. <code>S3_*</code> works with AWS S3 or any S3-compatible provider (R2, Spaces, B2, MinIO) via <code>S3_ENDPOINT</code>.</td></tr>
 <tr><td><code>CRON_SECRET</code></td><td>Bearer token protecting the cron endpoints</td></tr>
 <tr><td><code>LOG_LEVEL</code></td><td>Log verbosity — defaults to debug in development, info in production</td></tr>
 </table>
 </div>
-<div class="callout"><strong>Most configuration is not in env vars.</strong> Payment credentials, OAuth apps, email delivery, plans and flags all live in the database and are edited from the admin console, so they can change without a redeploy. Env vars cover only what's needed to boot and connect.</div>
+<div class="callout"><strong>Most configuration is not in env vars.</strong> Payment credentials, OAuth apps, email delivery, file storage, plans and flags all live in the database and are edited from the admin console, so they can change without a redeploy. Env vars cover only what's needed to boot and connect, plus a couple of zero-config fallbacks.</div>
 
 <h2 id="local-setup">Local setup</h2>
 <pre><code>git clone &lt;repo&gt;
@@ -815,7 +819,7 @@ npm run dev                 # http://localhost:3000
 <h2 id="deployment">Deployment</h2>
 <ol class="steps">
   <li><span class="step-title">Provision Postgres</span> Get both a pooled and an unpooled (direct) connection string.</li>
-  <li><span class="step-title">Set environment variables</span> Database URLs, a <em>fresh</em> production <code>AUTH_SECRET</code>, the real <code>NEXT_PUBLIC_APP_URL</code>, and a fresh <code>CRON_SECRET</code>. Payment and mail credentials are optional here since they're configured in the admin console.</li>
+  <li><span class="step-title">Set environment variables</span> Database URLs, a <em>fresh</em> production <code>AUTH_SECRET</code>, a fresh <code>ENCRYPTION_KEY</code> (required — back it up outside the database), the real <code>NEXT_PUBLIC_APP_URL</code>, and a fresh <code>CRON_SECRET</code>. Payment, mail and storage credentials are optional here since they're configured in the admin console.</li>
   <li><span class="step-title">Deploy</span> Push and import the repo into your host. The build runs <code>prisma generate</code> automatically and doesn't need a live database, though the running app does.</li>
   <li><span class="step-title">Apply migrations</span> Run <code>npm run db:deploy</code> once against production to create the schema.</li>
   <li><span class="step-title">Grant yourself admin</span> Set your account's admin role directly in the production database.</li>

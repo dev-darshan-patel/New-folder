@@ -378,6 +378,7 @@
     <a href="#quick-tour">Quick tour</a>
 
     <div class="group-title">Business owner</div>
+    <a href="#dashboard-overview">Your dashboard</a>
     <a href="#first-15">Your first 15 minutes</a>
     <a href="#plans-features">Plans &amp; features</a>
     <a href="#availability">Availability</a>
@@ -519,6 +520,20 @@
 
 <!-- ============================================================ -->
 <div class="part-divider"><div class="part-eyebrow">Part 2</div><h1>Business Owner Guide</h1><p class="subtitle">Everything you can do with your Bookify account. No technical knowledge assumed.</p></div>
+
+<h2 id="dashboard-overview">Your dashboard</h2>
+<p><code>/dashboard</code> is what you land on after logging in — your booking link up top, then a snapshot of your business over a 7, 30 or 90 day window (pick with the buttons next to the page title).</p>
+<div class="table-wrap">
+<table>
+<tr><th>Card</th><th>Shows</th></tr>
+<tr><td><strong>Bookings</strong></td><td>How many bookings came in during the selected window</td></tr>
+<tr><td><strong>Upcoming</strong></td><td>Confirmed bookings still ahead of you — click through to the full list</td></tr>
+<tr><td><strong>Event types</strong></td><td>How many active event types you have — click through to manage them</td></tr>
+<tr><td><strong>Awaiting approval</strong></td><td>Bookings waiting on manual approval, if you have that turned on for any event type. Highlighted amber when there's at least one.</td></tr>
+<tr><td><strong>Revenue</strong></td><td>Only appears once you're both eligible to accept payments <em>and</em> have taken at least one paid booking — a permanent “$0.00” for an unused feature would just be noise.</td></tr>
+</table>
+</div>
+<p>Below the cards, a bar chart shows bookings per day across the selected window. If anything is <strong>Awaiting approval</strong>, those bookings get their own section with one-click <strong>Approve</strong> / <strong>Decline</strong> buttons, right on the dashboard — no need to go hunting in Bookings. Under that, <strong>Upcoming</strong> lists your next five confirmed appointments, with a link to see the rest.</p>
 
 <h2 id="first-15">Your first 15 minutes</h2>
 <p>Do these five things and you're taking bookings.</p>
@@ -956,6 +971,7 @@
 <tr><th>Page</th><th>Configures</th></tr>
 <tr><td><strong>Billing settings</strong></td><td>Payment provider credentials for subscriptions. Holds <em>both</em> test and live sets at once with a switch for which is active. Also the platform's cut of tenant payments.</td></tr>
 <tr><td><strong>Sign-in providers</strong></td><td>Google and Microsoft OAuth app credentials for “Continue with…” login. For Microsoft you can also choose which account types are accepted.</td></tr>
+<tr><td><strong>File storage</strong></td><td>Where uploaded avatars are stored — your own S3-compatible bucket (AWS S3, Cloudflare R2, DigitalOcean Spaces, Backblaze B2), Vercel Blob, or local disk. Includes a “Test connection” button that uploads and deletes a throwaway file to confirm the credentials actually work.</td></tr>
 <tr><td><strong>Platform config</strong></td><td>Maintenance mode, whether new signups are allowed, and the public support email address.</td></tr>
 <tr><td><strong>Plans</strong></td><td>Create, edit, hide and retire plans — see below.</td></tr>
 <tr><td><strong>Feature flags</strong></td><td>Global kill-switches, separate from plans — see <a href="#admin-two-layer">Flags vs plan gates</a>.</td></tr>
