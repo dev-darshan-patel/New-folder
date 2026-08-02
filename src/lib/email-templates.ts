@@ -239,7 +239,7 @@ ${pre(`Your booking with {{business_name}} has been moved to {{when}} ({{timezon
 <p style="margin:0 0 20px;">${button("{{verify_url}}", "Verify email")}</p>
 <p style="margin:0;color:#64748b;">If you didn&rsquo;t create this account, you can ignore this email.</p>`,
     vars: [
-      { name: "user_name", description: "Account owner's name", sample: "Darshan Patel" },
+      { name: "user_name", description: "Account owner's name", sample: "Demo Owner" },
       { name: "verify_url", description: "Verification link", sample: "https://example.com/verify-email/tok123" },
     ],
   },
@@ -255,7 +255,7 @@ ${pre(`Your booking with {{business_name}} has been moved to {{when}} ({{timezon
 <p style="margin:0 0 20px;">${button("{{reset_url}}", "Set a new password")}</p>
 <p style="margin:0;color:#64748b;">If you didn&rsquo;t request this, you can safely ignore this email.</p>`,
     vars: [
-      { name: "user_name", description: "Account owner's name", sample: "Darshan Patel" },
+      { name: "user_name", description: "Account owner's name", sample: "Demo Owner" },
       { name: "reset_url", description: "Password reset link", sample: "https://example.com/reset-password/tok123" },
     ],
   },
@@ -270,7 +270,7 @@ ${pre(`Your booking with {{business_name}} has been moved to {{when}} ({{timezon
 <p style="margin:0 0 16px;">This is a confirmation that your account password was just changed.</p>
 <p style="margin:0;color:#64748b;">If this wasn&rsquo;t you, reset your password immediately or contact support.</p>`,
     vars: [
-      { name: "user_name", description: "Account owner's name", sample: "Darshan Patel" },
+      { name: "user_name", description: "Account owner's name", sample: "Demo Owner" },
     ],
   },
 
@@ -285,7 +285,7 @@ ${pre(`Your booking with {{business_name}} has been moved to {{when}} ({{timezon
 <p style="margin:0 0 16px;">We noticed multiple failed login attempts on your account. For your security, it has been temporarily locked for 15 minutes.</p>
 <p style="margin:0;color:#64748b;">If this was you, simply wait and try again. If not, reset your password immediately.</p>`,
     vars: [
-      { name: "user_name", description: "Account owner's name", sample: "Darshan Patel" },
+      { name: "user_name", description: "Account owner's name", sample: "Demo Owner" },
     ],
   },
 
@@ -302,7 +302,7 @@ ${pre(`Your booking with {{business_name}} has been moved to {{when}} ({{timezon
 <p style="margin:0 0 20px;">${button("{{login_url}}", "Go to dashboard")}</p>
 <p style="margin:0;color:#64748b;">Happy scheduling!</p>`,
     vars: [
-      { name: "user_name", description: "Account owner's name", sample: "Darshan Patel" },
+      { name: "user_name", description: "Account owner's name", sample: "Demo Owner" },
       { name: "login_url", description: "Dashboard link", sample: "https://example.com/dashboard" },
     ],
   },
@@ -317,7 +317,7 @@ ${pre(`Your booking with {{business_name}} has been moved to {{when}} ({{timezon
 <p style="margin:0 0 16px;">Your account has been suspended and your public booking page is temporarily unavailable.</p>
 <p style="margin:0;color:#64748b;">If you believe this is a mistake, please contact support.</p>`,
     vars: [
-      { name: "user_name", description: "Account owner's name", sample: "Darshan Patel" },
+      { name: "user_name", description: "Account owner's name", sample: "Demo Owner" },
     ],
   },
   {
@@ -331,7 +331,7 @@ ${pre(`Your booking with {{business_name}} has been moved to {{when}} ({{timezon
 <p style="margin:0 0 20px;">Good news &mdash; your account has been reactivated and your booking page is live again.</p>
 <p style="margin:0;">${button("{{login_url}}", "Go to dashboard")}</p>`,
     vars: [
-      { name: "user_name", description: "Account owner's name", sample: "Darshan Patel" },
+      { name: "user_name", description: "Account owner's name", sample: "Demo Owner" },
       { name: "login_url", description: "Dashboard link", sample: "https://example.com/dashboard" },
     ],
   },
@@ -348,7 +348,7 @@ ${pre(`Your booking with {{business_name}} has been moved to {{when}} ({{timezon
 <p style="margin:0 0 20px;">${button("{{recover_url}}", "Restore my account")}</p>
 <p style="margin:0;color:#64748b;">After that date, your account and all its data will be permanently deleted.</p>`,
     vars: [
-      { name: "user_name", description: "Account owner's name", sample: "Darshan Patel" },
+      { name: "user_name", description: "Account owner's name", sample: "Demo Owner" },
       { name: "purge_date", description: "Formatted permanent-deletion date", sample: "August 6, 2026" },
       { name: "recover_url", description: "Account recovery link", sample: "https://example.com/recover/tok123" },
     ],
@@ -364,7 +364,7 @@ ${pre(`Your booking with {{business_name}} has been moved to {{when}} ({{timezon
 <p style="margin:0 0 16px;">Your account has been restored and you can log in again. Note that bookings and the subscription canceled during deactivation were not restored &mdash; you&rsquo;ll need to re-create them if needed.</p>
 <p style="margin:0;">${button("{{login_url}}", "Log in")}</p>`,
     vars: [
-      { name: "user_name", description: "Account owner's name", sample: "Darshan Patel" },
+      { name: "user_name", description: "Account owner's name", sample: "Demo Owner" },
       { name: "login_url", description: "Login link", sample: "https://example.com/login" },
     ],
   },
