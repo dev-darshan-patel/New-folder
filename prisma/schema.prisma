@@ -600,8 +600,12 @@ enum StripeMode {
 // Singleton row (id is always "singleton") holding platform-wide Stripe
 // configuration. Both test and live credentials can be stored at once, but
 // only one mode is ever active — the app never falls back from one to the
-// other. Secret-ish fields (secret keys, webhook secrets) are never echoed
-// back to the admin UI in full; only a masked "ends in ####" hint is shown.
+// other. Secret-ish fields (secret keys, webhook secrets, OAuth client
+// secrets, SMTP passwords) are encrypted at rest via encryptIfConfigured/
+// decryptIfNeeded (see src/lib/settings.ts, which centralizes the
+// decrypt-on-read so every other call site gets plaintext transparently) and
+// are never echoed back to the admin UI in full; only a masked
+// "ends in ####" hint is shown.
 model PlatformSettings {
   id String @id @default("singleton")
 

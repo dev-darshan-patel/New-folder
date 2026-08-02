@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAdminRole } from "@/lib/admin-auth";
 import { writeAuditLog } from "@/lib/admin-audit";
 import { SETTINGS_ID } from "@/lib/settings";
+import { encryptIfConfigured } from "@/lib/crypto";
 
 // Fields the admin can edit directly — an empty submitted value clears them.
 // Secret-ish fields are handled separately (see below) since their inputs are
@@ -41,7 +42,7 @@ export async function updateStripeSettingsAction(formData: FormData) {
   for (const field of SECRET_FIELDS) {
     const v = String(formData.get(field) ?? "").trim();
     if (v !== "") {
-      data[field] = v;
+      data[field] = encryptIfConfigured(v);
       changedSecrets.push(field);
     }
   }

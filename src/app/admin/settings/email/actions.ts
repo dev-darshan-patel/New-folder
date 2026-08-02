@@ -7,6 +7,7 @@ import { writeAuditLog } from "@/lib/admin-audit";
 import { getCurrentUser } from "@/lib/auth";
 import { sendEmail } from "@/lib/email";
 import { SETTINGS_ID } from "@/lib/settings";
+import { encryptIfConfigured } from "@/lib/crypto";
 
 const PLAIN_FIELDS = [
   "gmailSmtpUser",
@@ -37,7 +38,7 @@ export async function updateEmailSettingsAction(formData: FormData) {
   for (const field of SECRET_FIELDS) {
     const v = String(formData.get(field) ?? "").trim();
     if (v !== "") {
-      data[field] = v;
+      data[field] = encryptIfConfigured(v);
       changedSecrets.push(field);
     }
   }

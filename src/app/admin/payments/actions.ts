@@ -12,6 +12,7 @@ import {
 } from "@/lib/payments";
 import { refundBookingPayment } from "@/lib/payments/refunds";
 import logger from "@/lib/logger";
+import { encryptIfConfigured } from "@/lib/crypto";
 
 export type AdminPaymentsState = { ok: true; message: string } | { error: string } | null;
 
@@ -278,27 +279,32 @@ export async function updateRazorpaySettingsAction(
   if (liveKeySecret) changed.push("razorpayLiveKeySecret");
   if (liveWebhookSecret) changed.push("razorpayLiveWebhookSecret");
 
+  const encTestKeySecret = testKeySecret ? encryptIfConfigured(testKeySecret) : null;
+  const encTestWebhookSecret = testWebhookSecret ? encryptIfConfigured(testWebhookSecret) : null;
+  const encLiveKeySecret = liveKeySecret ? encryptIfConfigured(liveKeySecret) : null;
+  const encLiveWebhookSecret = liveWebhookSecret ? encryptIfConfigured(liveWebhookSecret) : null;
+
   await prisma.platformSettings.upsert({
     where: { id: SETTINGS_ID },
     create: {
       id: SETTINGS_ID,
       razorpayMode: mode,
       razorpayTestKeyId: testKeyId,
-      razorpayTestKeySecret: testKeySecret || null,
-      razorpayTestWebhookSecret: testWebhookSecret || null,
+      razorpayTestKeySecret: encTestKeySecret,
+      razorpayTestWebhookSecret: encTestWebhookSecret,
       razorpayLiveKeyId: liveKeyId,
-      razorpayLiveKeySecret: liveKeySecret || null,
-      razorpayLiveWebhookSecret: liveWebhookSecret || null,
+      razorpayLiveKeySecret: encLiveKeySecret,
+      razorpayLiveWebhookSecret: encLiveWebhookSecret,
     },
     update: {
       razorpayMode: mode,
       razorpayTestKeyId: testKeyId,
       // Empty submission = untouched (never overwrite with null accidentally).
-      ...(testKeySecret ? { razorpayTestKeySecret: testKeySecret } : {}),
-      ...(testWebhookSecret ? { razorpayTestWebhookSecret: testWebhookSecret } : {}),
+      ...(encTestKeySecret ? { razorpayTestKeySecret: encTestKeySecret } : {}),
+      ...(encTestWebhookSecret ? { razorpayTestWebhookSecret: encTestWebhookSecret } : {}),
       razorpayLiveKeyId: liveKeyId,
-      ...(liveKeySecret ? { razorpayLiveKeySecret: liveKeySecret } : {}),
-      ...(liveWebhookSecret ? { razorpayLiveWebhookSecret: liveWebhookSecret } : {}),
+      ...(encLiveKeySecret ? { razorpayLiveKeySecret: encLiveKeySecret } : {}),
+      ...(encLiveWebhookSecret ? { razorpayLiveWebhookSecret: encLiveWebhookSecret } : {}),
     },
   });
 
