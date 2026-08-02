@@ -1,10 +1,8 @@
 import { NextRequest } from "next/server";
-import { put } from "@vercel/blob";
-import fs from "node:fs/promises";
-import path from "node:path";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { verifyCsrfOrigin } from "@/lib/csrf";
+import { getStorageProvider } from "@/lib/storage";
 import logger from "@/lib/logger";
 
 const MAX_BYTES = 5 * 1024 * 1024; // 5 MB
@@ -60,25 +58,26 @@ export async function POST(req: NextRequest) {
     const filename = `${user.id}-${Date.now()}.${ext}`;
 
     let url: string;
-
-    if (process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_STORE_ID) {
-      // Production: Vercel Blob (public store — direct CDN URL)
-      const blob = await put(`avatars/${filename}`, Buffer.from(fileBytes), { access: "public" });
-      url = blob.url;
-    } else {
-      // Local dev fallback: write to public/uploads/avatars/
-      try {
-        const uploadsDir = path.join(process.cwd(), "public", "uploads", "avatars");
-        await fs.mkdir(uploadsDir, { recursive: true });
-        await fs.writeFile(path.join(uploadsDir, filename), Buffer.from(fileBytes));
-        url = `/uploads/avatars/${filename}`;
-      } catch (fsErr) {
-        const msg = fsErr instanceof Error ? fsErr.message : String(fsErr);
-        return Response.json({ error: `Storage not configured: ${msg}` }, { status: 503 });
-      }
+    try {
+      const storage = getStorageProvider();
+      const result = await storage.put(`avatars/${filename}`, Buffer.from(fileBytes), detectedType);
+      url = result.url;
+    } catch (storageErr) {
+      const msg = storageErr instanceof Error ? storageErr.message : String(storageErr);
+      return Response.json({ error: `Storage not configured: ${msg}` }, { status: 503 });
     }
 
+    // Replacing an existing avatar — clean up the old object so uploads don't
+    // accumulate unboundedly in the bucket/disk.
+    const previous = await prisma.user.findUnique({ where: { id: user.id }, select: { avatarUrl: true } });
     await prisma.user.update({ where: { id: user.id }, data: { avatarUrl: url } });
+    if (previous?.avatarUrl && previous.avatarUrl !== url) {
+      try {
+        await getStorageProvider().delete(previous.avatarUrl);
+      } catch (err) {
+        logger.error({ err, userId: user.id }, "Failed to delete previous avatar during replace");
+      }
+    }
     return Response.json({ url });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);

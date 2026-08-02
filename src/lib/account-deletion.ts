@@ -10,6 +10,7 @@ import { deleteMeetEvent } from "@/lib/google-calendar";
 import { deleteZoomMeeting } from "@/lib/zoom";
 import { getStripe } from "@/lib/stripe";
 import { refundBookingPayment } from "@/lib/payments/refunds";
+import { getStorageProvider } from "@/lib/storage";
 import logger from "@/lib/logger";
 
 // How long an owner has to undo a deletion request before the destructive
@@ -217,10 +218,9 @@ export async function processDuePurges(): Promise<number> {
   for (const u of due) {
     if (u.avatarUrl) {
       try {
-        const { del } = await import("@vercel/blob");
-        await del(u.avatarUrl);
+        await getStorageProvider().delete(u.avatarUrl);
       } catch (err) {
-        logger.error({ err, userId: u.id }, "Failed to delete avatar blob during purge");
+        logger.error({ err, userId: u.id }, "Failed to delete avatar during purge");
       }
     }
     await prisma.user.delete({ where: { id: u.id } });
