@@ -73,7 +73,7 @@ rows — it only encrypts new ones going forward.
 | `CRON_SECRET` | fresh random value |
 | `SMTP_*` | optional zero-config fallback — email provider is otherwise configured live at `/admin/settings/email` after first deploy |
 | `STRIPE_*` | optional zero-config TEST-mode fallback — real config lives at `/admin/settings` (DB-backed, supports TEST/LIVE switch) |
-| `STORAGE_PROVIDER` + `S3_*` or `BLOB_*` | optional — file uploads (avatars) default to local disk, which doesn't persist on Vercel. Set one to keep uploads across deploys; see `.env.example` for the full var list. `S3_*` works with AWS S3 or any S3-compatible provider (R2, Spaces, B2, MinIO) |
+| `STORAGE_PROVIDER` + `S3_*` or `BLOB_*` | optional zero-config fallback — file uploads (avatars) default to local disk, which doesn't persist on Vercel. Real config lives at `/admin/settings/storage` (DB-backed, same pattern as Stripe); `S3_*` works with AWS S3 or any S3-compatible provider (R2, Spaces, B2, MinIO) |
 
 ## 5. Cron reminders
 

@@ -215,15 +215,18 @@ export async function processDuePurges(): Promise<number> {
     where: { purgeScheduledAt: { lte: new Date() }, deletedAt: { not: null } },
     select: { id: true, avatarUrl: true },
   });
-  for (const u of due) {
-    if (u.avatarUrl) {
-      try {
-        await getStorageProvider().delete(u.avatarUrl);
-      } catch (err) {
-        logger.error({ err, userId: u.id }, "Failed to delete avatar during purge");
+  if (due.length > 0) {
+    const storage = await getStorageProvider();
+    for (const u of due) {
+      if (u.avatarUrl) {
+        try {
+          await storage.delete(u.avatarUrl);
+        } catch (err) {
+          logger.error({ err, userId: u.id }, "Failed to delete avatar during purge");
+        }
       }
+      await prisma.user.delete({ where: { id: u.id } });
     }
-    await prisma.user.delete({ where: { id: u.id } });
   }
   return due.length;
 }

@@ -24,6 +24,8 @@ const SECRET_FIELDS = [
   "zoomClientSecret",
   "gmailSmtpPass",
   "sesSmtpPass",
+  "vercelBlobReadWriteToken",
+  "s3SecretAccessKey",
 ] as const satisfies readonly (keyof PlatformSettings)[];
 
 function decryptSecrets(row: PlatformSettings): PlatformSettings {

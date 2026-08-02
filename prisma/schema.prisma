@@ -597,6 +597,18 @@ enum StripeMode {
   LIVE
 }
 
+// AUTO preserves the pre-existing env-var-driven auto-detection in
+// src/lib/storage/ (S3 env vars win if set, else Vercel Blob env vars, else
+// local disk) so upgrading to this DB-backed config never breaks an existing
+// deployment that hasn't touched the new admin page. The other three force a
+// specific backend regardless of what's in the environment.
+enum StorageProviderType {
+  AUTO
+  LOCAL
+  VERCEL_BLOB
+  S3
+}
+
 // Singleton row (id is always "singleton") holding platform-wide Stripe
 // configuration. Both test and live credentials can be stored at once, but
 // only one mode is ever active — the app never falls back from one to the
@@ -685,6 +697,22 @@ model PlatformSettings {
   emailAccentColor  String?
   emailFooterText   String?
   emailSupportUrl   String?
+
+  // File storage for user uploads (currently just avatars). See
+  // src/lib/storage/. AUTO keeps the pre-existing env-var-driven
+  // auto-detection so this feature is purely additive for existing
+  // deployments. S3 config here works with any S3-compatible provider (AWS
+  // S3, Cloudflare R2, DigitalOcean Spaces, Backblaze B2, MinIO) via
+  // s3Endpoint; leave it null for real AWS S3.
+  storageProvider          StorageProviderType @default(AUTO)
+  vercelBlobReadWriteToken String? // sensitive — usually auto-injected by Vercel; only needed to override
+  s3Bucket                 String?
+  s3Region                 String  @default("auto")
+  s3Endpoint               String?
+  s3AccessKeyId            String?
+  s3SecretAccessKey        String? // sensitive
+  s3PublicUrlBase          String?
+  s3ForcePathStyle         Boolean @default(false)
 
   updatedAt DateTime @updatedAt
 }

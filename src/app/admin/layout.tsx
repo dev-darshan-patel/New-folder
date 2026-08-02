@@ -38,6 +38,7 @@ const navGroups: { title: string; items: { href: string; label: string; superAdm
     items: [
       { href: "/admin/settings", label: "Billing settings", superAdminOnly: true },
       { href: "/admin/settings/auth", label: "Sign-in providers", superAdminOnly: true },
+      { href: "/admin/settings/storage", label: "File storage", superAdminOnly: true },
       { href: "/admin/settings/platform", label: "Platform config", superAdminOnly: true },
       { href: "/admin/settings/plans", label: "Plans", superAdminOnly: true },
       { href: "/admin/settings/flags", label: "Feature flags", superAdminOnly: true },

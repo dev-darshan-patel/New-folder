@@ -58,8 +58,8 @@ export async function POST(req: NextRequest) {
     const filename = `${user.id}-${Date.now()}.${ext}`;
 
     let url: string;
+    const storage = await getStorageProvider();
     try {
-      const storage = getStorageProvider();
       const result = await storage.put(`avatars/${filename}`, Buffer.from(fileBytes), detectedType);
       url = result.url;
     } catch (storageErr) {
@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
     await prisma.user.update({ where: { id: user.id }, data: { avatarUrl: url } });
     if (previous?.avatarUrl && previous.avatarUrl !== url) {
       try {
-        await getStorageProvider().delete(previous.avatarUrl);
+        await storage.delete(previous.avatarUrl);
       } catch (err) {
         logger.error({ err, userId: user.id }, "Failed to delete previous avatar during replace");
       }
