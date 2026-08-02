@@ -101,3 +101,21 @@ your own" line in the README/deploy docs, not a value you supply:
 - [ ] Version bumped in `package.json` / `CHANGELOG.md` updated (once those exist)
 - [ ] You've personally done the clean-clone install test recently (see
       Phase 3) — not "it should work," but "it worked, I watched it happen"
+
+Clean-clone test done 2026-08-02: fresh `git clone` of the GitHub remote into
+an isolated scratch dir, `npm install`, `.env` from `.env.example` against a
+throwaway local Postgres, `db:migrate`, `db:seed`, `dev`, then logged in as
+the seeded demo account and confirmed the admin dashboard renders real data
+with zero console errors/warnings. Found and fixed two real bugs this way
+(not just doc gaps):
+
+- `src/lib/logger.ts` used `process.env.LOG_LEVEL ?? fallback` — `??` doesn't
+  catch empty string, and `.env.example` ships `LOG_LEVEL=""`, so every fresh
+  `cp .env.example .env` crashed the dev server on first boot. Changed to `||`.
+- `<html>` was missing `data-scroll-behavior="smooth"`, which Next.js 16 warns
+  about on every page load given `scroll-behavior: smooth` in `globals.css`.
+
+Re-run this test before every sale — a new bug of this shape (something that
+only breaks on a truly fresh `.env`, never on a long-lived dev machine that
+already has the value set from before) is exactly what a normal dev workflow
+won't catch.
