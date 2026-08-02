@@ -48,6 +48,19 @@ node -e "console.log(require('crypto').randomBytes(48).toString('base64'))"
 Set it as a Vercel env var. Also set `CRON_SECRET` to a fresh random value —
 it protects `/api/cron/reminders`.
 
+Also generate and set `ENCRYPTION_KEY` (required in production — the app
+refuses to write TOTP secrets or OAuth refresh tokens to the database in
+plaintext without it):
+
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+
+**Back this up somewhere outside the database**, e.g. your password manager.
+There's no recovery if it's lost: every row encrypted with it becomes
+permanently undecryptable, and generating a replacement key doesn't fix old
+rows — it only encrypts new ones going forward.
+
 ## 4. Vercel project env vars checklist
 
 | Var | Notes |
@@ -55,6 +68,7 @@ it protects `/api/cron/reminders`.
 | `DATABASE_URL` | pooled Postgres connection string |
 | `DIRECT_URL` | unpooled — required for `prisma migrate` to run |
 | `AUTH_SECRET` | fresh random value, production-only |
+| `ENCRYPTION_KEY` | fresh random value — **required**; back it up outside the DB, see above |
 | `NEXT_PUBLIC_APP_URL` | your real production domain, e.g. `https://yourapp.com` |
 | `CRON_SECRET` | fresh random value |
 | `SMTP_*` | optional zero-config fallback — email provider is otherwise configured live at `/admin/settings/email` after first deploy |
@@ -62,10 +76,14 @@ it protects `/api/cron/reminders`.
 
 ## 5. Cron reminders
 
-`vercel.json` already schedules `/api/cron/reminders` every 10 minutes.
-**Vercel Hobby tier only allows daily crons** — if you're not on Pro, see
-`docs/reminders-cron.md` for a free external-pinger alternative (cron-job.org,
-UptimeRobot, etc.) that works identically.
+`vercel.json` schedules `/api/cron/reminders` once daily — that's the
+**Vercel Hobby tier limit** (sub-daily schedules need Pro). Once a day is too
+infrequent for the 1-hour reminder window to ever fire correctly, so the repo
+also ships `.github/workflows/cron-reminders.yml`, a GitHub Actions workflow
+that pings the same endpoint every 10 minutes and is what actually provides
+the real cadence. See `docs/reminders-cron.md` for the two secrets it needs
+(`CRON_URL`, `CRON_SECRET`) and other pinger alternatives (cron-job.org,
+UptimeRobot, etc.) if you'd rather not use GitHub Actions.
 
 ## 6. First deploy checklist
 
