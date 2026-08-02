@@ -75,11 +75,11 @@ export function createS3Provider(config: S3Config): StorageProvider {
     async delete(url) {
       if (!url.startsWith(`${prefix}/`)) return; // not one of ours
       const key = url.slice(prefix.length + 1);
-      try {
-        await client.send(new DeleteObjectCommand({ Bucket: config.bucket, Key: key }));
-      } catch {
-        // Already gone, or a transient error — best-effort cleanup.
-      }
+      // No try/catch: S3's DeleteObject is idempotent (succeeds silently on
+      // an already-missing key), so anything this throws — bad credentials,
+      // permission denial, network failure — is a real error the caller
+      // needs to see and log, not one to swallow here.
+      await client.send(new DeleteObjectCommand({ Bucket: config.bucket, Key: key }));
     },
   };
 }

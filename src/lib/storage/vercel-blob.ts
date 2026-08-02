@@ -12,11 +12,11 @@ export function createVercelBlobProvider(token?: string): StorageProvider {
       return { url: blob.url };
     },
     async delete(url) {
-      try {
-        await del(url, { token });
-      } catch {
-        // Already gone, or not a blob URL — best-effort cleanup.
-      }
+      // No try/catch: Vercel Blob's del() is idempotent (does not throw for
+      // an already-missing blob), so anything this throws — bad token,
+      // network failure — is a real error the caller needs to see and log,
+      // not one to swallow here.
+      await del(url, { token });
     },
   };
 }

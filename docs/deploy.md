@@ -49,8 +49,10 @@ Set it as a Vercel env var. Also set `CRON_SECRET` to a fresh random value —
 it protects `/api/cron/reminders`.
 
 Also generate and set `ENCRYPTION_KEY` (required in production — the app
-refuses to write TOTP secrets or OAuth refresh tokens to the database in
-plaintext without it):
+refuses to write secrets to the database in plaintext without it: TOTP 2FA
+secrets, Google/Zoom OAuth refresh tokens, and everything configured at
+`/admin/settings` — Stripe/Razorpay keys, sign-in-provider client secrets,
+SMTP passwords, storage credentials):
 
 ```bash
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"

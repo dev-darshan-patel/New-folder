@@ -28,8 +28,11 @@ export const localDiskProvider: StorageProvider = {
     const key = url.slice("/uploads/".length);
     try {
       await fs.unlink(pathForKey(key));
-    } catch {
-      // Already gone.
+    } catch (err) {
+      // Unlike S3/Blob, fs.unlink is not idempotent — it always throws for
+      // an already-missing file. Swallow only that specific case; anything
+      // else (permissions, disk error) is real and must reach the caller.
+      if ((err as NodeJS.ErrnoException)?.code !== "ENOENT") throw err;
     }
   },
 };

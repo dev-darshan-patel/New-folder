@@ -40,6 +40,23 @@ function hasBlobConfig(
   );
 }
 
+// STORAGE_PROVIDER env var values ("s3" | "vercel-blob" | "local", per
+// .env.example) map onto the DB enum. Only consulted when the DB field is
+// still at its default AUTO — same DB-wins-when-set, env-as-fallback rule
+// as every other field here, applied to the provider choice itself.
+function explicitProviderFromEnv(): "LOCAL" | "VERCEL_BLOB" | "S3" | null {
+  switch (process.env.STORAGE_PROVIDER) {
+    case "s3":
+      return "S3";
+    case "vercel-blob":
+      return "VERCEL_BLOB";
+    case "local":
+      return "LOCAL";
+    default:
+      return null;
+  }
+}
+
 // Resolves which backend stores uploads. DB config (set at
 // /admin/settings/storage) takes precedence over env vars per field, same
 // pattern as Stripe. AUTO (the default) preserves the original env-var-only
@@ -47,7 +64,10 @@ function hasBlobConfig(
 // new admin page: S3 wins if configured, else Vercel Blob, else local disk.
 export async function getStorageProvider(): Promise<StorageProvider> {
   const settings = await getPlatformSettings();
-  const explicit = settings.storageProvider;
+  const explicit =
+    settings.storageProvider !== "AUTO"
+      ? settings.storageProvider
+      : (explicitProviderFromEnv() ?? "AUTO");
 
   if (explicit === "S3") {
     const config = resolveS3Config(settings);
