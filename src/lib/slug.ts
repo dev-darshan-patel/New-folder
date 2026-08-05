@@ -1,48 +1,8 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
+import { RESERVED_SLUGS, isReservedSlug, slugify } from "@/lib/slug-reserved";
 
-// Handles that must never be assigned as a business slug. Two categories:
-//  1. Real top-level routes — a booking page here would be shadowed by the
-//     static route (Next.js resolves static segments before dynamic [slug]),
-//     leaving the tenant with a broken public page.
-//  2. Confusing/technical tokens that look like errors or system pages.
-export const RESERVED_SLUGS = new Set([
-  // --- real routes ---
-  "dashboard",
-  "login",
-  "signup",
-  "admin",
-  "api",
-  "booking",
-  "reset-password",
-  "forgot-password",
-  "verify-email",
-  // --- confusing/technical ---
-  "404",
-  "500",
-  "index",
-  "www",
-  "null",
-  "undefined",
-  "favicon.ico",
-  "robots.txt",
-  "sitemap.xml",
-  "embed",
-]);
-
-export function isReservedSlug(slug: string): boolean {
-  return RESERVED_SLUGS.has(slug);
-}
-
-// Convert an arbitrary string into a URL-safe slug.
-export function slugify(input: string): string {
-  return input
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 60);
-}
+export { RESERVED_SLUGS, isReservedSlug, slugify };
 
 // Slugify `base` and append "-2", "-3", etc. until it's both unique among
 // User.slug AND not a reserved word. Used by every account-creation path
