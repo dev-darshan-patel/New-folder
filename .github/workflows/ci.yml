@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+
+    env:
+      # No database is contacted by any step below — `prisma generate` only
+      # reads the schema file, and `next build` compiles without connecting.
+      # But Prisma refuses to run at all when the datasource env vars are
+      # simply absent, so these are syntactically valid placeholders that are
+      # never dialled. Do NOT point these at a real database.
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+      DIRECT_URL: postgresql://ci:ci@localhost:5432/ci
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # Matches the floor in package.json's engines field, which exists
+          # because older Node has a TransformStream race that breaks RSC
+          # streaming.
+          node-version: '24'
+          cache: npm
+
+      # `ci` not `install`: installs exactly the lockfile, and fails instead of
+      # silently updating it. postinstall runs `prisma generate`.
+      - run: npm ci
+
+      - name: Type-check
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm test
+
+      # Also exercises the `prebuild` hook, which fails the build if a real
+      # top-level route is missing from RESERVED_SLUGS — see
+      # scripts/check-reserved-slugs.ts.
+      - name: Build
+        run: npm run build
