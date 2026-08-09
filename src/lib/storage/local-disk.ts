@@ -3,10 +3,15 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import type { StorageProvider } from "@/lib/storage/types";
 
-// Dev-only fallback: writes into public/uploads/, served by Next's static
-// file handling. Works for local dev; doesn't persist across deploys on most
-// serverless hosts (the filesystem is ephemeral), which is why production
-// should configure Vercel Blob or S3 instead.
+// Zero-config fallback: writes into public/uploads/, served by Next's static
+// file handling.
+//
+// Whether this is production-viable depends entirely on the host. On a
+// serverless platform (Vercel et al.) the filesystem is ephemeral, so uploads
+// vanish on the next deploy — configure Vercel Blob or S3 there. On a plain
+// VPS the disk is real and this is a legitimate choice; see
+// docs/deploy-vps.md, which covers the one catch (public/uploads/ lives inside
+// the repo, so deploy in place or the files are orphaned).
 const UPLOADS_ROOT = path.join(process.cwd(), "public", "uploads");
 
 function pathForKey(key: string): string {

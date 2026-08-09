@@ -75,6 +75,8 @@ build, also type-checks) are the two checks worth running.
   conventions, data model and deployment, for anyone extending the codebase.
   Served at `/DEVELOPER-GUIDE.html`; cross-linked with the User Guide above.
 - **[docs/deploy.md](docs/deploy.md)** — production deployment (Vercel + Neon).
+- **[docs/deploy-vps.md](docs/deploy-vps.md)** — self-hosting on an Ubuntu/Debian
+  server (systemd, nginx/Caddy, system cron).
 - **[docs/reminders-cron.md](docs/reminders-cron.md)** — the reminder cron setup.
 - **[REBRANDING.md](REBRANDING.md)** — white-labeling the product name/logo for a client.
 - **[CLAUDE.md](CLAUDE.md)** — architecture notes and conventions.

@@ -1,5 +1,9 @@
 # Deploying to production (Vercel + Neon/Vercel Postgres)
 
+> Self-hosting instead? See **[deploy-vps.md](deploy-vps.md)** for Ubuntu/Debian
+> (systemd, nginx or Caddy, system cron). Nothing in the codebase is
+> Vercel-specific.
+
 The schema's datasource is now `postgresql` (previously SQLite for zero-config
 local dev). **This means `npm run dev` requires a real Postgres connection
 string from here on** — SQLite and Postgres can't coexist in one Prisma schema.
