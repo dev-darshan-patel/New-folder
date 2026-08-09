@@ -13,6 +13,7 @@ import { sendEmail } from "@/lib/email";
 import { renderTemplate } from "@/lib/email-templates";
 import { getPlanMap, type Plan } from "@/lib/plans";
 import { uniqueUserSlug, RESERVED_SLUGS } from "@/lib/slug";
+import { isSlugTakenByAnother, renameUserSlug } from "@/lib/slug-alias";
 import logger from "@/lib/logger";
 
 const ROLES: AdminRole[] = ["SUPER_ADMIN", "SUPPORT", "READ_ONLY"];
@@ -372,11 +373,11 @@ export async function updateUserByAdminAction(
     select: { id: true },
   });
   if (emailClash) return { error: "Another account already uses that email." };
-  const slugClash = await prisma.user.findFirst({
-    where: { slug: slugRaw, id: { not: id } },
-    select: { id: true },
-  });
-  if (slugClash) return { error: "Another account already uses that URL slug." };
+  // Also blocks handles another tenant has retired but whose old links still
+  // redirect to them. See src/lib/slug-alias.ts.
+  if (await isSlugTakenByAnother(slugRaw, id)) {
+    return { error: "Another account already uses that URL slug." };
+  }
 
   const changed: Record<string, unknown> = {};
   if (target.name !== name) changed.name = { from: target.name, to: name };
@@ -389,8 +390,13 @@ export async function updateUserByAdminAction(
 
   await prisma.user.update({
     where: { id },
-    data: { name, businessName, email: emailRaw, slug: slugRaw, timezone, mobile },
+    data: { name, businessName, email: emailRaw, timezone, mobile },
   });
+  // Preserves the old handle as a redirect — an admin-forced rename (freeing a
+  // handle, resolving a squatter) shouldn't break the tenant's shared links.
+  if (target.slug !== slugRaw) {
+    await renameUserSlug(id, target.slug, slugRaw);
+  }
 
   await writeAuditLog({
     actor: admin,

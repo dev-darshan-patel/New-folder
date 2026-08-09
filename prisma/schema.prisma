@@ -163,6 +163,31 @@ model User {
   calendarConnections CalendarConnection[]
   dateOverrides DateOverride[]
   paymentApplications PaymentApplication[]
+  slugAliases  SlugAlias[]
+}
+
+// Every handle a tenant has previously held. A booking link is the one thing
+// in this product that gets printed on business cards, pasted into email
+// signatures and embedded in other people's websites — so a rename that
+// silently 404s every existing link is the most damaging thing a tenant can
+// do to themselves by accident. The public routes fall back to this table and
+// permanently redirect to the current handle, which makes renames
+// non-destructive.
+//
+// It also makes the reserved-word problem tractable in the other direction:
+// reclaiming a handle from a squatter, or freeing one a new app route needs,
+// stops being a link-breaking event and becomes an ordinary admin action.
+//
+// Aliases are never released to a DIFFERENT tenant — see the uniqueness
+// checks in the rename paths. Handing an abandoned handle to someone else
+// would silently transfer all the traffic that still trusts it.
+model SlugAlias {
+  slug      String   @id
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 // One row per application a tenant submits to accept payments from their

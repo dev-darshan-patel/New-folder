@@ -1,8 +1,9 @@
 import { cache } from "react";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { PRODUCT_NAME } from "@/lib/brand";
+import { resolveSlug } from "@/lib/slug-alias";
 import { resolveBranding } from "@/lib/branding";
 import { parseQuestions } from "@/lib/intake";
 import { isPublicBookingAllowed } from "@/lib/platform-config";
@@ -52,7 +53,24 @@ export default async function BookingPage({
   const sp = await searchParams;
 
   const found = await getEventTypeForBooking(slug, eventSlug);
-  if (!found) notFound();
+  if (!found) {
+    // Could be a handle the tenant has since renamed away from — these deep
+    // links are the ones actually shared, so they matter most. Only redirect
+    // when the handle really moved: getEventTypeForBooking also returns null
+    // for a live tenant whose event type is missing or inactive, and
+    // redirecting to the same URL in that case would loop forever.
+    const current = await resolveSlug(slug);
+    if (current && current !== slug) {
+      // Carry the query string through, so an embedded widget keeps its
+      // ?embed=1 (and accent/font overrides) across the redirect instead of
+      // rendering full page chrome inside someone's iframe.
+      const qs = new URLSearchParams(
+        Object.entries(sp).filter((e): e is [string, string] => typeof e[1] === "string"),
+      ).toString();
+      permanentRedirect(`/${current}/${eventSlug}${qs ? `?${qs}` : ""}`);
+    }
+    notFound();
+  }
   const { user, eventType } = found;
 
   // The embed chrome is a platform-wide kill-switchable feature. When the flag

@@ -5,6 +5,7 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser, getImpersonator, createSession } from "@/lib/auth";
 import { slugify, RESERVED_SLUGS } from "@/lib/slug";
+import { isSlugTakenByAnother, renameUserSlug } from "@/lib/slug-alias";
 import { sendEmail } from "@/lib/email";
 import { renderTemplate } from "@/lib/email-templates";
 import { disconnectGoogleCalendar, setBusySync } from "@/lib/google-calendar";
@@ -83,17 +84,21 @@ export async function updateProfileAction(
   if (!slug) return { error: "Booking URL handle is required." };
   if (RESERVED_SLUGS.has(slug)) return { error: "That URL handle is reserved. Pick another." };
 
-  // Slug must be unique across tenants (excluding self).
-  const clash = await prisma.user.findFirst({
-    where: { slug, id: { not: user.id } },
-    select: { id: true },
-  });
-  if (clash) return { error: "That booking URL is already taken. Pick another." };
+  // Unique across tenants — including handles another tenant has retired but
+  // whose old links still redirect to them. See src/lib/slug-alias.ts.
+  if (await isSlugTakenByAnother(slug, user.id)) {
+    return { error: "That booking URL is already taken. Pick another." };
+  }
 
   await prisma.user.update({
     where: { id: user.id },
-    data: { name, businessName, mobile: mobile || null, timezone, slug },
+    data: { name, businessName, mobile: mobile || null, timezone },
   });
+  // Renaming keeps the old handle alive as a redirect, so links already out in
+  // the world (email signatures, embeds, printed cards) don't die.
+  if (slug !== user.slug) {
+    await renameUserSlug(user.id, user.slug, slug);
+  }
 
   revalidatePath("/dashboard/settings");
   revalidatePath("/dashboard");

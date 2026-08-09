@@ -1,8 +1,9 @@
 import { cache } from "react";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
+import { resolveSlug } from "@/lib/slug-alias";
 import { PRODUCT_NAME } from "@/lib/brand";
 import { isPublicBookingAllowed } from "@/lib/platform-config";
 import { formatPrice } from "@/lib/payments";
@@ -47,7 +48,14 @@ export default async function BusinessPage({
   const { slug } = await params;
 
   const user = await getBusiness(slug);
-  if (!user || user.suspended || user.deletedAt) notFound();
+  if (!user) {
+    // Might be a handle this tenant used to have — send old links to the
+    // current one instead of 404ing them. See src/lib/slug-alias.ts.
+    const current = await resolveSlug(slug);
+    if (current) permanentRedirect(`/${current}`);
+    notFound();
+  }
+  if (user.suspended || user.deletedAt) notFound();
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-xl flex-col px-6 py-16">
