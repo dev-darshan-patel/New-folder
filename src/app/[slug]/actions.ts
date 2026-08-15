@@ -103,6 +103,9 @@ export type BookingResult =
       // provider-hosted checkout URL. Booking is PENDING_PAYMENT until the
       // provider webhook confirms.
       checkoutUrl?: string;
+      // Ticketing: absolute /ticket/{code} URLs, one per admission ticket
+      // bought in this order. Empty for non-ticketed bookings.
+      ticketUrls?: string[];
     }
   | { ok: false; error: string };
 
@@ -922,6 +925,11 @@ export async function createGroupBookingAction(input: {
   notes?: string;
   viewerTimezone?: string;
   answers?: { label: string; value: string }[];
+  // Ticketing (issuesTickets event types only): how many tickets to buy in
+  // this one order, and an optional per-ticket attendee name. Ignored for
+  // non-ticketed group sessions, which always take exactly one seat.
+  quantity?: number;
+  attendeeNames?: string[];
 }): Promise<BookingResult> {
   if (!(await rateLimit(`book:${await clientIp()}`, 10, 600_000))) {
     return { ok: false, error: "Too many booking attempts. Please wait a few minutes." };
@@ -962,6 +970,23 @@ export async function createGroupBookingAction(input: {
     ? JSON.stringify(answers.filter((a) => a.value !== ""))
     : null;
 
+  // Ticketing: how many admission tickets this one order buys. Non-ticketed
+  // group sessions are unchanged — always exactly one seat. We do NOT re-check
+  // the `ticketing` plan gate here: that's enforced when the tenant enables
+  // issuesTickets in the editor, and the downgrade rule keeps already-ticketed
+  // events working even if the plan later loses the feature.
+  const ticketed = eventType.issuesTickets;
+  const qty = ticketed ? Math.floor(input.quantity ?? 1) : 1;
+  if (ticketed && (!Number.isFinite(qty) || qty < 1 || qty > eventType.maxTicketsPerOrder)) {
+    return {
+      ok: false,
+      error: `Please choose between 1 and ${eventType.maxTicketsPerOrder} tickets.`,
+    };
+  }
+  const attendeeNames = ticketed
+    ? (input.attendeeNames ?? []).slice(0, qty).map((n) => String(n ?? "").trim().slice(0, 200))
+    : [];
+
   const manageToken = `booked-${crypto.randomUUID()}`;
 
   // Everything DB-side runs in one transaction: atomic seat claim, then the
@@ -976,22 +1001,44 @@ export async function createGroupBookingAction(input: {
     cancelled: boolean;
   };
   let bookingId: string;
+  let ticketCodes: string[] = [];
   try {
     const result = await prisma.$transaction(async (tx) => {
-      // Atomic increment: the DB checks seatsTaken < capacity as part of the
-      // UPDATE, so two racing requests can't both see "one seat left" and both
-      // succeed — the second one matches zero rows. This is enforced at the
-      // engine level, not by our application logic.
-      const claimed: number = await tx.$executeRaw`
-        UPDATE "Session"
-        SET "seatsTaken" = "seatsTaken" + 1, "updatedAt" = NOW()
-        WHERE id = ${input.sessionId}
-          AND "eventTypeId" = ${eventType.id}
-          AND cancelled = false
-          AND "startTime" > NOW()
-          AND "seatsTaken" < capacity
-      `;
-      if (claimed === 0) throw new Error("SESSION_UNAVAILABLE");
+      // Atomic claim. The DB evaluates the capacity check as part of the UPDATE
+      // and takes a row lock, so two racing orders can't both see "N seats
+      // left" and both succeed — the second blocks on the lock, then re-checks
+      // against the first's committed count. Enforced at the engine level, not
+      // by application logic. `ticketsIssued` is a monotonic allocator: adding
+      // qty and reading it back (RETURNING) hands this order a contiguous,
+      // never-reused serial range even under concurrency.
+      let serialHigh = 0; // ticketsIssued AFTER this claim; serials = high-qty+1 .. high
+      if (ticketed) {
+        const rows = await tx.$queryRaw<{ ticketsIssued: number }[]>`
+          UPDATE "Session"
+          SET "seatsTaken" = "seatsTaken" + ${qty},
+              "ticketsIssued" = "ticketsIssued" + ${qty},
+              "updatedAt" = NOW()
+          WHERE id = ${input.sessionId}
+            AND "eventTypeId" = ${eventType.id}
+            AND cancelled = false
+            AND "startTime" > NOW()
+            AND (unlimited OR "seatsTaken" + ${qty} <= capacity)
+          RETURNING "ticketsIssued"
+        `;
+        if (rows.length === 0) throw new Error("SESSION_UNAVAILABLE");
+        serialHigh = Number(rows[0].ticketsIssued);
+      } else {
+        const claimed: number = await tx.$executeRaw`
+          UPDATE "Session"
+          SET "seatsTaken" = "seatsTaken" + 1, "updatedAt" = NOW()
+          WHERE id = ${input.sessionId}
+            AND "eventTypeId" = ${eventType.id}
+            AND cancelled = false
+            AND "startTime" > NOW()
+            AND "seatsTaken" < capacity
+        `;
+        if (claimed === 0) throw new Error("SESSION_UNAVAILABLE");
+      }
 
       const s = await tx.session.findUnique({ where: { id: input.sessionId } });
       if (!s) throw new Error("SESSION_UNAVAILABLE");
@@ -1016,10 +1063,28 @@ export async function createGroupBookingAction(input: {
           meetingProvider: s.meetingProvider,
         },
       });
-      return { session: s, bookingId: created.id };
+
+      // One Ticket row per seat, with the contiguous serial range this order
+      // claimed. Codes are unguessable (the ticket page's only auth). Same
+      // transaction as the claim, so a failure here rolls back the seats too.
+      let ticketCodes: string[] = [];
+      if (ticketed) {
+        const rowsToCreate = Array.from({ length: qty }, (_, i) => ({
+          bookingId: created.id,
+          sessionId: s.id,
+          code: `tkt-${crypto.randomUUID()}`,
+          serial: serialHigh - qty + 1 + i,
+          attendeeName: attendeeNames[i] || null,
+        }));
+        await tx.ticket.createMany({ data: rowsToCreate });
+        ticketCodes = rowsToCreate.map((r) => r.code);
+      }
+
+      return { session: s, bookingId: created.id, ticketCodes };
     });
     session = result.session;
     bookingId = result.bookingId;
+    ticketCodes = result.ticketCodes;
     void bookingId;
   } catch (err) {
     if (err instanceof Error && err.message === "SESSION_UNAVAILABLE") {
@@ -1038,6 +1103,14 @@ export async function createGroupBookingAction(input: {
     ? `\nJoin: ${session.meetingUrl}`
     : eventType.locationDetail
       ? `\nWhere: ${eventType.locationDetail}`
+      : "";
+
+  // Ticketing: link each admission ticket so the buyer can pull up its QR at
+  // the gate. Shown to the invitee only (the owner scans, doesn't need them).
+  const ticketLine =
+    ticketCodes.length > 0
+      ? `\n\nYour ${ticketCodes.length === 1 ? "ticket" : `${ticketCodes.length} tickets`}:` +
+        ticketCodes.map((c) => `\n${baseUrl}/ticket/${c}`).join("")
       : "";
 
   const ics = buildIcs({
@@ -1070,7 +1143,7 @@ export async function createGroupBookingAction(input: {
         event_title: eventType.title,
         when: inviteeWhen,
         timezone: viewerTz,
-        with_line: meetLine,
+        with_line: meetLine + ticketLine,
         manage_url: manageUrl,
       },
     );
@@ -1112,5 +1185,6 @@ export async function createGroupBookingAction(input: {
     meetingProvider: session.meetingProvider,
     redirectUrl: eventType.confirmationRedirectUrl,
     pending: eventType.requiresApproval,
+    ticketUrls: ticketCodes.map((c) => `${baseUrl}/ticket/${c}`),
   };
 }

@@ -28,6 +28,7 @@ export const RESERVED_SLUGS = new Set([
   "forgot-password",
   "verify-email",
   "recover",
+  "ticket",
   // --- metadata-convention routes ---
   "icon",
   "apple-icon",
