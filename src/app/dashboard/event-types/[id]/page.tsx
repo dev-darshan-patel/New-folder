@@ -89,6 +89,8 @@ export default async function EditEventTypePage({
           unlisted: eventType.unlisted,
           capacity: eventType.capacity,
           allowRecurring: eventType.allowRecurring,
+          issuesTickets: eventType.issuesTickets,
+          maxTicketsPerOrder: eventType.maxTicketsPerOrder,
           questions: parseQuestions(eventType.intakeQuestions),
           assignmentMode: eventType.assignmentMode,
           poolMemberIds: pool.map((p) => p.teamMemberId),
@@ -111,6 +113,7 @@ export default async function EditEventTypePage({
             redirectReplyTo: has("redirect_replyto"),
             groupBookings: has("group_bookings"),
             recurringBookings: has("recurring_bookings"),
+            ticketing: has("ticketing"),
           },
         }}
       />
@@ -121,6 +124,7 @@ export default async function EditEventTypePage({
           defaultCapacity={eventType.capacity}
           durationMinutes={eventType.durationMinutes}
           businessTimezone={user.timezone}
+          issuesTickets={eventType.issuesTickets}
         />
       )}
     </div>

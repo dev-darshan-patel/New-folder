@@ -31,6 +31,8 @@ type Initial = {
   unlisted: boolean;
   capacity: number | null;
   allowRecurring: boolean;
+  issuesTickets: boolean;
+  maxTicketsPerOrder: number;
   questions: IntakeQuestion[];
   assignmentMode: "SOLO" | "ROUND_ROBIN" | "COLLECTIVE";
   poolMemberIds: string[];
@@ -57,6 +59,7 @@ type Initial = {
     redirectReplyTo: boolean;
     groupBookings: boolean;
     recurringBookings: boolean;
+    ticketing: boolean;
   };
 };
 
@@ -70,6 +73,8 @@ export default function EventTypeEditor({ initial }: { initial: Initial }) {
   const [capacity, setCapacity] = useState<string>(
     initial.capacity != null ? String(initial.capacity) : "10",
   );
+  const [issuesTickets, setIssuesTickets] = useState(initial.issuesTickets);
+  const [maxPerOrder, setMaxPerOrder] = useState<string>(String(initial.maxTicketsPerOrder));
   // Group and recurring are mutually exclusive — a group event uses manually
   // created sessions, a recurring event repeats a 1:1 slot weekly.
   const [allowRecurring, setAllowRecurring] = useState(initial.allowRecurring);
@@ -335,7 +340,7 @@ export default function EventTypeEditor({ initial }: { initial: Initial }) {
             </span>
           </label>
           {isGroup && (
-            <div className="mt-3 pl-6">
+            <div className="mt-3 space-y-3 pl-6">
               <Field label="Seats per session">
                 <Input
                   type="number"
@@ -345,11 +350,52 @@ export default function EventTypeEditor({ initial }: { initial: Initial }) {
                   title="Default seat count for new sessions of this event type"
                 />
               </Field>
+
+              {initial.features.ticketing && (
+                <div className="rounded-lg border border-border bg-white p-3">
+                  <label className="flex items-start gap-2 text-sm text-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={issuesTickets}
+                      onChange={(e) => setIssuesTickets(e.target.checked)}
+                      className="mt-0.5 h-4 w-4 rounded border-input"
+                    />
+                    <span>
+                      Sell tickets for this event
+                      <span className="block text-xs text-muted-foreground">
+                        Attendees buy one or more tickets in a single order. Each ticket gets its
+                        own QR code and number for entry, and can be scanned at the gate. Turn a
+                        session &ldquo;unlimited&rdquo; on its own row for uncapped events.
+                      </span>
+                    </span>
+                  </label>
+                  {issuesTickets && (
+                    <div className="mt-3 pl-6">
+                      <Field label="Max tickets per order">
+                        <Input
+                          type="number"
+                          min={1}
+                          max={50}
+                          value={maxPerOrder}
+                          onChange={(e) => setMaxPerOrder(e.target.value)}
+                          title="How many tickets one buyer can purchase in a single checkout"
+                        />
+                      </Field>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
           {/* Only send `capacity` in the form payload when the group toggle is on;
               otherwise it stays null in the DB and the classic 1:1 flow runs. */}
           {isGroup && <input type="hidden" name="capacity" value={capacity} />}
+          {isGroup && issuesTickets && (
+            <>
+              <input type="hidden" name="issuesTickets" value="1" />
+              <input type="hidden" name="maxTicketsPerOrder" value={maxPerOrder} />
+            </>
+          )}
         </div>
       )}
 

@@ -435,6 +435,20 @@ export async function updateEventTypeAction(formData: FormData) {
         ? formData.get("allowRecurring") === "1"
         : existing.allowRecurring;
 
+  // Ticketing (gated). Only meaningful for group event types, so force it off
+  // when this isn't one. Same downgrade rule as capacity/recurring: an ungated
+  // tenant keeps whatever the event type already had rather than losing it.
+  const issuesTickets =
+    capacity == null
+      ? false
+      : has("ticketing")
+        ? formData.get("issuesTickets") === "1"
+        : existing.issuesTickets;
+  const maxTicketsPerOrder =
+    issuesTickets && has("ticketing")
+      ? clampInt(String(formData.get("maxTicketsPerOrder") || ""), 1, 50, existing.maxTicketsPerOrder)
+      : existing.maxTicketsPerOrder;
+
   // Price (Feature 4.4). null = free (unchanged behavior). A paid price is
   // only accepted when the plan grants "payments", the owner is APPROVED +
   // onboarded on their active provider, AND the event type stays inside the
@@ -557,6 +571,8 @@ export async function updateEventTypeAction(formData: FormData) {
       unlisted,
       capacity,
       allowRecurring,
+      issuesTickets,
+      maxTicketsPerOrder,
       intakeQuestions,
       assignmentMode,
       locationType,
@@ -630,6 +646,9 @@ export async function createSessionAction(formData: FormData): Promise<void> {
   if (eventType.capacity == null) return; // not a group event type
 
   const capacity = clampInt(rawCapacity || String(eventType.capacity), 1, 10_000, eventType.capacity);
+  // Unlimited-entry session (no cap) — only honoured for ticketed events, so a
+  // stray form field can't uncap a normal group class.
+  const unlimited = eventType.issuesTickets && formData.get("unlimited") === "1";
 
   // Parse the local wall-clock string in the business timezone. `new Date(iso)`
   // interprets a bare "YYYY-MM-DDTHH:mm" as LOCAL to the server, which is wrong;
@@ -684,6 +703,7 @@ export async function createSessionAction(formData: FormData): Promise<void> {
       startTime: start,
       durationMinutes: eventType.durationMinutes,
       capacity,
+      unlimited,
       meetingUrl,
       meetingProvider,
       calendarEventId,

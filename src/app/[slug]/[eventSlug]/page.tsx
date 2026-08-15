@@ -134,6 +134,8 @@ export default async function BookingPage({
           accent={brand.color}
           questions={parseQuestions(eventType.intakeQuestions)}
           sessions={await loadUpcomingSessions(eventType.id)}
+          issuesTickets={eventType.issuesTickets}
+          maxTicketsPerOrder={eventType.maxTicketsPerOrder}
         />
       ) : (
         <BookingWidget
@@ -163,12 +165,15 @@ async function loadUpcomingSessions(eventTypeId: string) {
       startTime: { gte: new Date() },
     },
     orderBy: { startTime: "asc" },
-    select: { id: true, startTime: true, capacity: true, seatsTaken: true },
+    select: { id: true, startTime: true, capacity: true, seatsTaken: true, unlimited: true },
     take: 50,
   });
   return rows.map((r) => ({
     id: r.id,
     startUtc: r.startTime.toISOString(),
-    seatsLeft: Math.max(0, r.capacity - r.seatsTaken),
+    unlimited: r.unlimited,
+    // Unlimited sessions never run out; use a sentinel so the widget's
+    // "sold out" and quantity-cap logic treats them as always available.
+    seatsLeft: r.unlimited ? Number.MAX_SAFE_INTEGER : Math.max(0, r.capacity - r.seatsTaken),
   }));
 }

@@ -13,11 +13,13 @@ export default async function SessionsSection({
   defaultCapacity,
   durationMinutes,
   businessTimezone,
+  issuesTickets = false,
 }: {
   eventTypeId: string;
   defaultCapacity: number;
   durationMinutes: number;
   businessTimezone: string;
+  issuesTickets?: boolean;
 }) {
   const now = new Date();
   const sessions = await prisma.session.findMany({
@@ -62,6 +64,12 @@ export default async function SessionsSection({
             className="mt-1 w-24"
           />
         </label>
+        {issuesTickets && (
+          <label className="flex items-center gap-2 pb-2 text-sm text-slate-700">
+            <input type="checkbox" name="unlimited" value="1" className="h-4 w-4 rounded border-input" />
+            Unlimited (ignore seat cap)
+          </label>
+        )}
         <SubmitButton>Add session</SubmitButton>
       </form>
 
@@ -83,7 +91,7 @@ export default async function SessionsSection({
                 <div>
                   <p className="font-medium text-foreground">{fmt.format(s.startTime)}</p>
                   <p className="text-xs text-muted-foreground">
-                    {s.seatsTaken} / {s.capacity} booked
+                    {s.unlimited ? `${s.seatsTaken} booked (unlimited)` : `${s.seatsTaken} / ${s.capacity} booked`}
                     {s.meetingUrl && (
                       <>
                         {" · "}

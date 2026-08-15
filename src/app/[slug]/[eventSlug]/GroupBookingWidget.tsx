@@ -16,6 +16,7 @@ export type GroupSession = {
   id: string;
   startUtc: string;
   seatsLeft: number;
+  unlimited?: boolean;
 };
 
 // Format a UTC instant as a full "Fri, Jul 10 · 6:00 PM" label in the given tz.
@@ -36,14 +37,21 @@ export default function GroupBookingWidget({
   accent = BRAND_COLOR,
   questions = [],
   sessions,
+  issuesTickets = false,
+  maxTicketsPerOrder = 1,
 }: {
   eventTypeId: string;
   timezone: string;
   accent?: string;
   questions?: IntakeQuestion[];
   sessions: GroupSession[];
+  issuesTickets?: boolean;
+  maxTicketsPerOrder?: number;
 }) {
   const [selected, setSelected] = useState<GroupSession | null>(null);
+  // Ticketing: how many tickets to buy and an optional name per ticket.
+  const [quantity, setQuantity] = useState(1);
+  const [attendeeNames, setAttendeeNames] = useState<string[]>([]);
   const [submitting, startSubmit] = useTransition();
   const [result, setResult] = useState<BookingResult | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
@@ -109,6 +117,25 @@ export default function GroupBookingWidget({
         <p className="mt-3 text-sm text-muted-foreground">
           A confirmation has been sent to your email.
         </p>
+        {result.ticketUrls && result.ticketUrls.length > 0 && (
+          <div className="mt-4 space-y-1.5">
+            <p className="text-sm font-medium text-foreground">
+              Your {result.ticketUrls.length === 1 ? "ticket" : `${result.ticketUrls.length} tickets`}:
+            </p>
+            {result.ticketUrls.map((url, i) => (
+              <a
+                key={url}
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: accent }}
+                className="block text-sm font-medium hover:underline"
+              >
+                View ticket {i + 1} →
+              </a>
+            ))}
+          </div>
+        )}
         <a
           href={result.manageUrl}
           style={{ color: accent }}
@@ -192,6 +219,9 @@ export default function GroupBookingWidget({
                 notes: String(fd.get("notes") || ""),
                 viewerTimezone: viewerTz,
                 answers,
+                ...(issuesTickets
+                  ? { quantity, attendeeNames: attendeeNames.slice(0, quantity) }
+                  : {}),
               });
               if (res.ok) setResult(res);
               else setFormError(res.error);
@@ -213,6 +243,56 @@ export default function GroupBookingWidget({
             </Button>
           </div>
           <div className="mt-4 space-y-3">
+            {issuesTickets && (
+              <div className="space-y-3 rounded-lg border border-border bg-slate-50 p-3">
+                <label className="block text-sm">
+                  <span className="mb-1 block font-medium text-slate-700">Number of tickets</span>
+                  <NativeSelect
+                    value={String(quantity)}
+                    onChange={(e) => {
+                      const n = Number(e.target.value);
+                      setQuantity(n);
+                      setAttendeeNames((prev) => {
+                        const next = prev.slice(0, n);
+                        while (next.length < n) next.push("");
+                        return next;
+                      });
+                    }}
+                    className="w-32"
+                  >
+                    {Array.from(
+                      { length: Math.max(1, Math.min(maxTicketsPerOrder, selected.seatsLeft)) },
+                      (_, i) => i + 1,
+                    ).map((n) => (
+                      <option key={n} value={n}>
+                        {n}
+                      </option>
+                    ))}
+                  </NativeSelect>
+                </label>
+                {quantity > 1 && (
+                  <div className="space-y-2">
+                    <p className="text-xs text-muted-foreground">
+                      Name on each ticket (optional — helps at the gate).
+                    </p>
+                    {Array.from({ length: quantity }, (_, i) => (
+                      <Input
+                        key={i}
+                        value={attendeeNames[i] ?? ""}
+                        onChange={(e) =>
+                          setAttendeeNames((prev) => {
+                            const next = [...prev];
+                            next[i] = e.target.value;
+                            return next;
+                          })
+                        }
+                        placeholder={`Ticket ${i + 1} attendee (optional)`}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
             <Input name="name" required placeholder="Your name" />
             <Input name="email" type="email" required placeholder="Your email" />
             <Textarea
