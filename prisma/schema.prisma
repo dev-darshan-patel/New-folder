@@ -416,6 +416,15 @@ model EventType {
   paddingMinutes  Int       @default(0)
   // How many days ahead an invitee may book. null = unlimited.
   maxAdvanceDays  Int?
+  // Ticketing (gated behind the `ticketing` feature key). When true, this is a
+  // ticketed event: bookings against its Sessions issue Ticket rows, buyers can
+  // purchase a quantity in one order, and each ticket gets a QR + serial. Only
+  // meaningful for group event types (those that use Sessions). false =
+  // unchanged behaviour.
+  issuesTickets   Boolean   @default(false)
+  // Max tickets one buyer can purchase in a single order — anti-abuse cap,
+  // mirroring what public ticketing platforms do (typically ~10).
+  maxTicketsPerOrder Int    @default(10)
   createdAt       DateTime  @default(now())
 
   bookings        Booking[]
@@ -454,6 +463,20 @@ model Session {
   // on cancel. Never edited directly by application code — always via the
   // atomic UPDATE statements in the group booking + cancel actions.
   seatsTaken      Int       @default(0)
+  // Ticketing: when true, `capacity` is ignored and there is no cap — for
+  // unlimited-entry events (e.g. a community garba). `seatsTaken` still counts
+  // total tickets sold, it just isn't bounded. Kept as a flag rather than a
+  // nullable capacity so the existing group-booking atomic claim
+  // (WHERE seatsTaken < capacity) is untouched for classic capped sessions.
+  unlimited       Boolean   @default(false)
+  // Monotonic ticket-serial allocator. UNLIKE seatsTaken (which decrements on
+  // cancel), this only ever increases, so it hands out per-event serial
+  // numbers that are never reused — a cancelled ticket's number is retired,
+  // not recycled onto a new one where it would collide with the still-present
+  // VOID row under @@unique([sessionId, serial]). Allocated by the same atomic
+  // UPDATE ... RETURNING pattern as seatsTaken, so concurrent orders can't get
+  // overlapping serials.
+  ticketsIssued   Int       @default(0)
   // Shared video meeting URL for the whole session (all attendees join here).
   // Created at session-creation time when the event type is GOOGLE_MEET/ZOOM.
   meetingUrl      String?
@@ -464,8 +487,49 @@ model Session {
   updatedAt       DateTime  @updatedAt
 
   bookings        Booking[]
+  tickets         Ticket[]
 
   @@index([eventTypeId, startTime])
+}
+
+// One admission ticket. Many tickets attach to a single Booking (one order =
+// one buyer + one payment, N tickets), so a family can buy 4 passes in one
+// checkout and each person still gets their own scannable code + serial.
+// Ticketing is a flavour of the group/Session flow, gated behind
+// EventType.issuesTickets — not a parallel booking system.
+model Ticket {
+  id           String       @id @default(cuid())
+  bookingId    String
+  booking      Booking      @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  // Denormalised from the booking so the per-event serial uniqueness and the
+  // check-in scanner's queries don't have to join through Booking. Nullable
+  // only so the FK is SetNull-safe; ticketing always sets it.
+  sessionId    String?
+  session      Session?     @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  // Unguessable QR payload and public URL (/ticket/{code}). The only auth for
+  // the ticket page — same token-not-login pattern as Booking.manageToken.
+  code         String       @unique
+  // Per-event sequential number (the "bib"). Auto-assigned but tenant-editable;
+  // unique within a session so two attendees can't hold the same number.
+  serial       Int
+  // Per-ticket attendee name (the family member this pass is for). Optional in
+  // Phase 1; the form builder (Phase 5) makes this a first-class per-ticket field.
+  attendeeName String?
+  status       TicketStatus @default(ISSUED)
+  // Set when scanned at the gate (Phase 2). A second scan of a CHECKED_IN
+  // ticket is rejected — the atomic mark-used guards on status = ISSUED.
+  checkedInAt  DateTime?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@unique([sessionId, serial])
+  @@index([bookingId])
+}
+
+enum TicketStatus {
+  ISSUED
+  CHECKED_IN
+  VOID
 }
 
 // A weekly-recurring availability window for a user.
@@ -597,6 +661,10 @@ model Booking {
   // once this hits the hard limit (currently 5) to avoid a runaway loop.
   payoutAttempts      Int      @default(0)
   createdAt    DateTime      @default(now())
+
+  // Ticketing: the admission tickets issued for this order. Empty for classic
+  // appointment/group bookings (issuesTickets = false).
+  tickets      Ticket[]
 
   @@index([userId, startTime])
   @@index([seriesId])

@@ -23,7 +23,8 @@ export type FeatureKey =
   | "payments"
   | "group_bookings"
   | "recurring_bookings"
-  | "calendar_busy_sync";
+  | "calendar_busy_sync"
+  | "ticketing";
 
 export type FeatureDefinition = {
   key: FeatureKey;
@@ -106,6 +107,11 @@ export const FEATURE_REGISTRY: FeatureDefinition[] = [
     key: "calendar_busy_sync",
     label: "Calendar busy-sync",
     description: "Block booking slots when the owner is busy on their connected Google Calendar.",
+  },
+  {
+    key: "ticketing",
+    label: "Ticketing & events",
+    description: "Sell tickets for events with QR codes, quantity purchase, and gate check-in.",
   },
 ];
 
