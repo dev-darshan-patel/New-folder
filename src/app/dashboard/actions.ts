@@ -10,6 +10,7 @@ import type { FeatureKey } from "@/lib/features";
 import { FONTS } from "@/lib/branding";
 import { parseQuestions } from "@/lib/intake";
 import { parseGuests } from "@/lib/guests";
+import { checkInTicket, type CheckInResult } from "@/lib/checkin";
 import { sendEmail } from "@/lib/email";
 import { renderTemplate } from "@/lib/email-templates";
 import { buildIcs } from "@/lib/ics";
@@ -815,4 +816,28 @@ export async function cancelSessionAction(formData: FormData): Promise<void> {
 
   revalidatePath(`/dashboard/event-types/${session.eventTypeId}`);
   revalidatePath("/dashboard/bookings");
+}
+
+// Check in a ticket at the gate. Wraps checkInTicket() with the ownership
+// gate: the caller must be the event's owner. The library function does the
+// atomic mark-used and returns a discriminated result the scanner UI switches
+// on. No plan-gate check here — a downgraded tenant can still finish an event
+// whose tickets are already sold (same downgrade rule as everywhere else).
+export async function checkInTicketAction(input: {
+  sessionId: string;
+  code: string;
+}): Promise<CheckInResult | { status: "UNAUTHORIZED" }> {
+  const user = await getCurrentUser();
+  if (!user) return { status: "UNAUTHORIZED" };
+
+  // Ownership: the session must belong to an event type this user owns.
+  // Filtering on both is a defence-in-depth double check — either alone
+  // would leak, together they can't.
+  const owns = await prisma.session.findFirst({
+    where: { id: input.sessionId, eventType: { userId: user.id } },
+    select: { id: true },
+  });
+  if (!owns) return { status: "UNAUTHORIZED" };
+
+  return checkInTicket(input.sessionId, input.code);
 }
