@@ -248,6 +248,7 @@ function OutcomePane({ outcome }: { outcome: Outcome }) {
           <p className="font-semibold text-green-900">Admitted</p>
           <p className="text-sm text-green-800">
             Ticket #{outcome.ticket.serial}
+            {outcome.ticket.tierName ? ` · ${outcome.ticket.tierName}` : ""}
             {outcome.ticket.attendeeName ? ` · ${outcome.ticket.attendeeName}` : ""}
           </p>
         </div>
@@ -264,6 +265,7 @@ function OutcomePane({ outcome }: { outcome: Outcome }) {
           <p className="font-semibold text-amber-900">Already used</p>
           <p className="text-sm text-amber-800">
             Ticket #{outcome.ticket.serial}
+            {outcome.ticket.tierName ? ` · ${outcome.ticket.tierName}` : ""}
             {outcome.ticket.attendeeName ? ` · ${outcome.ticket.attendeeName}` : ""}
             {" · admitted at "}
             {outcome.checkedInAt.toLocaleTimeString()}

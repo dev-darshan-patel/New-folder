@@ -25,6 +25,7 @@ export default async function SessionsSection({
   const sessions = await prisma.session.findMany({
     where: { eventTypeId },
     orderBy: { startTime: "asc" },
+    include: { tiers: { orderBy: { sortOrder: "asc" } } },
   });
 
   const upcoming = sessions.filter((s) => !s.cancelled && s.startTime >= now);
@@ -71,6 +72,34 @@ export default async function SessionsSection({
           </label>
         )}
         <SubmitButton>Add session</SubmitButton>
+
+        {issuesTickets && (
+          <div className="mt-2 w-full border-t border-border pt-3">
+            <p className="text-xs font-medium text-slate-600">
+              Ticket categories (optional — e.g. VIP, Premium, Normal). Leave capacity
+              blank for unlimited within that category. Leave a row&rsquo;s name blank to
+              skip it.
+            </p>
+            <div className="mt-2 space-y-2">
+              {[0, 1, 2, 3].map((i) => (
+                <div key={i} className="flex gap-2">
+                  <Input
+                    name={`tierName${i}`}
+                    placeholder={i === 0 ? "e.g. VIP" : "Category name"}
+                    className="flex-1"
+                  />
+                  <Input
+                    type="number"
+                    name={`tierCapacity${i}`}
+                    min={1}
+                    placeholder="Seats (blank = unlimited)"
+                    className="w-52"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </form>
 
       <div className="mt-6">
@@ -91,7 +120,11 @@ export default async function SessionsSection({
                 <div>
                   <p className="font-medium text-foreground">{fmt.format(s.startTime)}</p>
                   <p className="text-xs text-muted-foreground">
-                    {s.unlimited ? `${s.seatsTaken} booked (unlimited)` : `${s.seatsTaken} / ${s.capacity} booked`}
+                    {s.tiers.length > 0
+                      ? `${s.seatsTaken} tickets sold across ${s.tiers.length} categories`
+                      : s.unlimited
+                        ? `${s.seatsTaken} booked (unlimited)`
+                        : `${s.seatsTaken} / ${s.capacity} booked`}
                     {s.meetingUrl && (
                       <>
                         {" · "}
@@ -106,6 +139,19 @@ export default async function SessionsSection({
                       </>
                     )}
                   </p>
+                  {s.tiers.length > 0 && (
+                    <ul className="mt-1.5 flex flex-wrap gap-1.5">
+                      {s.tiers.map((t) => (
+                        <li
+                          key={t.id}
+                          className="rounded bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground"
+                        >
+                          {t.name}: {t.seatsTaken}
+                          {t.capacity != null ? ` / ${t.capacity}` : " (unlimited)"}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
                 <div className="flex gap-2">
                   <Button asChild variant="link" size="sm">

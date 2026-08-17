@@ -23,6 +23,7 @@ import { rateLimit, clientIp } from "@/lib/rate-limit";
 import { formatWhen } from "@/lib/format";
 import { getPaymentAdapter } from "@/lib/payments/registry";
 import { planHasFeature } from "@/lib/plans";
+import { validateTierSelection } from "@/lib/ticket-tiers";
 import logger from "@/lib/logger";
 
 // Validate an IANA timezone string; returns it or null.
@@ -930,6 +931,9 @@ export async function createGroupBookingAction(input: {
   // non-ticketed group sessions, which always take exactly one seat.
   quantity?: number;
   attendeeNames?: string[];
+  // Ticket category (Phase 3a). Required when the session has any
+  // TicketTier rows configured; ignored otherwise.
+  tierId?: string;
 }): Promise<BookingResult> {
   if (!(await rateLimit(`book:${await clientIp()}`, 10, 600_000))) {
     return { ok: false, error: "Too many booking attempts. Please wait a few minutes." };
@@ -987,6 +991,31 @@ export async function createGroupBookingAction(input: {
     ? (input.attendeeNames ?? []).slice(0, qty).map((n) => String(n ?? "").trim().slice(0, 200))
     : [];
 
+  // Ticket categories (Phase 3a): fetch what's configured for this session
+  // (empty for the common case of a ticketed event with no categories, which
+  // keeps behaving exactly like before). When categories exist, the buyer
+  // must pick one and this fast-fails with a clear error before spending a
+  // DB round trip on the actual claim — which re-verifies atomically below,
+  // since availability can change between this check and the transaction.
+  let selectedTierId: string | null = null;
+  if (ticketed) {
+    const tiers = await prisma.ticketTier.findMany({
+      where: { sessionId: input.sessionId },
+      orderBy: { sortOrder: "asc" },
+    });
+    if (tiers.length > 0) {
+      const sel = validateTierSelection(tiers, input.tierId, eventType.maxTicketsPerOrder);
+      if (!sel.ok) return { ok: false, error: sel.error };
+      if (qty > sel.maxQty) {
+        return {
+          ok: false,
+          error: `Please choose between 1 and ${sel.maxQty} ${sel.tier.name} tickets.`,
+        };
+      }
+      selectedTierId = sel.tier.id;
+    }
+  }
+
   const manageToken = `booked-${crypto.randomUUID()}`;
 
   // Everything DB-side runs in one transaction: atomic seat claim, then the
@@ -1012,7 +1041,43 @@ export async function createGroupBookingAction(input: {
       // qty and reading it back (RETURNING) hands this order a contiguous,
       // never-reused serial range even under concurrency.
       let serialHigh = 0; // ticketsIssued AFTER this claim; serials = high-qty+1 .. high
-      if (ticketed) {
+      if (ticketed && selectedTierId) {
+        // Tiered claim: the category's own row is what bounds availability
+        // here, not Session.capacity/unlimited (that's the whole point of
+        // categories — see the TicketTier schema comment). Same atomic-UPDATE
+        // discipline as every other seat claim in this file: the DB evaluates
+        // the capacity check as part of the UPDATE and takes the row lock, so
+        // two racing orders for the last VIP seat can't both succeed.
+        const tierRows = await tx.$queryRaw<{ seatsTaken: number }[]>`
+          UPDATE "TicketTier"
+          SET "seatsTaken" = "seatsTaken" + ${qty}
+          WHERE id = ${selectedTierId}
+            AND "sessionId" = ${input.sessionId}
+            AND (capacity IS NULL OR "seatsTaken" + ${qty} <= capacity)
+          RETURNING "seatsTaken"
+        `;
+        if (tierRows.length === 0) throw new Error("SESSION_UNAVAILABLE");
+
+        // Still bump the session's aggregate counters (roster/scanner display
+        // + the monotonic serial allocator) — just without re-checking
+        // Session.capacity, since the tier already gated this claim. If this
+        // second UPDATE matches zero rows (session got cancelled or started
+        // between the two statements), the whole transaction rolls back,
+        // including the tier claim above — no seats can leak.
+        const rows = await tx.$queryRaw<{ ticketsIssued: number }[]>`
+          UPDATE "Session"
+          SET "seatsTaken" = "seatsTaken" + ${qty},
+              "ticketsIssued" = "ticketsIssued" + ${qty},
+              "updatedAt" = NOW()
+          WHERE id = ${input.sessionId}
+            AND "eventTypeId" = ${eventType.id}
+            AND cancelled = false
+            AND "startTime" > NOW()
+          RETURNING "ticketsIssued"
+        `;
+        if (rows.length === 0) throw new Error("SESSION_UNAVAILABLE");
+        serialHigh = Number(rows[0].ticketsIssued);
+      } else if (ticketed) {
         const rows = await tx.$queryRaw<{ ticketsIssued: number }[]>`
           UPDATE "Session"
           SET "seatsTaken" = "seatsTaken" + ${qty},
@@ -1072,6 +1137,7 @@ export async function createGroupBookingAction(input: {
         const rowsToCreate = Array.from({ length: qty }, (_, i) => ({
           bookingId: created.id,
           sessionId: s.id,
+          tierId: selectedTierId,
           code: `tkt-${crypto.randomUUID()}`,
           serial: serialHigh - qty + 1 + i,
           attendeeName: attendeeNames[i] || null,

@@ -488,8 +488,34 @@ model Session {
 
   bookings        Booking[]
   tickets         Ticket[]
+  tiers           TicketTier[]
 
   @@index([eventTypeId, startTime])
+}
+
+// A ticket category within one session — "VIP" / "Premium" / "Normal", each
+// with its own seat count (Phase 3a). Optional: a ticketed session with no
+// tiers behaves exactly as before (flat capacity on Session itself). When
+// tiers exist, they — not Session.capacity/unlimited — are what bounds
+// availability; Session.seatsTaken keeps counting the aggregate for the
+// existing roster/scanner display, but the atomic claim checks the tier row.
+model TicketTier {
+  id         String   @id @default(cuid())
+  sessionId  String
+  session    Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  name       String
+  // null = unlimited within this tier (mirrors Session.unlimited one level
+  // down — e.g. "General" with no cap alongside a capped "VIP").
+  capacity   Int?
+  // Same atomic-UPDATE discipline as Session.seatsTaken: only ever touched via
+  // `UPDATE ... WHERE (capacity IS NULL OR seatsTaken + qty <= capacity)`.
+  seatsTaken Int      @default(0)
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  tickets    Ticket[]
+
+  @@index([sessionId])
 }
 
 // One admission ticket. Many tickets attach to a single Booking (one order =
@@ -506,6 +532,11 @@ model Ticket {
   // only so the FK is SetNull-safe; ticketing always sets it.
   sessionId    String?
   session      Session?     @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  // Which category this ticket belongs to. Null for sessions with no tiers
+  // configured (the common case pre-Phase-3a, and still valid afterward — a
+  // tenant isn't required to set up categories).
+  tierId       String?
+  tier         TicketTier?  @relation(fields: [tierId], references: [id], onDelete: SetNull)
   // Unguessable QR payload and public URL (/ticket/{code}). The only auth for
   // the ticket page — same token-not-login pattern as Booking.manageToken.
   code         String       @unique
@@ -524,6 +555,7 @@ model Ticket {
 
   @@unique([sessionId, serial])
   @@index([bookingId])
+  @@index([tierId])
 }
 
 enum TicketStatus {

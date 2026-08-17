@@ -698,17 +698,45 @@ export async function createSessionAction(formData: FormData): Promise<void> {
     }
   }
 
-  await prisma.session.create({
-    data: {
-      eventTypeId: eventType.id,
-      startTime: start,
-      durationMinutes: eventType.durationMinutes,
-      capacity,
-      unlimited,
-      meetingUrl,
-      meetingProvider,
-      calendarEventId,
-    },
+  // Ticket categories (Phase 3a): up to 4 fixed row slots in the form, so the
+  // owner UI doesn't need client JS for "add another row." A row counts only
+  // if it has a name; a row's capacity field left blank means unlimited for
+  // that category. Only meaningful for ticketed events — a stray field can't
+  // create tiers on a plain group class.
+  const tierRows: { name: string; capacity: number | null }[] = [];
+  if (eventType.issuesTickets) {
+    for (let i = 0; i < 4; i++) {
+      const rawName = String(formData.get(`tierName${i}`) || "").trim().slice(0, 100);
+      if (!rawName) continue;
+      const rawCap = String(formData.get(`tierCapacity${i}`) || "").trim();
+      const cap = rawCap ? clampInt(rawCap, 1, 100_000, 1) : null;
+      tierRows.push({ name: rawName, capacity: cap });
+    }
+  }
+
+  await prisma.$transaction(async (tx) => {
+    const created = await tx.session.create({
+      data: {
+        eventTypeId: eventType.id,
+        startTime: start,
+        durationMinutes: eventType.durationMinutes,
+        capacity,
+        unlimited,
+        meetingUrl,
+        meetingProvider,
+        calendarEventId,
+      },
+    });
+    if (tierRows.length > 0) {
+      await tx.ticketTier.createMany({
+        data: tierRows.map((t, i) => ({
+          sessionId: created.id,
+          name: t.name,
+          capacity: t.capacity,
+          sortOrder: i,
+        })),
+      });
+    }
   });
 
   revalidatePath(`/dashboard/event-types/${eventType.id}`);

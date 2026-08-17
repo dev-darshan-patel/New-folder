@@ -32,7 +32,13 @@ export default async function SessionRosterPage({
           // Per-ticket check-in status for the roster below. Only populated
           // for ticketed events; empty for classic group sessions.
           tickets: {
-            select: { serial: true, attendeeName: true, status: true, checkedInAt: true },
+            select: {
+              serial: true,
+              attendeeName: true,
+              status: true,
+              checkedInAt: true,
+              tier: { select: { name: true } },
+            },
             orderBy: { serial: "asc" },
           },
         },
@@ -131,7 +137,8 @@ export default async function SessionRosterPage({
                         title={t.checkedInAt ? `Checked in ${t.checkedInAt.toLocaleString()}` : undefined}
                       >
                         #{t.serial}
-                        {t.attendeeName ? ` ${t.attendeeName}` : ""}
+                        {t.tier ? ` ${t.tier.name}` : ""}
+                        {t.attendeeName ? ` · ${t.attendeeName}` : ""}
                         {t.status === "CHECKED_IN" && " ✓"}
                       </li>
                     ))}

@@ -11,13 +11,25 @@ import { NativeSelect } from "@/components/ui/native-select";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { BRAND_COLOR } from "@/lib/brand";
 
+export type GroupTier = { id: string; name: string; seatsLeft: number };
+
 // A group session as passed in from the server component.
 export type GroupSession = {
   id: string;
   startUtc: string;
   seatsLeft: number;
   unlimited?: boolean;
+  tiers: GroupTier[];
 };
+
+// The server encodes "no cap" as Number.MAX_SAFE_INTEGER (see loadUpcomingSessions
+// / the tier mapping) rather than a separate unlimited flag per number, so
+// arithmetic like summing tier remainders stays simple. Never render that
+// sentinel as a literal number — every "seats left" display must go through this.
+const UNLIMITED_SENTINEL = Number.MAX_SAFE_INTEGER;
+function formatSeatsLeft(n: number): string {
+  return n >= UNLIMITED_SENTINEL ? "Unlimited" : `${n} seat${n === 1 ? "" : "s"} left`;
+}
 
 // Format a UTC instant as a full "Fri, Jul 10 · 6:00 PM" label in the given tz.
 function fmtSession(iso: string, tz: string): string {
@@ -52,6 +64,8 @@ export default function GroupBookingWidget({
   // Ticketing: how many tickets to buy and an optional name per ticket.
   const [quantity, setQuantity] = useState(1);
   const [attendeeNames, setAttendeeNames] = useState<string[]>([]);
+  // Ticket category (Phase 3a) — only meaningful when the session has tiers.
+  const [tierId, setTierId] = useState<string | null>(null);
   const [submitting, startSubmit] = useTransition();
   const [result, setResult] = useState<BookingResult | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
@@ -183,6 +197,11 @@ export default function GroupBookingWidget({
                   onClick={() => {
                     setSelected(s);
                     setFormError(null);
+                    setQuantity(1);
+                    setAttendeeNames([]);
+                    // Pre-pick the first category with room, so quantity has
+                    // something sane to bound itself against immediately.
+                    setTierId(s.tiers.find((t) => t.seatsLeft > 0)?.id ?? null);
                   }}
                   style={full ? undefined : { color: accent }}
                   className={`flex w-full items-center justify-between rounded-lg border border-border px-4 py-3 text-sm font-medium transition-colors ${
@@ -193,7 +212,7 @@ export default function GroupBookingWidget({
                 >
                   <span>{fmtSession(s.startUtc, viewerTz)}</span>
                   <span className={`text-xs ${full ? "text-red-600" : "text-muted-foreground"}`}>
-                    {full ? "Full" : `${s.seatsLeft} seat${s.seatsLeft === 1 ? "" : "s"} left`}
+                    {full ? "Full" : formatSeatsLeft(s.seatsLeft)}
                   </span>
                 </button>
               );
@@ -203,6 +222,13 @@ export default function GroupBookingWidget({
       ) : (
         <form
           onSubmit={(e) => {
+            // Guard against submitting past the disabled state below —
+            // categories are the source of truth for whether this order can
+            // proceed at all when the session has any configured.
+            if (issuesTickets && selected.tiers.length > 0 && !tierId) {
+              e.preventDefault();
+              return;
+            }
             e.preventDefault();
             const fd = new FormData(e.currentTarget);
             setFormError(null);
@@ -220,7 +246,11 @@ export default function GroupBookingWidget({
                 viewerTimezone: viewerTz,
                 answers,
                 ...(issuesTickets
-                  ? { quantity, attendeeNames: attendeeNames.slice(0, quantity) }
+                  ? {
+                      quantity,
+                      attendeeNames: attendeeNames.slice(0, quantity),
+                      ...(selected.tiers.length > 0 && tierId ? { tierId } : {}),
+                    }
                   : {}),
               });
               if (res.ok) setResult(res);
@@ -243,56 +273,100 @@ export default function GroupBookingWidget({
             </Button>
           </div>
           <div className="mt-4 space-y-3">
-            {issuesTickets && (
-              <div className="space-y-3 rounded-lg border border-border bg-slate-50 p-3">
-                <label className="block text-sm">
-                  <span className="mb-1 block font-medium text-slate-700">Number of tickets</span>
-                  <NativeSelect
-                    value={String(quantity)}
-                    onChange={(e) => {
-                      const n = Number(e.target.value);
-                      setQuantity(n);
-                      setAttendeeNames((prev) => {
-                        const next = prev.slice(0, n);
-                        while (next.length < n) next.push("");
-                        return next;
-                      });
-                    }}
-                    className="w-32"
-                  >
-                    {Array.from(
-                      { length: Math.max(1, Math.min(maxTicketsPerOrder, selected.seatsLeft)) },
-                      (_, i) => i + 1,
-                    ).map((n) => (
-                      <option key={n} value={n}>
-                        {n}
-                      </option>
-                    ))}
-                  </NativeSelect>
-                </label>
-                {quantity > 1 && (
-                  <div className="space-y-2">
-                    <p className="text-xs text-muted-foreground">
-                      Name on each ticket (optional — helps at the gate).
+            {issuesTickets && (() => {
+              const hasTiers = selected.tiers.length > 0;
+              const activeTier = hasTiers
+                ? selected.tiers.find((t) => t.id === tierId)
+                : undefined;
+              // No category picked (or all sold out) → nothing to buy yet.
+              const tierBlocked = hasTiers && !activeTier;
+              const qtyCap = hasTiers
+                ? Math.min(maxTicketsPerOrder, activeTier?.seatsLeft ?? 0)
+                : Math.min(maxTicketsPerOrder, selected.seatsLeft);
+
+              return (
+                <div className="space-y-3 rounded-lg border border-border bg-slate-50 p-3">
+                  {hasTiers && (
+                    <label className="block text-sm">
+                      <span className="mb-1 block font-medium text-slate-700">Ticket type</span>
+                      <NativeSelect
+                        value={tierId ?? ""}
+                        onChange={(e) => {
+                          setTierId(e.target.value || null);
+                          setQuantity(1);
+                          setAttendeeNames([]);
+                        }}
+                        className="w-full"
+                      >
+                        <option value="" disabled>
+                          Choose a ticket type…
+                        </option>
+                        {selected.tiers.map((t) => (
+                          <option key={t.id} value={t.id} disabled={t.seatsLeft <= 0}>
+                            {t.name} {t.seatsLeft <= 0 ? "— sold out" : `— ${formatSeatsLeft(t.seatsLeft)}`}
+                          </option>
+                        ))}
+                      </NativeSelect>
+                    </label>
+                  )}
+                  {tierBlocked ? (
+                    <p className="text-sm text-red-600">
+                      {tierId
+                        ? "That ticket type just sold out — please pick another."
+                        : "All ticket types are sold out."}
                     </p>
-                    {Array.from({ length: quantity }, (_, i) => (
-                      <Input
-                        key={i}
-                        value={attendeeNames[i] ?? ""}
-                        onChange={(e) =>
-                          setAttendeeNames((prev) => {
-                            const next = [...prev];
-                            next[i] = e.target.value;
-                            return next;
-                          })
-                        }
-                        placeholder={`Ticket ${i + 1} attendee (optional)`}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
+                  ) : (
+                    <>
+                      <label className="block text-sm">
+                        <span className="mb-1 block font-medium text-slate-700">
+                          Number of tickets
+                        </span>
+                        <NativeSelect
+                          value={String(quantity)}
+                          onChange={(e) => {
+                            const n = Number(e.target.value);
+                            setQuantity(n);
+                            setAttendeeNames((prev) => {
+                              const next = prev.slice(0, n);
+                              while (next.length < n) next.push("");
+                              return next;
+                            });
+                          }}
+                          className="w-32"
+                        >
+                          {Array.from({ length: Math.max(1, qtyCap) }, (_, i) => i + 1).map((n) => (
+                            <option key={n} value={n}>
+                              {n}
+                            </option>
+                          ))}
+                        </NativeSelect>
+                      </label>
+                      {quantity > 1 && (
+                        <div className="space-y-2">
+                          <p className="text-xs text-muted-foreground">
+                            Name on each ticket (optional — helps at the gate).
+                          </p>
+                          {Array.from({ length: quantity }, (_, i) => (
+                            <Input
+                              key={i}
+                              value={attendeeNames[i] ?? ""}
+                              onChange={(e) =>
+                                setAttendeeNames((prev) => {
+                                  const next = [...prev];
+                                  next[i] = e.target.value;
+                                  return next;
+                                })
+                              }
+                              placeholder={`Ticket ${i + 1} attendee (optional)`}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              );
+            })()}
             <Input name="name" required placeholder="Your name" />
             <Input name="email" type="email" required placeholder="Your email" />
             <Textarea
@@ -314,7 +388,7 @@ export default function GroupBookingWidget({
               </p>
             )}
             <SubmitButton
-              disabled={submitting}
+              disabled={submitting || (issuesTickets && selected.tiers.length > 0 && !tierId)}
               style={{ backgroundColor: accent }}
               className="w-full"
             >

@@ -18,21 +18,23 @@ export function extractTicketCode(input: string): string | null {
 // outcomes, and the code inside each branch depends on things the others
 // don't have (e.g. `checkedInAt` only exists on ALREADY_USED). A union type
 // is what forces the UI to handle each case explicitly.
+type TicketSummary = { serial: number; attendeeName: string | null; tierName: string | null };
+
 export type CheckInResult =
   | {
       status: "OK";
-      ticket: { serial: number; attendeeName: string | null };
+      ticket: TicketSummary;
       checkedIn: number;
       capacity: number | null;
     }
   | {
       status: "ALREADY_USED";
-      ticket: { serial: number; attendeeName: string | null };
+      ticket: TicketSummary;
       checkedInAt: Date;
       checkedIn: number;
       capacity: number | null;
     }
-  | { status: "VOID"; ticket: { serial: number; attendeeName: string | null } }
+  | { status: "VOID"; ticket: TicketSummary }
   | { status: "WRONG_EVENT"; expectedSessionId: string; actualSessionId: string | null }
   | { status: "NOT_FOUND"; rawInput: string };
 
@@ -74,10 +76,16 @@ export async function checkInTicket(
       status: true,
       checkedInAt: true,
       sessionId: true,
+      tier: { select: { name: true } },
     },
   });
 
   if (!ticket) return { status: "NOT_FOUND", rawInput };
+  const summary: TicketSummary = {
+    serial: ticket.serial,
+    attendeeName: ticket.attendeeName,
+    tierName: ticket.tier?.name ?? null,
+  };
 
   // Wrong door: the ticket exists but belongs to a different session. Report
   // it distinctly from NOT_FOUND so the scanner UI can show a clearer error
@@ -92,18 +100,14 @@ export async function checkInTicket(
 
   if (flipped.count === 1) {
     const counts = await countsForSession(sessionId);
-    return {
-      status: "OK",
-      ticket: { serial: ticket.serial, attendeeName: ticket.attendeeName },
-      ...counts,
-    };
+    return { status: "OK", ticket: summary, ...counts };
   }
 
   if (ticket.status === "CHECKED_IN" && ticket.checkedInAt) {
     const counts = await countsForSession(sessionId);
     return {
       status: "ALREADY_USED",
-      ticket: { serial: ticket.serial, attendeeName: ticket.attendeeName },
+      ticket: summary,
       checkedInAt: ticket.checkedInAt,
       ...counts,
     };
@@ -111,10 +115,7 @@ export async function checkInTicket(
 
   // Refunded or otherwise invalidated. The status guard already prevents
   // admission — this branch just names the reason for the UI.
-  return {
-    status: "VOID",
-    ticket: { serial: ticket.serial, attendeeName: ticket.attendeeName },
-  };
+  return { status: "VOID", ticket: summary };
 }
 
 async function countsForSession(sessionId: string) {

@@ -165,15 +165,41 @@ async function loadUpcomingSessions(eventTypeId: string) {
       startTime: { gte: new Date() },
     },
     orderBy: { startTime: "asc" },
-    select: { id: true, startTime: true, capacity: true, seatsTaken: true, unlimited: true },
+    select: {
+      id: true,
+      startTime: true,
+      capacity: true,
+      seatsTaken: true,
+      unlimited: true,
+      tiers: {
+        orderBy: { sortOrder: "asc" },
+        select: { id: true, name: true, capacity: true, seatsTaken: true },
+      },
+    },
     take: 50,
   });
-  return rows.map((r) => ({
-    id: r.id,
-    startUtc: r.startTime.toISOString(),
-    unlimited: r.unlimited,
-    // Unlimited sessions never run out; use a sentinel so the widget's
-    // "sold out" and quantity-cap logic treats them as always available.
-    seatsLeft: r.unlimited ? Number.MAX_SAFE_INTEGER : Math.max(0, r.capacity - r.seatsTaken),
-  }));
+  return rows.map((r) => {
+    const tiers = r.tiers.map((t) => ({
+      id: t.id,
+      name: t.name,
+      seatsLeft: t.capacity == null ? Number.MAX_SAFE_INTEGER : Math.max(0, t.capacity - t.seatsTaken),
+    }));
+    // Once a session has categories, Session.capacity is no longer what
+    // bounds availability (each tier's own cap is) — see createGroupBookingAction.
+    // The top-level "seats left" the picker shows must reflect that: sum of
+    // what each category has left, so "Full" only fires when every category is.
+    const seatsLeft =
+      tiers.length > 0
+        ? tiers.reduce((sum, t) => Math.min(sum + t.seatsLeft, Number.MAX_SAFE_INTEGER), 0)
+        : r.unlimited
+          ? Number.MAX_SAFE_INTEGER
+          : Math.max(0, r.capacity - r.seatsTaken);
+    return {
+      id: r.id,
+      startUtc: r.startTime.toISOString(),
+      unlimited: r.unlimited,
+      seatsLeft,
+      tiers,
+    };
+  });
 }

@@ -18,6 +18,7 @@ const getTicket = async (code: string) =>
     where: { code },
     include: {
       session: true,
+      tier: true,
       booking: { include: { eventType: true, user: true } },
     },
   });
@@ -103,6 +104,12 @@ export default async function TicketPage({ params }: { params: Promise<{ code: s
               <dt className="text-muted-foreground">Ticket no.</dt>
               <dd className="font-semibold text-foreground">#{ticket.serial}</dd>
             </div>
+            {ticket.tier ? (
+              <div className="flex justify-between gap-4">
+                <dt className="text-muted-foreground">Category</dt>
+                <dd className="font-medium text-foreground">{ticket.tier.name}</dd>
+              </div>
+            ) : null}
             {ticket.attendeeName ? (
               <div className="flex justify-between gap-4">
                 <dt className="text-muted-foreground">Attendee</dt>
