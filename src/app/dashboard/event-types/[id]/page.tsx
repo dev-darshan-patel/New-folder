@@ -125,6 +125,7 @@ export default async function EditEventTypePage({
           durationMinutes={eventType.durationMinutes}
           businessTimezone={user.timezone}
           issuesTickets={eventType.issuesTickets}
+          pricing={pricing}
         />
       )}
     </div>

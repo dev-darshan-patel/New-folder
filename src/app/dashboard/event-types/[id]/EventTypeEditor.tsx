@@ -245,6 +245,7 @@ export default function EventTypeEditor({ initial }: { initial: Initial }) {
           currency={initial.currency}
           pricing={initial.pricing}
           isGroup={isGroup}
+          issuesTickets={issuesTickets}
           allowRecurring={allowRecurring}
           mode={mode}
         />
@@ -686,6 +687,7 @@ function PriceField({
   currency,
   pricing,
   isGroup,
+  issuesTickets,
   allowRecurring,
   mode,
 }: {
@@ -693,10 +695,15 @@ function PriceField({
   currency: string | null;
   pricing: { canPrice: true; currency: string } | { canPrice: false; reason: string };
   isGroup: boolean;
+  issuesTickets: boolean;
   allowRecurring: boolean;
   mode: string;
 }) {
-  const scopeFenceOk = !isGroup && !allowRecurring && mode === "SOLO";
+  // A ticketed group event can also carry a flat price (Phase 3b) — the
+  // fallback for a session with no ticket categories configured; a session
+  // WITH categories ignores this and prices per-tier instead. A plain
+  // (non-ticketed) group class stays out of scope entirely.
+  const scopeFenceOk = (!isGroup || issuesTickets) && !allowRecurring && mode === "SOLO";
   if (!scopeFenceOk) return null;
 
   const initialDisplay =
@@ -718,6 +725,8 @@ function PriceField({
       <p className="text-sm font-medium text-slate-800">Charge for this event type</p>
       <p className="mt-1 text-xs text-slate-600">
         Leave blank to keep it free. Amount is charged when the customer books.
+        {issuesTickets &&
+          " If a session has ticket categories configured below, this price is ignored — each category is priced separately."}
       </p>
       <div className="mt-3 flex items-center gap-2">
         <span className="text-sm text-muted-foreground">{pricing.currency}</span>

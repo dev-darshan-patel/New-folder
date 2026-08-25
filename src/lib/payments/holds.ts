@@ -1,5 +1,6 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
+import { releaseTicketedSeats } from "@/lib/ticket-release";
 import logger from "@/lib/logger";
 
 // Holds are freed automatically when the invitee takes too long at the
@@ -19,9 +20,23 @@ export async function expireStalePaymentHolds(): Promise<number> {
       paymentStatus: "PENDING",
       createdAt: { lt: cutoff },
     },
-    select: { id: true },
+    select: { id: true, sessionId: true, ticketQty: true, ticketTierId: true },
   });
   if (stale.length === 0) return 0;
+
+  // Ticketed holds reserved real seats at checkout-initiation time (no Ticket
+  // rows exist yet — see Booking.ticketQty's schema comment) — give those
+  // back one booking at a time before cancelling. 1:1 SOLO holds have no
+  // counters to release; their "hold" is purely the blocking booking status.
+  for (const b of stale) {
+    if (b.sessionId && b.ticketQty != null) {
+      await releaseTicketedSeats(prisma, {
+        sessionId: b.sessionId,
+        tierId: b.ticketTierId,
+        qty: b.ticketQty,
+      });
+    }
+  }
 
   const { count } = await prisma.booking.updateMany({
     where: { id: { in: stale.map((b) => b.id) } },

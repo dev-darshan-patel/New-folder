@@ -11,7 +11,22 @@ import { NativeSelect } from "@/components/ui/native-select";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { BRAND_COLOR } from "@/lib/brand";
 
-export type GroupTier = { id: string; name: string; seatsLeft: number };
+export type GroupTier = {
+  id: string;
+  name: string;
+  seatsLeft: number;
+  // Phase 3b. Null = this category is free.
+  priceCents: number | null;
+};
+
+// A client-safe stand-in for lib/payments.ts's formatPrice() — that module is
+// `import "server-only"` (it reads PlatformSettings), so a client component
+// can't import it directly. Every currency this app supports uses 100 minor
+// units (cents/paise), same assumption formatPrice's own doc comment makes,
+// so this is a faithful client-side echo, not an approximation.
+function fmtMoney(cents: number, currency: string): string {
+  return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(cents / 100);
+}
 
 // A group session as passed in from the server component.
 export type GroupSession = {
@@ -29,6 +44,21 @@ export type GroupSession = {
 const UNLIMITED_SENTINEL = Number.MAX_SAFE_INTEGER;
 function formatSeatsLeft(n: number): string {
   return n >= UNLIMITED_SENTINEL ? "Unlimited" : `${n} seat${n === 1 ? "" : "s"} left`;
+}
+
+// The price that governs one ticket in this order — a tiered session's
+// active tier price, or the flat event-level price when there are no tiers.
+// Mirrors exactly how the server picks which price to charge (tiers replace
+// the flat price the same way they replace flat capacity).
+function unitPriceFor(
+  session: GroupSession,
+  tierId: string | null,
+  flatPriceCents: number | null,
+): number | null {
+  if (session.tiers.length > 0) {
+    return session.tiers.find((t) => t.id === tierId)?.priceCents ?? null;
+  }
+  return flatPriceCents;
 }
 
 // Format a UTC instant as a full "Fri, Jul 10 · 6:00 PM" label in the given tz.
@@ -51,6 +81,8 @@ export default function GroupBookingWidget({
   sessions,
   issuesTickets = false,
   maxTicketsPerOrder = 1,
+  currency = null,
+  flatPriceCents = null,
 }: {
   eventTypeId: string;
   timezone: string;
@@ -59,6 +91,12 @@ export default function GroupBookingWidget({
   sessions: GroupSession[];
   issuesTickets?: boolean;
   maxTicketsPerOrder?: number;
+  // Phase 3b. `currency` is one per event type (set the first time anything
+  // on it is priced) and applies to both flatPriceCents and every tier's
+  // priceCents. `flatPriceCents` only applies to a session with NO tiers —
+  // a session with tiers ignores it and prices per-category instead.
+  currency?: string | null;
+  flatPriceCents?: number | null;
 }) {
   const [selected, setSelected] = useState<GroupSession | null>(null);
   // Ticketing: how many tickets to buy and an optional name per ticket.
@@ -105,8 +143,26 @@ export default function GroupBookingWidget({
     }
   }, [result]);
 
+  // Paid ticket order (Phase 3b): the seats are reserved and the booking
+  // exists as PENDING_PAYMENT — send the buyer to the provider's checkout.
+  // Same redirect mechanism the 1:1 BookingWidget already uses for a paid
+  // SOLO booking.
+  useEffect(() => {
+    if (result?.ok && result.checkoutUrl) {
+      window.location.href = result.checkoutUrl;
+    }
+  }, [result]);
+
   if (result?.ok && result.redirectUrl) {
     return <p className="mt-10 text-center text-sm text-muted-foreground">Redirecting…</p>;
+  }
+
+  if (result?.ok && result.checkoutUrl) {
+    return (
+      <p className="mt-10 text-center text-sm text-muted-foreground">
+        Redirecting you to checkout…
+      </p>
+    );
   }
 
   if (result?.ok) {
@@ -284,6 +340,11 @@ export default function GroupBookingWidget({
                 ? Math.min(maxTicketsPerOrder, activeTier?.seatsLeft ?? 0)
                 : Math.min(maxTicketsPerOrder, selected.seatsLeft);
 
+              // The unit price for this order: the active tier's own price
+              // when tiers exist, else the flat event-level price — mirrors
+              // exactly how the server picks which price governs the order.
+              const unitPriceCents = hasTiers ? (activeTier?.priceCents ?? null) : flatPriceCents;
+
               return (
                 <div className="space-y-3 rounded-lg border border-border bg-slate-50 p-3">
                   {hasTiers && (
@@ -303,11 +364,20 @@ export default function GroupBookingWidget({
                         </option>
                         {selected.tiers.map((t) => (
                           <option key={t.id} value={t.id} disabled={t.seatsLeft <= 0}>
-                            {t.name} {t.seatsLeft <= 0 ? "— sold out" : `— ${formatSeatsLeft(t.seatsLeft)}`}
+                            {t.name}{" "}
+                            {t.seatsLeft <= 0 ? "— sold out" : `— ${formatSeatsLeft(t.seatsLeft)}`}
+                            {t.priceCents != null && currency
+                              ? ` — ${fmtMoney(t.priceCents, currency)}`
+                              : ""}
                           </option>
                         ))}
                       </NativeSelect>
                     </label>
+                  )}
+                  {!hasTiers && flatPriceCents != null && currency && (
+                    <p className="text-sm text-slate-700">
+                      {fmtMoney(flatPriceCents, currency)} per ticket
+                    </p>
                   )}
                   {tierBlocked ? (
                     <p className="text-sm text-red-600">
@@ -341,6 +411,11 @@ export default function GroupBookingWidget({
                           ))}
                         </NativeSelect>
                       </label>
+                      {unitPriceCents != null && currency && (
+                        <p className="text-sm font-medium text-foreground">
+                          Total: {fmtMoney(unitPriceCents * quantity, currency)}
+                        </p>
+                      )}
                       {quantity > 1 && (
                         <div className="space-y-2">
                           <p className="text-xs text-muted-foreground">
@@ -392,7 +467,12 @@ export default function GroupBookingWidget({
               style={{ backgroundColor: accent }}
               className="w-full"
             >
-              {submitting ? "Booking…" : "Confirm booking"}
+              {(() => {
+                const priced =
+                  issuesTickets && (unitPriceFor(selected, tierId, flatPriceCents) ?? 0) > 0;
+                if (submitting) return priced ? "Redirecting to payment…" : "Booking…";
+                return priced ? "Continue to payment" : "Confirm booking";
+              })()}
             </SubmitButton>
           </div>
         </form>

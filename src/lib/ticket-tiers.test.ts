@@ -1,9 +1,21 @@
 import { describe, it, expect } from "vitest";
 import { tierRemaining, validateTierSelection, type TierInfo } from "@/lib/ticket-tiers";
 
-const vip: TierInfo = { id: "t-vip", name: "VIP", capacity: 10, seatsTaken: 8 };
-const soldOut: TierInfo = { id: "t-sold", name: "Front Row", capacity: 5, seatsTaken: 5 };
-const general: TierInfo = { id: "t-gen", name: "General", capacity: null, seatsTaken: 500 };
+const vip: TierInfo = { id: "t-vip", name: "VIP", capacity: 10, seatsTaken: 8, priceCents: 5000 };
+const soldOut: TierInfo = {
+  id: "t-sold",
+  name: "Front Row",
+  capacity: 5,
+  seatsTaken: 5,
+  priceCents: 10000,
+};
+const general: TierInfo = {
+  id: "t-gen",
+  name: "General",
+  capacity: null,
+  seatsTaken: 500,
+  priceCents: null,
+};
 
 describe("tierRemaining", () => {
   it("returns capacity minus seatsTaken for a capped tier", () => {
@@ -12,7 +24,9 @@ describe("tierRemaining", () => {
   it("floors at zero rather than going negative", () => {
     // Guards against a display bug if seatsTaken ever exceeds capacity due to
     // a race the atomic claim should already prevent — defence in depth.
-    expect(tierRemaining({ id: "x", name: "X", capacity: 5, seatsTaken: 7 })).toBe(0);
+    expect(
+      tierRemaining({ id: "x", name: "X", capacity: 5, seatsTaken: 7, priceCents: null }),
+    ).toBe(0);
   });
   it("returns null (unlimited) for a null-capacity tier regardless of seatsTaken", () => {
     expect(tierRemaining(general)).toBeNull();

@@ -1,9 +1,12 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { formatPrice } from "@/lib/payments";
 import { createSessionAction, cancelSessionAction } from "../../actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SubmitButton } from "@/components/ui/submit-button";
+
+type Pricing = { canPrice: true; currency: string } | { canPrice: false; reason: string };
 
 // Owner-facing section that lists this group event type's sessions and lets
 // the owner create/cancel them. Rendered from the event type editor page but
@@ -14,12 +17,14 @@ export default async function SessionsSection({
   durationMinutes,
   businessTimezone,
   issuesTickets = false,
+  pricing = { canPrice: false, reason: "" },
 }: {
   eventTypeId: string;
   defaultCapacity: number;
   durationMinutes: number;
   businessTimezone: string;
   issuesTickets?: boolean;
+  pricing?: Pricing;
 }) {
   const now = new Date();
   const sessions = await prisma.session.findMany({
@@ -79,6 +84,8 @@ export default async function SessionsSection({
               Ticket categories (optional — e.g. VIP, Premium, Normal). Leave capacity
               blank for unlimited within that category. Leave a row&rsquo;s name blank to
               skip it.
+              {pricing.canPrice &&
+                ` Set a price (in ${pricing.currency}) to charge for that category — leave it blank to keep it free.`}
             </p>
             <div className="mt-2 space-y-2">
               {[0, 1, 2, 3].map((i) => (
@@ -95,6 +102,16 @@ export default async function SessionsSection({
                     placeholder="Seats (blank = unlimited)"
                     className="w-52"
                   />
+                  {pricing.canPrice && (
+                    <Input
+                      type="number"
+                      name={`tierPrice${i}`}
+                      min={1}
+                      step="1"
+                      placeholder={`Price in ${pricing.currency} cents (blank = free)`}
+                      className="w-64"
+                    />
+                  )}
                 </div>
               ))}
             </div>
@@ -148,6 +165,9 @@ export default async function SessionsSection({
                         >
                           {t.name}: {t.seatsTaken}
                           {t.capacity != null ? ` / ${t.capacity}` : " (unlimited)"}
+                          {t.priceCents != null && pricing.canPrice
+                            ? ` · ${formatPrice(t.priceCents, pricing.currency)}`
+                            : ""}
                         </li>
                       ))}
                     </ul>

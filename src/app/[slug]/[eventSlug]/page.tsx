@@ -136,6 +136,8 @@ export default async function BookingPage({
           sessions={await loadUpcomingSessions(eventType.id)}
           issuesTickets={eventType.issuesTickets}
           maxTicketsPerOrder={eventType.maxTicketsPerOrder}
+          currency={eventType.currency}
+          flatPriceCents={eventType.priceCents}
         />
       ) : (
         <BookingWidget
@@ -173,7 +175,7 @@ async function loadUpcomingSessions(eventTypeId: string) {
       unlimited: true,
       tiers: {
         orderBy: { sortOrder: "asc" },
-        select: { id: true, name: true, capacity: true, seatsTaken: true },
+        select: { id: true, name: true, capacity: true, seatsTaken: true, priceCents: true },
       },
     },
     take: 50,
@@ -183,6 +185,7 @@ async function loadUpcomingSessions(eventTypeId: string) {
       id: t.id,
       name: t.name,
       seatsLeft: t.capacity == null ? Number.MAX_SAFE_INTEGER : Math.max(0, t.capacity - t.seatsTaken),
+      priceCents: t.priceCents,
     }));
     // Once a session has categories, Session.capacity is no longer what
     // bounds availability (each tier's own cap is) — see createGroupBookingAction.

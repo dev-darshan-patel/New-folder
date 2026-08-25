@@ -6,6 +6,7 @@ import { renderTemplate } from "@/lib/email-templates";
 import { sendEmail } from "@/lib/email";
 import { buildIcs } from "@/lib/ics";
 import { formatWhen } from "@/lib/format";
+import { releaseTicketedSeats } from "@/lib/ticket-release";
 import logger from "@/lib/logger";
 
 // Provider webhook receiver. One dynamic route serves both — the [provider]
@@ -51,8 +52,16 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ pro
 
   if (event.type === "payment.failed") {
     // Free the slot. Idempotent-safe: repeated events on an already-cancelled
-    // booking are no-ops.
+    // booking are no-ops — this guard is also what stops a ticketed order's
+    // seats from being released twice on a duplicate delivery.
     if (booking.status !== "CANCELLED") {
+      if (booking.sessionId && booking.ticketQty != null) {
+        await releaseTicketedSeats(prisma, {
+          sessionId: booking.sessionId,
+          tierId: booking.ticketTierId,
+          qty: booking.ticketQty,
+        });
+      }
       await prisma.booking.update({
         where: { id: booking.id },
         data: { status: "CANCELLED", paymentStatus: "FAILED" },
@@ -63,8 +72,55 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ pro
 
   // payment.succeeded.
   if (booking.status === "CONFIRMED" && booking.paymentStatus === "PAID") {
-    // Duplicate webhook — nothing to do.
+    // Duplicate webhook — nothing to do. This also protects ticket creation
+    // below from running twice: once confirmed, every retry short-circuits
+    // here before it can allocate a second batch of serials for the same order.
     return NextResponse.json({ received: true, deduped: true });
+  }
+
+  // Ticketing (Phase 3b): the seats were already reserved when checkout
+  // started — now that payment actually landed, allocate real serials and
+  // create the Ticket rows (deferred until now so an abandoned checkout
+  // never burns a serial or QR code nobody received). Bumping
+  // Session.ticketsIssued is the same atomic monotonic-allocator pattern the
+  // free-ticket path uses, just triggered by the webhook instead of the
+  // initial booking action.
+  let ticketCodes: string[] = [];
+  if (booking.sessionId && booking.ticketQty != null) {
+    const qty = booking.ticketQty;
+    const sessionId = booking.sessionId;
+    const rows = await prisma.$queryRaw<{ ticketsIssued: number }[]>`
+      UPDATE "Session"
+      SET "ticketsIssued" = "ticketsIssued" + ${qty}, "updatedAt" = NOW()
+      WHERE id = ${sessionId} AND cancelled = false
+      RETURNING "ticketsIssued"
+    `;
+    if (rows.length === 0) {
+      // The session was cancelled by its owner while this customer was at
+      // checkout — payment landed for an event that no longer exists. Leave
+      // the booking unconfirmed rather than either silently creating tickets
+      // for a dead session or auto-refunding; this needs a human to look at
+      // it (visible via the booking's PENDING_PAYMENT state + this log).
+      logger.error(
+        { bookingId: booking.id, sessionId },
+        "Paid ticket order's session was cancelled before payment confirmed",
+      );
+      return NextResponse.json({ received: true, sessionGone: true });
+    }
+    const serialHigh = Number(rows[0].ticketsIssued);
+    const attendeeNames: string[] = booking.ticketAttendeeNames
+      ? JSON.parse(booking.ticketAttendeeNames)
+      : [];
+    const rowsToCreate = Array.from({ length: qty }, (_, i) => ({
+      bookingId: booking.id,
+      sessionId,
+      tierId: booking.ticketTierId,
+      code: `tkt-${crypto.randomUUID()}`,
+      serial: serialHigh - qty + 1 + i,
+      attendeeName: attendeeNames[i] || null,
+    }));
+    await prisma.ticket.createMany({ data: rowsToCreate });
+    ticketCodes = rowsToCreate.map((r) => r.code);
   }
 
   await prisma.booking.update({
@@ -107,13 +163,21 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ pro
       contentType: "text/calendar; charset=utf-8; method=REQUEST",
     };
 
+    // Ticketing: link each admission ticket so the buyer can pull up its QR
+    // at the gate — same line format the free-ticket path's confirmation uses.
+    const ticketLine =
+      ticketCodes.length > 0
+        ? `\n\nYour ${ticketCodes.length === 1 ? "ticket" : `${ticketCodes.length} tickets`}:` +
+          ticketCodes.map((c) => `\n${baseUrl}/ticket/${c}`).join("")
+        : "";
+
     const inviteeEmail = await renderTemplate("booking.confirmed.invitee", {
       invitee_name: booking.inviteeName,
       business_name: booking.user.businessName,
       event_title: booking.eventType.title,
       when,
       timezone: businessTz,
-      with_line: "",
+      with_line: ticketLine,
       manage_url: manageUrl,
     });
     await sendEmail({

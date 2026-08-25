@@ -24,6 +24,7 @@ import { formatWhen } from "@/lib/format";
 import { getPaymentAdapter } from "@/lib/payments/registry";
 import { planHasFeature } from "@/lib/plans";
 import { validateTierSelection } from "@/lib/ticket-tiers";
+import { releaseTicketedSeats } from "@/lib/ticket-release";
 import logger from "@/lib/logger";
 
 // Validate an IANA timezone string; returns it or null.
@@ -998,6 +999,7 @@ export async function createGroupBookingAction(input: {
   // DB round trip on the actual claim — which re-verifies atomically below,
   // since availability can change between this check and the transaction.
   let selectedTierId: string | null = null;
+  let selectedTierPriceCents: number | null = null;
   if (ticketed) {
     const tiers = await prisma.ticketTier.findMany({
       where: { sessionId: input.sessionId },
@@ -1013,8 +1015,28 @@ export async function createGroupBookingAction(input: {
         };
       }
       selectedTierId = sel.tier.id;
+      selectedTierPriceCents = sel.tier.priceCents;
     }
   }
+
+  // Phase 3b: paid tickets. A priced tier's own price is what a tiered order
+  // charges; an UNtiered ticketed event falls back to EventType's flat price
+  // (the same fields the 1:1 SOLO paid flow uses) — tiers replace the flat
+  // price the same way they already replace flat capacity, so a session with
+  // tiers never consults EventType.priceCents at all, even if one is set.
+  const unitPriceCents = selectedTierId
+    ? selectedTierPriceCents
+    : ticketed
+      ? eventType.priceCents
+      : null;
+  const isPaidTicketOrder =
+    ticketed &&
+    unitPriceCents != null &&
+    unitPriceCents > 0 &&
+    eventType.currency != null &&
+    !!eventType.user.activePaymentProvider &&
+    !eventType.requiresApproval;
+  const totalAmountCents = isPaidTicketOrder ? unitPriceCents! * qty : null;
 
   const manageToken = `booked-${crypto.randomUUID()}`;
 
@@ -1040,6 +1062,11 @@ export async function createGroupBookingAction(input: {
       // by application logic. `ticketsIssued` is a monotonic allocator: adding
       // qty and reading it back (RETURNING) hands this order a contiguous,
       // never-reused serial range even under concurrency.
+      // For a paid ticket order, this claim only reserves the seats — it
+      // does NOT bump `ticketsIssued` (the serial allocator) or create Ticket
+      // rows. Those happen later, when the payment webhook confirms, so an
+      // abandoned checkout never burns serial numbers or QR codes nobody
+      // received. See Booking.ticketQty's schema comment.
       let serialHigh = 0; // ticketsIssued AFTER this claim; serials = high-qty+1 .. high
       if (ticketed && selectedTierId) {
         // Tiered claim: the category's own row is what bounds availability
@@ -1058,25 +1085,48 @@ export async function createGroupBookingAction(input: {
         `;
         if (tierRows.length === 0) throw new Error("SESSION_UNAVAILABLE");
 
-        // Still bump the session's aggregate counters (roster/scanner display
-        // + the monotonic serial allocator) — just without re-checking
-        // Session.capacity, since the tier already gated this claim. If this
-        // second UPDATE matches zero rows (session got cancelled or started
-        // between the two statements), the whole transaction rolls back,
-        // including the tier claim above — no seats can leak.
-        const rows = await tx.$queryRaw<{ ticketsIssued: number }[]>`
+        // Still bump the session's aggregate counter (roster/scanner display)
+        // — just without re-checking Session.capacity, since the tier already
+        // gated this claim. If this second UPDATE matches zero rows (session
+        // got cancelled or started between the two statements), the whole
+        // transaction rolls back, including the tier claim above — no seats
+        // can leak.
+        if (isPaidTicketOrder) {
+          const claimed: number = await tx.$executeRaw`
+            UPDATE "Session"
+            SET "seatsTaken" = "seatsTaken" + ${qty}, "updatedAt" = NOW()
+            WHERE id = ${input.sessionId}
+              AND "eventTypeId" = ${eventType.id}
+              AND cancelled = false
+              AND "startTime" > NOW()
+          `;
+          if (claimed === 0) throw new Error("SESSION_UNAVAILABLE");
+        } else {
+          const rows = await tx.$queryRaw<{ ticketsIssued: number }[]>`
+            UPDATE "Session"
+            SET "seatsTaken" = "seatsTaken" + ${qty},
+                "ticketsIssued" = "ticketsIssued" + ${qty},
+                "updatedAt" = NOW()
+            WHERE id = ${input.sessionId}
+              AND "eventTypeId" = ${eventType.id}
+              AND cancelled = false
+              AND "startTime" > NOW()
+            RETURNING "ticketsIssued"
+          `;
+          if (rows.length === 0) throw new Error("SESSION_UNAVAILABLE");
+          serialHigh = Number(rows[0].ticketsIssued);
+        }
+      } else if (ticketed && isPaidTicketOrder) {
+        const claimed: number = await tx.$executeRaw`
           UPDATE "Session"
-          SET "seatsTaken" = "seatsTaken" + ${qty},
-              "ticketsIssued" = "ticketsIssued" + ${qty},
-              "updatedAt" = NOW()
+          SET "seatsTaken" = "seatsTaken" + ${qty}, "updatedAt" = NOW()
           WHERE id = ${input.sessionId}
             AND "eventTypeId" = ${eventType.id}
             AND cancelled = false
             AND "startTime" > NOW()
-          RETURNING "ticketsIssued"
+            AND (unlimited OR "seatsTaken" + ${qty} <= capacity)
         `;
-        if (rows.length === 0) throw new Error("SESSION_UNAVAILABLE");
-        serialHigh = Number(rows[0].ticketsIssued);
+        if (claimed === 0) throw new Error("SESSION_UNAVAILABLE");
       } else if (ticketed) {
         const rows = await tx.$queryRaw<{ ticketsIssued: number }[]>`
           UPDATE "Session"
@@ -1120,20 +1170,39 @@ export async function createGroupBookingAction(input: {
           endTime: new Date(s.startTime.getTime() + s.durationMinutes * 60_000),
           manageToken,
           answers: answersJson,
-          status: eventType.requiresApproval ? "PENDING" : "CONFIRMED",
+          // A paid ticket order goes to checkout, not straight to CONFIRMED —
+          // the webhook flips it once payment actually lands. requiresApproval
+          // is mutually exclusive with paid orders (checked in isPaidTicketOrder
+          // above), so this ternary never has to consider both at once.
+          status: isPaidTicketOrder
+            ? "PENDING_PAYMENT"
+            : eventType.requiresApproval
+              ? "PENDING"
+              : "CONFIRMED",
           // Denormalize the session's meeting fields onto the booking so the
           // existing manage/dashboard views (which read booking.meetingUrl)
           // Just Work without needing to join through session.
           meetingUrl: s.meetingUrl,
           meetingProvider: s.meetingProvider,
+          ...(isPaidTicketOrder
+            ? {
+                ticketQty: qty,
+                ticketTierId: selectedTierId,
+                ticketAttendeeNames: attendeeNames.some((n) => n)
+                  ? JSON.stringify(attendeeNames)
+                  : null,
+              }
+            : {}),
         },
       });
 
       // One Ticket row per seat, with the contiguous serial range this order
       // claimed. Codes are unguessable (the ticket page's only auth). Same
       // transaction as the claim, so a failure here rolls back the seats too.
+      // Skipped entirely for a paid order — the webhook creates these once
+      // payment confirms (see Booking.ticketQty's schema comment).
       let ticketCodes: string[] = [];
-      if (ticketed) {
+      if (ticketed && !isPaidTicketOrder) {
         const rowsToCreate = Array.from({ length: qty }, (_, i) => ({
           bookingId: created.id,
           sessionId: s.id,
@@ -1151,7 +1220,6 @@ export async function createGroupBookingAction(input: {
     session = result.session;
     bookingId = result.bookingId;
     ticketCodes = result.ticketCodes;
-    void bookingId;
   } catch (err) {
     if (err instanceof Error && err.message === "SESSION_UNAVAILABLE") {
       return { ok: false, error: "Sorry, this session just filled up or was canceled." };
@@ -1164,6 +1232,51 @@ export async function createGroupBookingAction(input: {
   const inviteeWhen = formatWhen(session.startTime, viewerTz);
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
   const manageUrl = `${baseUrl}/booking/${manageToken}`;
+
+  // Paid ticket order (Phase 3b): the seats are already reserved (the
+  // transaction above claimed them), the booking exists as PENDING_PAYMENT —
+  // now send the buyer to checkout. Mirrors the 1:1 SOLO paid flow exactly,
+  // just with a group booking's seat claim already done instead of a bare
+  // slot hold. On adapter failure, release the reserved seats and cancel the
+  // booking so a broken provider never wedges inventory.
+  if (isPaidTicketOrder) {
+    const provider = eventType.user.activePaymentProvider as "STRIPE" | "RAZORPAY";
+    try {
+      const adapter = getPaymentAdapter(provider);
+      const checkout = await adapter.createCheckout({
+        bookingId,
+        tenantId: eventType.userId,
+        invitee: { email, name },
+        price: { amount: totalAmountCents!, currency: eventType.currency! },
+        successUrl: `${baseUrl}/booking/${manageToken}?payment=success`,
+        cancelUrl: `${baseUrl}/${eventType.user.slug}/${eventType.slug}?payment=cancelled`,
+        description: `${eventType.title} — ${qty}x ticket — ${eventType.user.businessName}`,
+      });
+      await prisma.booking.update({
+        where: { id: bookingId },
+        data: {
+          paymentProvider: provider,
+          providerPaymentId: checkout.providerPaymentId,
+          amountCents: totalAmountCents,
+          currency: eventType.currency,
+          paymentStatus: "PENDING",
+        },
+      });
+      return { ok: true, when: inviteeWhen, manageUrl, checkoutUrl: checkout.url };
+    } catch (err) {
+      // Roll back: release the seats this order reserved and cancel the
+      // hold, so a broken provider doesn't leave inventory permanently
+      // claimed by an order that will never complete.
+      await releaseTicketedSeats(prisma, {
+        sessionId: session.id,
+        tierId: selectedTierId,
+        qty,
+      });
+      await prisma.booking.update({ where: { id: bookingId }, data: { status: "CANCELLED" } });
+      logger.error({ err, bookingId, provider }, "Failed to create checkout for paid ticket order");
+      return { ok: false, error: "Payment provider was unreachable. Please try again." };
+    }
+  }
 
   const meetLine = session.meetingUrl
     ? `\nJoin: ${session.meetingUrl}`

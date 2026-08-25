@@ -2,6 +2,7 @@ import "server-only";
 import { prisma } from "@/lib/prisma";
 import { getPaymentAdapter } from "@/lib/payments/registry";
 import type { PaymentProvider } from "@/lib/payments/provider";
+import { voidAndReleaseBookingTickets } from "@/lib/ticket-release";
 import logger from "@/lib/logger";
 
 export type RefundOutcome =
@@ -18,7 +19,10 @@ export type RefundOutcome =
 // the account-deletion cascade, and the admin manual-refund action — all
 // funnel through here so the HELD-vs-RELEASED branching lives in one place.
 export async function refundBookingPayment(bookingId: string): Promise<RefundOutcome> {
-  const booking = await prisma.booking.findUnique({ where: { id: bookingId } });
+  const booking = await prisma.booking.findUnique({
+    where: { id: bookingId },
+    include: { session: { select: { startTime: true } } },
+  });
   if (!booking) return { ok: false, error: "Booking not found." };
 
   // Nothing to refund — either never paid, or already refunded/reversed.
@@ -63,6 +67,17 @@ export async function refundBookingPayment(bookingId: string): Promise<RefundOut
         payoutStatus: booking.payoutStatus === "RELEASED" ? "REVERSED" : "REFUNDED",
       },
     });
+
+    // Ticketing: void whatever tickets this order holds so a refunded
+    // attendee can no longer scan in, and give the seats back to inventory
+    // ONLY if the session hasn't started yet — releasing a past/in-progress
+    // session's seats would just be a lying "seats left" count, since nobody
+    // could claim them anyway (the atomic claim itself requires startTime >
+    // NOW()). Idempotent by construction (see voidAndReleaseBookingTickets) —
+    // safe even when this refund was itself triggered by a cancel that
+    // already voided the same tickets moments ago.
+    const eventNotStarted = !booking.session || booking.session.startTime > new Date();
+    await voidAndReleaseBookingTickets(prisma, booking.id, { releaseSeats: eventNotStarted });
 
     logger.info({ bookingId: booking.id, provider }, "Booking payment refunded");
     return { ok: true, refunded: true };

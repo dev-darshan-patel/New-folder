@@ -17,6 +17,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { parseGuests } from "@/lib/guests";
 import { BLOCKING_STATUSES } from "@/lib/booking-status";
 import { refundBookingPayment } from "@/lib/payments/refunds";
+import { releaseTicketedSeats, voidAndReleaseBookingTickets } from "@/lib/ticket-release";
 import logger from "@/lib/logger";
 
 // True if the notice window before `startTime` has already passed. The
@@ -98,26 +99,51 @@ export async function cancelBookingAction(formData: FormData) {
   }
 
   const sequence = booking.sequence + 1;
-  // Group vs 1:1: for a group session booking, we ALSO need to decrement the
-  // session's seatsTaken counter — atomically, in the same transaction, so the
-  // counter can't drift from reality even if the process crashes mid-way. For
-  // 1:1 bookings this is a plain update. Do NOT delete the shared session
-  // meeting (many other attendees still need it) — that only happens if the
-  // OWNER cancels the whole session via cancelSessionAction.
-  if (booking.sessionId && booking.status === "CONFIRMED") {
-    await prisma.$transaction([
-      prisma.booking.update({
+  // A still-PENDING_PAYMENT ticketed order has its seats reserved but no real
+  // Ticket rows yet (those are only created once the webhook confirms — see
+  // Booking.ticketQty's schema comment); cancelling here is the same
+  // "abandoned checkout" case the hold-expiry cron handles, just triggered by
+  // the invitee explicitly instead of by a timeout.
+  const isTicketedPending = booking.status === "PENDING_PAYMENT" && booking.ticketQty != null;
+  const isConfirmedGroup = booking.sessionId && booking.status === "CONFIRMED";
+
+  // Group vs 1:1: for a group session booking, we ALSO need to release
+  // whatever seats this booking holds — atomically, in the same transaction,
+  // so the counters can't drift from reality even if the process crashes
+  // mid-way. For 1:1 bookings this is a plain update. Do NOT delete the
+  // shared session meeting (many other attendees still need it) — that only
+  // happens if the OWNER cancels the whole session via cancelSessionAction.
+  if (isConfirmedGroup || isTicketedPending) {
+    await prisma.$transaction(async (tx) => {
+      await tx.booking.update({
         where: { id: booking.id },
         data: { status: "CANCELLED", sequence },
-      }),
-      // Guarded by seatsTaken > 0 so we never underflow into negatives even
-      // if something weird happened (double-cancel race, manual DB edit).
-      prisma.$executeRaw`
-        UPDATE "Session"
-        SET "seatsTaken" = "seatsTaken" - 1, "updatedAt" = NOW()
-        WHERE id = ${booking.sessionId} AND "seatsTaken" > 0
-      `,
-    ]);
+      });
+
+      if (isTicketedPending) {
+        // Checkout was abandoned before any Ticket rows existed — nothing to
+        // void, just give back the reserved qty.
+        await releaseTicketedSeats(tx, {
+          sessionId: booking.sessionId!,
+          tierId: booking.ticketTierId,
+          qty: booking.ticketQty!,
+        });
+      } else {
+        // Confirmed: void+release by however many real Ticket rows this
+        // order created (0 for a classic non-ticketed group booking, which
+        // falls through to the plain -1 below; N for a ticketed order) — NOT
+        // a hardcoded 1, which used to silently under-release multi-ticket
+        // orders and leave their tickets scannable forever.
+        const { voided } = await voidAndReleaseBookingTickets(tx, booking.id);
+        if (voided === 0) {
+          await releaseTicketedSeats(tx, {
+            sessionId: booking.sessionId!,
+            tierId: null,
+            qty: 1,
+          });
+        }
+      }
+    });
   } else {
     await prisma.booking.update({
       where: { id: booking.id },

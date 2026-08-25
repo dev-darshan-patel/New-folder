@@ -9,6 +9,8 @@ export type TierInfo = {
   name: string;
   capacity: number | null;
   seatsTaken: number;
+  // Phase 3b. Null = this category is free.
+  priceCents: number | null;
 };
 
 // null = unlimited (mirrors Session.unlimited one level down).

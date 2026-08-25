@@ -453,10 +453,15 @@ export async function updateEventTypeAction(formData: FormData) {
   // Price (Feature 4.4). null = free (unchanged behavior). A paid price is
   // only accepted when the plan grants "payments", the owner is APPROVED +
   // onboarded on their active provider, AND the event type stays inside the
-  // v1 scope fence (SOLO, non-group, non-recurring). Anything else keeps
-  // whatever price already existed rather than wiping it — a downgrade or a
-  // forged form field can block *setting a new* price but never silently
-  // un-prices an event type that was already charging.
+  // scope fence: SOLO non-group non-recurring (the original v1 fence), OR a
+  // ticketed group event (Phase 3b — this is the flat-price fallback for a
+  // ticketed session with no categories configured; a session WITH
+  // categories ignores this field entirely and prices per-tier instead, same
+  // as tiers already override flat capacity). A plain (non-ticketed) group
+  // class stays out of scope — no serials/QR to sell against. Anything
+  // outside the fence keeps whatever price already existed rather than
+  // wiping it — a downgrade or a forged form field can block *setting a new*
+  // price but never silently un-prices an event type that was already charging.
   let priceCents: number | null = existing.priceCents;
   let currency: string | null = existing.currency;
   if (has("payments")) {
@@ -470,7 +475,9 @@ export async function updateEventTypeAction(formData: FormData) {
     }
     const rawAssignment = String(formData.get("assignmentMode") || "SOLO");
     const scopeFenceOk =
-      capacity == null && !allowRecurring && (rawAssignment === "SOLO" || rawAssignment === "");
+      !allowRecurring &&
+      (rawAssignment === "SOLO" || rawAssignment === "") &&
+      (capacity == null || issuesTickets);
     if (parsedPrice !== null && scopeFenceOk) {
       const eligibility = pricingEligibility({
         paymentAccountStatus: user.paymentAccountStatus,
@@ -698,19 +705,43 @@ export async function createSessionAction(formData: FormData): Promise<void> {
     }
   }
 
-  // Ticket categories (Phase 3a): up to 4 fixed row slots in the form, so the
-  // owner UI doesn't need client JS for "add another row." A row counts only
-  // if it has a name; a row's capacity field left blank means unlimited for
-  // that category. Only meaningful for ticketed events — a stray field can't
-  // create tiers on a plain group class.
-  const tierRows: { name: string; capacity: number | null }[] = [];
+  // Ticket categories (Phase 3a/3b): up to 4 fixed row slots in the form, so
+  // the owner UI doesn't need client JS for "add another row." A row counts
+  // only if it has a name; a row's capacity field left blank means unlimited
+  // for that category. Only meaningful for ticketed events — a stray field
+  // can't create tiers on a plain group class. A row's price is honored only
+  // when the plan grants "payments" AND the tenant is actually
+  // approved+onboarded — same eligibility check updateEventTypeAction runs
+  // before accepting a flat price, applied per-row here instead.
+  const planCfg = await getPlanConfig(user.plan);
+  const pricing = planCfg.featureKeys.includes("payments")
+    ? pricingEligibility({
+        paymentAccountStatus: user.paymentAccountStatus,
+        activePaymentProvider: user.activePaymentProvider,
+        country: user.country,
+        stripeConnectReady: user.stripeConnectReady,
+        razorpayConnectReady: user.razorpayConnectReady,
+      })
+    : { canPrice: false as const, reason: "" };
+
+  const tierRows: { name: string; capacity: number | null; priceCents: number | null }[] = [];
   if (eventType.issuesTickets) {
     for (let i = 0; i < 4; i++) {
       const rawName = String(formData.get(`tierName${i}`) || "").trim().slice(0, 100);
       if (!rawName) continue;
       const rawCap = String(formData.get(`tierCapacity${i}`) || "").trim();
       const cap = rawCap ? clampInt(rawCap, 1, 100_000, 1) : null;
-      tierRows.push({ name: rawName, capacity: cap });
+      let price: number | null = null;
+      if (pricing.canPrice) {
+        const rawPrice = String(formData.get(`tierPrice${i}`) || "").trim();
+        if (rawPrice) {
+          const parsed = Number(rawPrice);
+          if (Number.isFinite(parsed) && parsed > 0 && parsed <= 10_000_000) {
+            price = Math.round(parsed);
+          }
+        }
+      }
+      tierRows.push({ name: rawName, capacity: cap, priceCents: price });
     }
   }
 
@@ -733,8 +764,21 @@ export async function createSessionAction(formData: FormData): Promise<void> {
           sessionId: created.id,
           name: t.name,
           capacity: t.capacity,
+          priceCents: t.priceCents,
           sortOrder: i,
         })),
+      });
+    }
+    // A priced row only ever exists when pricing.canPrice was true (see the
+    // gate above), so reaching here means pricing.currency is available.
+    if (pricing.canPrice && tierRows.some((t) => t.priceCents != null) && !eventType.currency) {
+      // First time this event type actually charges for anything: stamp its
+      // currency from the tenant's active provider, same as a flat price
+      // would. EventType.currency is otherwise only set by updateEventTypeAction's
+      // flat-price path, which a ticketed event with categories never touches.
+      await tx.eventType.update({
+        where: { id: eventType.id },
+        data: { currency: pricing.currency },
       });
     }
   });
@@ -782,7 +826,7 @@ export async function cancelSessionAction(formData: FormData): Promise<void> {
     }
   }
 
-  await prisma.$transaction([
+  const ops = [
     prisma.booking.updateMany({
       where: { sessionId: session.id, status: { in: ["CONFIRMED", "PENDING"] } },
       data: { status: "CANCELLED" },
@@ -791,7 +835,24 @@ export async function cancelSessionAction(formData: FormData): Promise<void> {
       where: { id: session.id },
       data: { cancelled: true, seatsTaken: 0 },
     }),
-  ]);
+  ];
+  if (session.eventType.issuesTickets) {
+    // The whole session is dead — no future claim will ever check these
+    // counters again (the atomic claim already excludes cancelled sessions),
+    // but zeroing them keeps the owner's own roster/tier display honest
+    // rather than showing stale sold-out counts. Also void every still-ISSUED
+    // ticket so a direct /scan visit for this (now cancelled) session
+    // correctly rejects them instead of admitting a called-off event's
+    // attendees.
+    ops.push(
+      prisma.ticketTier.updateMany({ where: { sessionId: session.id }, data: { seatsTaken: 0 } }),
+      prisma.ticket.updateMany({
+        where: { sessionId: session.id, status: "ISSUED" },
+        data: { status: "VOID" },
+      }),
+    );
+  }
+  await prisma.$transaction(ops);
 
   // Notify every attendee their session was canceled, with an ICS CANCEL so it
   // drops off their calendar. Best-effort — a send failure never blocks the

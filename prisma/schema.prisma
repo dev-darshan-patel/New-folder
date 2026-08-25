@@ -510,10 +510,19 @@ model TicketTier {
   // Same atomic-UPDATE discipline as Session.seatsTaken: only ever touched via
   // `UPDATE ... WHERE (capacity IS NULL OR seatsTaken + qty <= capacity)`.
   seatsTaken Int      @default(0)
+  // Phase 3b: per-ticket price in the tenant's active-provider currency
+  // (EventType.currency). Null = this category is free — a session can mix a
+  // free "General" tier with a paid "VIP" tier. When ANY tier on a session is
+  // priced, that session's checkout goes through the payment flow; when a
+  // session has tiers at all, EventType.priceCents (the flat-price fallback
+  // for untiered ticketed events) is ignored — tiers replace it the same way
+  // they already replace flat capacity.
+  priceCents Int?
   sortOrder  Int      @default(0)
   createdAt  DateTime @default(now())
 
   tickets    Ticket[]
+  bookings   Booking[]
 
   @@index([sessionId])
 }
@@ -695,13 +704,29 @@ model Booking {
   createdAt    DateTime      @default(now())
 
   // Ticketing: the admission tickets issued for this order. Empty for classic
-  // appointment/group bookings (issuesTickets = false).
+  // appointment/group bookings (issuesTickets = false), and ALSO empty for a
+  // still-PENDING_PAYMENT paid ticket order — see the three fields below.
   tickets      Ticket[]
+
+  // Phase 3b: paid ticket orders. The seat/tier claim happens immediately (so
+  // nobody else can buy the same seats during checkout), but the actual
+  // Ticket rows — with their codes/serials — are created only once the
+  // payment webhook confirms, so an abandoned checkout never burns serial
+  // numbers or QR codes that were never handed to anyone. These three fields
+  // carry what the webhook needs to finish the job; all null once resolved
+  // (CONFIRMED → moved onto real Ticket rows; CANCELLED → the hold expired
+  // or failed, nothing to build). Also null for the free-ticketing path
+  // (Phase 3a), which creates its Ticket rows immediately and never needs this.
+  ticketQty           Int?
+  ticketTierId        String?
+  ticketTier          TicketTier? @relation(fields: [ticketTierId], references: [id], onDelete: SetNull)
+  ticketAttendeeNames String?     // JSON string[], parallel to ticketQty
 
   @@index([userId, startTime])
   @@index([seriesId])
   @@index([providerPaymentId])
   @@index([paymentStatus])
+  @@index([ticketTierId])
 }
 
 enum BookingStatus {
