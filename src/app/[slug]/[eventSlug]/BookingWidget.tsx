@@ -11,6 +11,7 @@ import {
 import type { Slot } from "@/lib/availability";
 import { buildDays } from "@/lib/days";
 import type { IntakeQuestion } from "@/lib/intake";
+import IntakeFields, { readAnswers } from "@/components/IntakeFields";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -282,10 +283,7 @@ export default function BookingWidget({
               e.preventDefault();
               const fd = new FormData(e.currentTarget);
               setFormError(null);
-              const answers = questions.map((q, i) => ({
-                label: q.label,
-                value: String(fd.get(`q-${i}`) || ""),
-              }));
+              const answers = readAnswers(fd, questions);
               const guests = String(fd.get("guests") || "")
                 .split(/[\n,]/)
                 .map((line) => line.trim())
@@ -363,14 +361,7 @@ export default function BookingWidget({
                 rows={2}
                 placeholder="Add guests? One email per line (optional)"
               />
-              {questions.map((q, i) => (
-                <Input
-                  key={i}
-                  name={`q-${i}`}
-                  required={q.required}
-                  placeholder={q.required ? `${q.label} *` : `${q.label} (optional)`}
-                />
-              ))}
+              <IntakeFields questions={questions} />
               {allowRecurring && (
                 <label className="block">
                   <span className="text-xs font-medium text-slate-600">Repeat</span>

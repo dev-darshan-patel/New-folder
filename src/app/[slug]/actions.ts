@@ -16,7 +16,7 @@ import { renderTemplate } from "@/lib/email-templates";
 import { buildIcs } from "@/lib/ics";
 import { createMeetEvent, getGoogleBusyWindows } from "@/lib/google-calendar";
 import { createZoomMeeting } from "@/lib/zoom";
-import { parseQuestions } from "@/lib/intake";
+import { validateAnswersForStorage, parseAnswers } from "@/lib/intake";
 import { sanitizeGuests, type Guest } from "@/lib/guests";
 import { BLOCKING_STATUSES } from "@/lib/booking-status";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
@@ -195,22 +195,9 @@ export async function createBookingAction(input: {
   }
 
   // Validate answers to required intake questions.
-  const questions = parseQuestions(eventType.intakeQuestions);
-  const answers = (input.answers ?? []).slice(0, 50).map((a) => ({
-    label: String(a.label).slice(0, 500),
-    value: String(a.value ?? "").trim().slice(0, 2000),
-  }));
-  for (const q of questions) {
-    if (q.required) {
-      const a = answers.find((x) => x.label === q.label);
-      if (!a || a.value === "") {
-        return { ok: false, error: `Please answer: ${q.label}` };
-      }
-    }
-  }
-  const answersJson = answers.some((a) => a.value !== "")
-    ? JSON.stringify(answers.filter((a) => a.value !== ""))
-    : null;
+  const answersResult = validateAnswersForStorage(eventType.intakeQuestions, input.answers);
+  if (!answersResult.ok) return { ok: false, error: answersResult.error };
+  const answersJson = answersResult.json;
 
   const guestInvitesAllowed = await planHasFeature(eventType.user.plan, "guest_invites");
   const guests = guestInvitesAllowed ? sanitizeGuests(input.guests ?? [], email) : [];
@@ -518,12 +505,11 @@ export async function createBookingAction(input: {
       });
     }
 
+    // Read back from the stored JSON rather than a separate local: that's the
+    // exact set that was validated and persisted, so the owner's email can't
+    // disagree with the booking record.
     const answerLines = answersJson
-      ? "\n" +
-        answers
-          .filter((a) => a.value !== "")
-          .map((a) => `${a.label}: ${a.value}`)
-          .join("\n")
+      ? "\n" + parseAnswers(answersJson).map((a) => `${a.label}: ${a.value}`).join("\n")
       : "";
     const ownerEmail = await renderTemplate("booking.created.owner", {
       invitee_name: name,
@@ -608,22 +594,9 @@ export async function createRecurringBookingAction(input: {
   });
 
   // Validate required intake answers once (shared across occurrences).
-  const questions = parseQuestions(eventType.intakeQuestions);
-  const answers = (input.answers ?? []).slice(0, 50).map((a) => ({
-    label: String(a.label).slice(0, 500),
-    value: String(a.value ?? "").trim().slice(0, 2000),
-  }));
-  for (const q of questions) {
-    if (q.required) {
-      const a = answers.find((x) => x.label === q.label);
-      if (!a || a.value === "") {
-        return { ok: false, error: `Please answer: ${q.label}` };
-      }
-    }
-  }
-  const answersJson = answers.some((a) => a.value !== "")
-    ? JSON.stringify(answers.filter((a) => a.value !== ""))
-    : null;
+  const answersResult = validateAnswersForStorage(eventType.intakeQuestions, input.answers);
+  if (!answersResult.ok) return { ok: false, error: answersResult.error };
+  const answersJson = answersResult.json;
   const guestInvitesAllowed = await planHasFeature(eventType.user.plan, "guest_invites");
   const guests = guestInvitesAllowed ? sanitizeGuests(input.guests ?? [], email) : [];
   const guestsJson = guests.length ? JSON.stringify(guests) : null;
@@ -958,22 +931,9 @@ export async function createGroupBookingAction(input: {
   }
 
   // Validate required intake answers up front so we don't waste a seat claim.
-  const questions = parseQuestions(eventType.intakeQuestions);
-  const answers = (input.answers ?? []).slice(0, 50).map((a) => ({
-    label: String(a.label).slice(0, 500),
-    value: String(a.value ?? "").trim().slice(0, 2000),
-  }));
-  for (const q of questions) {
-    if (q.required) {
-      const a = answers.find((x) => x.label === q.label);
-      if (!a || a.value === "") {
-        return { ok: false, error: `Please answer: ${q.label}` };
-      }
-    }
-  }
-  const answersJson = answers.some((a) => a.value !== "")
-    ? JSON.stringify(answers.filter((a) => a.value !== ""))
-    : null;
+  const answersResult = validateAnswersForStorage(eventType.intakeQuestions, input.answers);
+  if (!answersResult.ok) return { ok: false, error: answersResult.error };
+  const answersJson = answersResult.json;
 
   // Ticketing: how many admission tickets this one order buys. Non-ticketed
   // group sessions are unchanged — always exactly one seat. We do NOT re-check

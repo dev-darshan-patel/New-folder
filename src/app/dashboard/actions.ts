@@ -8,7 +8,7 @@ import { slugify } from "@/lib/slug";
 import { getPlanConfig, planHasFeature } from "@/lib/plans";
 import type { FeatureKey } from "@/lib/features";
 import { FONTS } from "@/lib/branding";
-import { parseQuestions } from "@/lib/intake";
+import { parseQuestions, serializeQuestions } from "@/lib/intake";
 import { parseGuests } from "@/lib/guests";
 import { checkInTicket, type CheckInResult } from "@/lib/checkin";
 import { serializeTicketLayout, type TicketField } from "@/lib/ticket-template";
@@ -563,13 +563,12 @@ export async function updateEventTypeAction(formData: FormData) {
   }
 
   // Intake questions arrive as a JSON string from the client editor.
+  // parse-then-serialize is the normalisation step: it drops unlabelled
+  // fields, coerces an unknown type to text, dedupes/trims options and
+  // discards choice fields left with none — so a hand-crafted POST can't
+  // store a form the booking page would then choke on.
   const intakeQuestions = has("intake_questions")
-    ? (() => {
-        const questions = parseQuestions(String(formData.get("intakeQuestions") || "")).filter(
-          (q) => q.label.trim() !== "",
-        );
-        return questions.length ? JSON.stringify(questions) : null;
-      })()
+    ? serializeQuestions(parseQuestions(String(formData.get("intakeQuestions") || "")))
     : existing.intakeQuestions;
 
   const teamSchedulingEnabled = has("team_scheduling");

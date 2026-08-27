@@ -4,6 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { Check } from "lucide-react";
 import { createGroupBookingAction, type BookingResult } from "../actions";
 import type { IntakeQuestion } from "@/lib/intake";
+import IntakeFields, { readAnswers } from "@/components/IntakeFields";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -288,10 +289,7 @@ export default function GroupBookingWidget({
             e.preventDefault();
             const fd = new FormData(e.currentTarget);
             setFormError(null);
-            const answers = questions.map((q, i) => ({
-              label: q.label,
-              value: String(fd.get(`q-${i}`) || ""),
-            }));
+            const answers = readAnswers(fd, questions);
             startSubmit(async () => {
               const res = await createGroupBookingAction({
                 eventTypeId,
@@ -449,14 +447,7 @@ export default function GroupBookingWidget({
               rows={2}
               placeholder="Anything we should know? (optional)"
             />
-            {questions.map((q, i) => (
-              <Input
-                key={i}
-                name={`q-${i}`}
-                required={q.required}
-                placeholder={q.required ? `${q.label} *` : `${q.label} (optional)`}
-              />
-            ))}
+            <IntakeFields questions={questions} />
             {formError && (
               <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
                 {formError}

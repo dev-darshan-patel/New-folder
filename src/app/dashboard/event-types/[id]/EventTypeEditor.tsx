@@ -3,7 +3,13 @@
 import Link from "next/link";
 import { useState } from "react";
 import { updateEventTypeAction } from "../../actions";
-import type { IntakeQuestion } from "@/lib/intake";
+import {
+  FORM_FIELD_TYPES,
+  FIELD_TYPE_LABELS,
+  hasOptions,
+  type IntakeQuestion,
+  type FormFieldType,
+} from "@/lib/intake";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -87,13 +93,37 @@ export default function EventTypeEditor({ initial }: { initial: Initial }) {
     setQuestions((qs) => qs.map((q, idx) => (idx === i ? { ...q, ...patch } : q)));
   }
   function add() {
-    setQuestions((qs) => [...qs, { label: "", required: false }]);
+    setQuestions((qs) => [
+      ...qs,
+      { label: "", type: "text", required: false, options: [], scope: "order" },
+    ]);
   }
   function remove(i: number) {
     setQuestions((qs) => qs.filter((_, idx) => idx !== i));
   }
+  // Reorder with buttons rather than drag-and-drop: a form has a handful of
+  // fields, buttons are keyboard- and touch-accessible for free, and this
+  // avoids pulling in a drag library for one short list.
+  function move(i: number, direction: -1 | 1) {
+    setQuestions((qs) => {
+      const next = [...qs];
+      const target = i + direction;
+      if (target < 0 || target >= next.length) return qs;
+      [next[i], next[target]] = [next[target], next[i]];
+      return next;
+    });
+  }
+  function setOptionsText(i: number, text: string) {
+    // One option per line is the least fiddly editor for a short list, and
+    // sidesteps "what if an option contains a comma".
+    update(i, { options: text.split("\n").map((s) => s.trim()).filter(Boolean) });
+  }
 
-  const cleaned = questions.filter((q) => q.label.trim() !== "");
+  // Mirrors the server's own rule (serializeQuestions): an unlabelled field,
+  // or a choice field with no options, is not a real question.
+  const cleaned = questions.filter(
+    (q) => q.label.trim() !== "" && (!hasOptions(q.type) || q.options.length > 0),
+  );
 
   return (
     <form action={updateEventTypeAction} className="mt-6 space-y-6">
@@ -505,33 +535,100 @@ export default function EventTypeEditor({ initial }: { initial: Initial }) {
         <div>
           <div className="space-y-2">
             {questions.map((q, i) => (
-              <div key={i} className="flex items-center gap-2">
-                <Input
-                  value={q.label}
-                  onChange={(e) => update(i, { label: e.target.value })}
-                  placeholder="e.g. Phone number"
-                  title={`Intake question ${i + 1}`}
-                  className="flex-1"
-                />
-                <label className="flex items-center gap-1 text-xs text-slate-600">
-                  <input
-                    type="checkbox"
-                    checked={q.required}
-                    onChange={(e) => update(i, { required: e.target.checked })}
-                    title={`Make question ${i + 1} required`}
-                    className="h-4 w-4 rounded border-input"
+              <div key={i} className="rounded-lg border border-border p-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Input
+                    value={q.label}
+                    onChange={(e) => update(i, { label: e.target.value })}
+                    placeholder="e.g. Phone number"
+                    title={`Intake question ${i + 1}`}
+                    className="min-w-[12rem] flex-1"
                   />
-                  Required
-                </label>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => remove(i)}
-                  className="text-red-600 hover:bg-red-50 hover:text-red-600"
-                >
-                  Remove
-                </Button>
+                  <NativeSelect
+                    value={q.type}
+                    onChange={(e) => {
+                      const type = e.target.value as FormFieldType;
+                      // Seed a couple of starter options when switching to a
+                      // choice type, so the field is immediately usable rather
+                      // than invalid-until-filled-in.
+                      update(i, {
+                        type,
+                        options:
+                          hasOptions(type) && q.options.length === 0
+                            ? ["Option 1", "Option 2"]
+                            : q.options,
+                      });
+                    }}
+                    title={`Type for question ${i + 1}`}
+                    className="w-44"
+                  >
+                    {FORM_FIELD_TYPES.map((t) => (
+                      <option key={t} value={t}>
+                        {FIELD_TYPE_LABELS[t]}
+                      </option>
+                    ))}
+                  </NativeSelect>
+                  <label className="flex items-center gap-1 text-xs text-slate-600">
+                    <input
+                      type="checkbox"
+                      checked={q.required}
+                      onChange={(e) => update(i, { required: e.target.checked })}
+                      title={`Make question ${i + 1} required`}
+                      className="h-4 w-4 rounded border-input"
+                    />
+                    Required
+                  </label>
+                  <div className="ml-auto flex items-center gap-1">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      disabled={i === 0}
+                      onClick={() => move(i, -1)}
+                      aria-label={`Move question ${i + 1} up`}
+                    >
+                      ↑
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      disabled={i === questions.length - 1}
+                      onClick={() => move(i, 1)}
+                      aria-label={`Move question ${i + 1} down`}
+                    >
+                      ↓
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => remove(i)}
+                      className="text-red-600 hover:bg-red-50 hover:text-red-600"
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                </div>
+                {hasOptions(q.type) && (
+                  <label className="mt-2 block">
+                    <span className="text-xs font-medium text-slate-600">
+                      Options — one per line
+                    </span>
+                    <Textarea
+                      rows={Math.min(6, Math.max(2, q.options.length + 1))}
+                      value={q.options.join("\n")}
+                      onChange={(e) => setOptionsText(i, e.target.value)}
+                      placeholder={"Small\nMedium\nLarge"}
+                      className="mt-1"
+                    />
+                    {q.options.length === 0 && (
+                      <span className="mt-1 block text-xs text-amber-700">
+                        Add at least one option, or this question won&rsquo;t be saved.
+                      </span>
+                    )}
+                  </label>
+                )}
               </div>
             ))}
           </div>
