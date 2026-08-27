@@ -5,8 +5,10 @@ import { prisma } from "@/lib/prisma";
 import { parseQuestions } from "@/lib/intake";
 import { getPlanConfig } from "@/lib/plans";
 import { pricingEligibility } from "@/lib/payments";
+import QRCode from "qrcode";
 import EventTypeEditor from "./EventTypeEditor";
 import SessionsSection from "./SessionsSection";
+import TicketDesigner from "./TicketDesigner";
 
 export default async function EditEventTypePage({
   params,
@@ -24,6 +26,19 @@ export default async function EditEventTypePage({
 
   const planCfg = await getPlanConfig(user.plan);
   const has = (key: string) => planCfg.featureKeys.includes(key);
+
+  // A real (but meaningless) QR for the designer preview, generated with the
+  // same options the live ticket uses so its visual weight on the artwork is
+  // accurate. Generated here rather than in the client component to keep the
+  // qrcode library out of the browser bundle.
+  const sampleQrDataUrl =
+    eventType.issuesTickets && has("ticket_designer")
+      ? await QRCode.toDataURL("https://example.com/ticket/sample", {
+          width: 320,
+          margin: 2,
+          errorCorrectionLevel: "M",
+        })
+      : "";
   const teamSchedulingEnabled = has("team_scheduling");
   const pricing = has("payments")
     ? pricingEligibility({
@@ -127,6 +142,23 @@ export default async function EditEventTypePage({
           issuesTickets={eventType.issuesTickets}
           pricing={pricing}
         />
+      )}
+
+      {eventType.issuesTickets && has("ticket_designer") && (
+        <section className="mt-10 border-t border-border pt-8">
+          <h2 className="text-lg font-semibold text-foreground">Ticket design</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Upload your own ticket artwork and choose where each detail is printed on it.
+          </p>
+          <div className="mt-4">
+            <TicketDesigner
+              eventTypeId={eventType.id}
+              initialArtworkUrl={eventType.ticketArtworkUrl}
+              initialLayout={eventType.ticketLayout}
+              sampleQrDataUrl={sampleQrDataUrl}
+            />
+          </div>
+        </section>
       )}
     </div>
   );

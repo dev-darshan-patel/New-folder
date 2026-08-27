@@ -5,12 +5,14 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { slugify } from "@/lib/slug";
-import { getPlanConfig } from "@/lib/plans";
+import { getPlanConfig, planHasFeature } from "@/lib/plans";
 import type { FeatureKey } from "@/lib/features";
 import { FONTS } from "@/lib/branding";
 import { parseQuestions } from "@/lib/intake";
 import { parseGuests } from "@/lib/guests";
 import { checkInTicket, type CheckInResult } from "@/lib/checkin";
+import { serializeTicketLayout, type TicketField } from "@/lib/ticket-template";
+import { getStorageProvider } from "@/lib/storage";
 import { sendEmail } from "@/lib/email";
 import { renderTemplate } from "@/lib/email-templates";
 import { buildIcs } from "@/lib/ics";
@@ -195,7 +197,26 @@ export async function deleteEventTypeAction(formData: FormData) {
   const user = await getCurrentUser();
   if (!user) throw new Error("Not authenticated");
   const id = String(formData.get("id") || "");
+
+  // Capture the ticket artwork before the row goes: the DB cascade drops the
+  // URL column but nothing tells the storage backend, so without this the
+  // object is orphaned in the bucket forever. Best-effort — a storage failure
+  // must never block deleting the event type itself.
+  const doomed = await prisma.eventType.findFirst({
+    where: { id, userId: user.id },
+    select: { ticketArtworkUrl: true },
+  });
+
   await prisma.eventType.deleteMany({ where: { id, userId: user.id } });
+
+  if (doomed?.ticketArtworkUrl) {
+    try {
+      const storage = await getStorageProvider();
+      await storage.delete(doomed.ticketArtworkUrl);
+    } catch (err) {
+      logger.error({ err, eventTypeId: id }, "Failed to delete ticket artwork on event type delete");
+    }
+  }
   revalidatePath("/dashboard/event-types");
 }
 
@@ -308,6 +329,18 @@ export async function cloneEventTypeAction(formData: FormData) {
       locationDetail,
       priceCents,
       currency,
+      // Ticketing carries over under the same "a clone is a fresh gated
+      // thing" rule as everything else here — and only for a group event,
+      // since issuesTickets is meaningless without sessions. (This was
+      // missed when ticketing first landed, so cloning a ticketed event
+      // used to silently produce a non-ticketed one.)
+      issuesTickets: capacity != null && has("ticketing") ? source.issuesTickets : false,
+      maxTicketsPerOrder: source.maxTicketsPerOrder,
+      // ticketArtworkUrl / ticketLayout are deliberately NOT copied. Both
+      // rows would otherwise point at one stored object, and deleting either
+      // event type would delete the artwork out from under the other. The
+      // clone starts on the built-in ticket design; re-uploading gives it
+      // its own object.
     },
   });
 
@@ -929,4 +962,36 @@ export async function checkInTicketAction(input: {
   if (!owns) return { status: "UNAUTHORIZED" };
 
   return checkInTicket(input.sessionId, input.code);
+}
+
+// Save where the printed fields sit on this event type's ticket artwork
+// (Phase 4). The incoming array is client-supplied, so it goes through
+// serializeTicketLayout, which clamps every coordinate/size and drops
+// anything unrecognised — the DB only ever stores already-valid layouts.
+export async function saveTicketLayoutAction(input: {
+  eventTypeId: string;
+  fields: TicketField[];
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  const user = await getCurrentUser();
+  if (!user) return { ok: false, error: "Not authenticated." };
+
+  // Editing a layout is changing a gated thing, so it needs the entitlement —
+  // consistent with the upload route. (Rendering an EXISTING ticket does not;
+  // see the read-time gate on the public ticket page.)
+  if (!(await planHasFeature(user.plan, "ticket_designer"))) {
+    return { ok: false, error: "The ticket designer isn't available on your current plan." };
+  }
+
+  const owns = await prisma.eventType.findFirst({
+    where: { id: input.eventTypeId, userId: user.id },
+    select: { id: true },
+  });
+  if (!owns) return { ok: false, error: "Event type not found." };
+
+  await prisma.eventType.update({
+    where: { id: owns.id },
+    data: { ticketLayout: serializeTicketLayout(input.fields ?? []) },
+  });
+  revalidatePath(`/dashboard/event-types/${owns.id}`);
+  return { ok: true };
 }

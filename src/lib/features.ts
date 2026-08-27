@@ -24,7 +24,8 @@ export type FeatureKey =
   | "group_bookings"
   | "recurring_bookings"
   | "calendar_busy_sync"
-  | "ticketing";
+  | "ticketing"
+  | "ticket_designer";
 
 export type FeatureDefinition = {
   key: FeatureKey;
@@ -112,6 +113,12 @@ export const FEATURE_REGISTRY: FeatureDefinition[] = [
     key: "ticketing",
     label: "Ticketing & events",
     description: "Sell tickets for events with QR codes, quantity purchase, and gate check-in.",
+  },
+  {
+    key: "ticket_designer",
+    label: "Ticket designer",
+    description:
+      "Upload custom ticket artwork and position the number, name, category and QR on it.",
   },
 ];
 

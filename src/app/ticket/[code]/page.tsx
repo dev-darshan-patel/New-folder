@@ -4,6 +4,9 @@ import QRCode from "qrcode";
 import { prisma } from "@/lib/prisma";
 import { PRODUCT_NAME } from "@/lib/brand";
 import { resolveBranding } from "@/lib/branding";
+import { planHasFeature } from "@/lib/plans";
+import { parseTicketLayout } from "@/lib/ticket-template";
+import TicketArtwork from "@/components/TicketArtwork";
 import { Card, CardContent } from "@/components/ui/card";
 
 // Public admission ticket. The `code` in the URL is the only auth — the same
@@ -78,6 +81,46 @@ export default async function TicketPage({ params }: { params: Promise<{ code: s
       : ticket.status === "VOID"
         ? "text-red-600"
         : "text-green-600";
+
+  // Designed ticket (Phase 4): the tenant's own artwork with fields placed on
+  // it. Gated at READ time, exactly like resolveBranding — a tenant whose plan
+  // no longer includes the designer falls back to the built-in ticket rather
+  // than having their stored artwork deleted or their tickets broken.
+  const designerEntitled = await planHasFeature(user.plan, "ticket_designer");
+  const layout = designerEntitled ? parseTicketLayout(eventType.ticketLayout) : [];
+  const useDesigned = designerEntitled && !!eventType.ticketArtworkUrl && layout.length > 0;
+
+  if (useDesigned) {
+    return (
+      <div className="mx-auto flex min-h-screen w-full max-w-md flex-col items-center justify-center px-4 py-10">
+        <div className="w-full overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
+          <TicketArtwork
+            artworkUrl={eventType.ticketArtworkUrl!}
+            fields={layout}
+            values={{
+              serial: `#${ticket.serial}`,
+              attendeeName: ticket.attendeeName ?? undefined,
+              tierName: ticket.tier?.name ?? undefined,
+              eventTitle: eventType.title,
+              eventDate: when,
+            }}
+            qrDataUrl={qrDataUrl}
+          />
+        </div>
+        {/* Status stays OUTSIDE the artwork: a voided or already-used ticket
+            must be unmistakable at the gate, and that can't depend on where
+            the tenant happened to drag things. */}
+        <p className="mt-4 text-sm">
+          <span className="text-muted-foreground">Status: </span>
+          <span className={`font-semibold ${statusColor}`}>{statusLabel}</span>
+        </p>
+        <p className="mt-2 max-w-sm text-center text-xs text-muted-foreground">
+          Show this QR code at the entrance. Keep the link private — anyone with it can use this
+          ticket.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-md flex-col items-center justify-center px-4 py-10">

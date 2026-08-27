@@ -3,32 +3,10 @@ import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { verifyCsrfOrigin } from "@/lib/csrf";
 import { getStorageProvider } from "@/lib/storage";
+import { validateImageUpload, extensionForImageType } from "@/lib/image-upload";
 import logger from "@/lib/logger";
 
 const MAX_BYTES = 5 * 1024 * 1024; // 5 MB
-const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
-
-// Validate actual file content via magic bytes, not the attacker-controlled MIME header.
-const MAGIC_BYTES: [string, number[]][] = [
-  ["image/jpeg", [0xff, 0xd8, 0xff]],
-  ["image/png", [0x89, 0x50, 0x4e, 0x47]],
-  ["image/gif", [0x47, 0x49, 0x46, 0x38]],
-  ["image/webp", [0x52, 0x49, 0x46, 0x46]], // RIFF header; "WEBP" at offset 8
-];
-
-function detectImageType(buf: ArrayBuffer): string | null {
-  const bytes = new Uint8Array(buf, 0, Math.min(12, buf.byteLength));
-  for (const [type, magic] of MAGIC_BYTES) {
-    if (magic.every((b, i) => bytes[i] === b)) {
-      if (type === "image/webp") {
-        // RIFF container — verify "WEBP" at offset 8.
-        if (bytes[8] !== 0x57 || bytes[9] !== 0x45 || bytes[10] !== 0x42 || bytes[11] !== 0x50) continue;
-      }
-      return type;
-    }
-  }
-  return null;
-}
 
 export async function POST(req: NextRequest) {
   try {
@@ -40,21 +18,16 @@ export async function POST(req: NextRequest) {
 
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
-
     if (!file) return Response.json({ error: "No file provided." }, { status: 400 });
-    if (!ALLOWED_TYPES.has(file.type))
-      return Response.json({ error: "Only JPEG, PNG, WebP, or GIF images are allowed." }, { status: 400 });
-    if (file.size > MAX_BYTES)
-      return Response.json({ error: "Image must be 5 MB or smaller." }, { status: 400 });
 
-    // Validate magic bytes — the MIME header is attacker-controlled.
-    const fileBytes = await file.arrayBuffer();
-    const detectedType = detectImageType(fileBytes);
-    if (!detectedType || !ALLOWED_TYPES.has(detectedType)) {
-      return Response.json({ error: "File content doesn't match an allowed image format." }, { status: 400 });
+    // Declared type, size, then real content via magic bytes.
+    const validated = await validateImageUpload(file, MAX_BYTES);
+    if (!validated.ok) {
+      return Response.json({ error: validated.error }, { status: validated.status });
     }
+    const { bytes: fileBytes, type: detectedType } = validated;
 
-    const ext = detectedType.split("/")[1].replace("jpeg", "jpg");
+    const ext = extensionForImageType(detectedType);
     const filename = `${user.id}-${Date.now()}.${ext}`;
 
     let url: string;

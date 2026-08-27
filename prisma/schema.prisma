@@ -425,6 +425,16 @@ model EventType {
   // Max tickets one buyer can purchase in a single order — anti-abuse cap,
   // mirroring what public ticketing platforms do (typically ~10).
   maxTicketsPerOrder Int    @default(10)
+  // Ticket designer (Phase 4, gated behind `ticket_designer`). The tenant's
+  // uploaded rectangular ticket artwork, and where each printed field sits on
+  // top of it. No aspect-ratio column on purpose: the artwork <img> renders at
+  // its own natural ratio and every field is positioned as a PERCENTAGE of
+  // that rendered box, so the layout stays correct for any image shape with
+  // nothing to keep in sync. null artwork = the built-in default ticket design.
+  ticketArtworkUrl String?
+  // JSON array of placed fields — see src/lib/ticket-template.ts, which owns
+  // the shape and is the only thing allowed to parse/serialize it.
+  ticketLayout    String?
   createdAt       DateTime  @default(now())
 
   bookings        Booking[]
