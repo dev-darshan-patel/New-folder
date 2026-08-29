@@ -29,6 +29,7 @@ import { getPaymentAdapter } from "@/lib/payments/registry";
 import { planHasFeature } from "@/lib/plans";
 import { validateTierSelection } from "@/lib/ticket-tiers";
 import { releaseTicketedSeats } from "@/lib/ticket-release";
+import { claimTicketSeats, SessionUnavailableError } from "@/lib/ticket-claim";
 import logger from "@/lib/logger";
 
 // Validate an IANA timezone string; returns it or null.
@@ -1043,81 +1044,19 @@ export async function createGroupBookingAction(input: {
       // rows. Those happen later, when the payment webhook confirms, so an
       // abandoned checkout never burns serial numbers or QR codes nobody
       // received. See Booking.ticketQty's schema comment.
+      // Atomic claim — see src/lib/ticket-claim.ts. A paid order deliberately
+      // does NOT allocate serials here: its Ticket rows are created later, by
+      // the payment webhook.
       let serialHigh = 0; // ticketsIssued AFTER this claim; serials = high-qty+1 .. high
-      if (ticketed && selectedTierId) {
-        // Tiered claim: the category's own row is what bounds availability
-        // here, not Session.capacity/unlimited (that's the whole point of
-        // categories — see the TicketTier schema comment). Same atomic-UPDATE
-        // discipline as every other seat claim in this file: the DB evaluates
-        // the capacity check as part of the UPDATE and takes the row lock, so
-        // two racing orders for the last VIP seat can't both succeed.
-        const tierRows = await tx.$queryRaw<{ seatsTaken: number }[]>`
-          UPDATE "TicketTier"
-          SET "seatsTaken" = "seatsTaken" + ${qty}
-          WHERE id = ${selectedTierId}
-            AND "sessionId" = ${input.sessionId}
-            AND (capacity IS NULL OR "seatsTaken" + ${qty} <= capacity)
-          RETURNING "seatsTaken"
-        `;
-        if (tierRows.length === 0) throw new Error("SESSION_UNAVAILABLE");
-
-        // Still bump the session's aggregate counter (roster/scanner display)
-        // — just without re-checking Session.capacity, since the tier already
-        // gated this claim. If this second UPDATE matches zero rows (session
-        // got cancelled or started between the two statements), the whole
-        // transaction rolls back, including the tier claim above — no seats
-        // can leak.
-        if (isPaidTicketOrder) {
-          const claimed: number = await tx.$executeRaw`
-            UPDATE "Session"
-            SET "seatsTaken" = "seatsTaken" + ${qty}, "updatedAt" = NOW()
-            WHERE id = ${input.sessionId}
-              AND "eventTypeId" = ${eventType.id}
-              AND cancelled = false
-              AND "startTime" > NOW()
-          `;
-          if (claimed === 0) throw new Error("SESSION_UNAVAILABLE");
-        } else {
-          const rows = await tx.$queryRaw<{ ticketsIssued: number }[]>`
-            UPDATE "Session"
-            SET "seatsTaken" = "seatsTaken" + ${qty},
-                "ticketsIssued" = "ticketsIssued" + ${qty},
-                "updatedAt" = NOW()
-            WHERE id = ${input.sessionId}
-              AND "eventTypeId" = ${eventType.id}
-              AND cancelled = false
-              AND "startTime" > NOW()
-            RETURNING "ticketsIssued"
-          `;
-          if (rows.length === 0) throw new Error("SESSION_UNAVAILABLE");
-          serialHigh = Number(rows[0].ticketsIssued);
-        }
-      } else if (ticketed && isPaidTicketOrder) {
-        const claimed: number = await tx.$executeRaw`
-          UPDATE "Session"
-          SET "seatsTaken" = "seatsTaken" + ${qty}, "updatedAt" = NOW()
-          WHERE id = ${input.sessionId}
-            AND "eventTypeId" = ${eventType.id}
-            AND cancelled = false
-            AND "startTime" > NOW()
-            AND (unlimited OR "seatsTaken" + ${qty} <= capacity)
-        `;
-        if (claimed === 0) throw new Error("SESSION_UNAVAILABLE");
-      } else if (ticketed) {
-        const rows = await tx.$queryRaw<{ ticketsIssued: number }[]>`
-          UPDATE "Session"
-          SET "seatsTaken" = "seatsTaken" + ${qty},
-              "ticketsIssued" = "ticketsIssued" + ${qty},
-              "updatedAt" = NOW()
-          WHERE id = ${input.sessionId}
-            AND "eventTypeId" = ${eventType.id}
-            AND cancelled = false
-            AND "startTime" > NOW()
-            AND (unlimited OR "seatsTaken" + ${qty} <= capacity)
-          RETURNING "ticketsIssued"
-        `;
-        if (rows.length === 0) throw new Error("SESSION_UNAVAILABLE");
-        serialHigh = Number(rows[0].ticketsIssued);
+      if (ticketed) {
+        const claim = await claimTicketSeats(tx, {
+          sessionId: input.sessionId,
+          eventTypeId: eventType.id,
+          tierId: selectedTierId,
+          qty,
+          allocateSerials: !isPaidTicketOrder,
+        });
+        serialHigh = claim.serialHigh;
       } else {
         const claimed: number = await tx.$executeRaw`
           UPDATE "Session"
@@ -1203,7 +1142,7 @@ export async function createGroupBookingAction(input: {
     bookingId = result.bookingId;
     ticketCodes = result.ticketCodes;
   } catch (err) {
-    if (err instanceof Error && err.message === "SESSION_UNAVAILABLE") {
+    if (err instanceof SessionUnavailableError || (err instanceof Error && err.message === "SESSION_UNAVAILABLE")) {
       return { ok: false, error: "Sorry, this session just filled up or was canceled." };
     }
     throw err;

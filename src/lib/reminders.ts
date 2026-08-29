@@ -19,6 +19,12 @@ async function remind(
       status: "CONFIRMED",
       [field]: null,
       startTime: { gt: windowStart, lte: windowEnd },
+      // A door-registered walk-in may have no email (see manualRegisterAction).
+      // Without this filter the send below throws, the sent-timestamp is only
+      // stamped on success, and the booking is retried on every cron tick
+      // forever — a permanent error-log loop for a booking that can never be
+      // emailed.
+      inviteeEmail: { not: "" },
     },
     include: { eventType: true, user: true },
   });
