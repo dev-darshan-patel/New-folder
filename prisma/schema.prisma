@@ -565,6 +565,11 @@ model Ticket {
   // Per-ticket attendee name (the family member this pass is for). Optional in
   // Phase 1; the form builder (Phase 5) makes this a first-class per-ticket field.
   attendeeName String?
+  // Phase 5b: answers to this event type's `scope: "ticket"` questions — the
+  // per-attendee data that only makes sense once per pass (shirt size, age,
+  // dietary need). Same `[{label,value}]` JSON shape as Booking.answers, which
+  // holds the order-level answers, so both render through one code path.
+  answers      String?
   status       TicketStatus @default(ISSUED)
   // Set when scanned at the gate (Phase 2). A second scan of a CHECKED_IN
   // ticket is rejected — the atomic mark-used guards on status = ISSUED.
@@ -731,6 +736,11 @@ model Booking {
   ticketTierId        String?
   ticketTier          TicketTier? @relation(fields: [ticketTierId], references: [id], onDelete: SetNull)
   ticketAttendeeNames String?     // JSON string[], parallel to ticketQty
+  // Phase 5b: per-ticket answers awaiting payment, as JSON [[{label,value}]…]
+  // with one inner array per ticket. Stashed for the same reason as the names
+  // above — the Ticket rows don't exist until the webhook confirms, so this is
+  // where the buyer's per-attendee answers wait in the meantime.
+  ticketAnswers       String?
 
   @@index([userId, startTime])
   @@index([seriesId])

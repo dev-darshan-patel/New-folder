@@ -6,6 +6,7 @@ import { PRODUCT_NAME } from "@/lib/brand";
 import { resolveBranding } from "@/lib/branding";
 import { planHasFeature } from "@/lib/plans";
 import { parseTicketLayout } from "@/lib/ticket-template";
+import { parseAnswers } from "@/lib/intake";
 import TicketArtwork from "@/components/TicketArtwork";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -169,6 +170,12 @@ export default async function TicketPage({ params }: { params: Promise<{ code: s
                 <dd className="text-right font-medium text-foreground">{eventType.locationDetail}</dd>
               </div>
             ) : null}
+            {parseAnswers(ticket.answers).map((a) => (
+              <div key={a.label} className="flex justify-between gap-4">
+                <dt className="text-muted-foreground">{a.label}</dt>
+                <dd className="text-right font-medium text-foreground">{a.value}</dd>
+              </div>
+            ))}
             <div className="flex justify-between gap-4">
               <dt className="text-muted-foreground">Status</dt>
               <dd className={`font-semibold ${statusColor}`}>{statusLabel}</dd>

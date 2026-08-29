@@ -578,6 +578,22 @@ export default function EventTypeEditor({ initial }: { initial: Initial }) {
                     />
                     Required
                   </label>
+                  {/* Per-ticket scope only exists once an event issues tickets
+                      — on anything else there's nothing to ask "per ticket"
+                      about, so offering the choice would be meaningless. */}
+                  {isGroup && issuesTickets && (
+                    <NativeSelect
+                      value={q.scope}
+                      onChange={(e) =>
+                        update(i, { scope: e.target.value as "order" | "ticket" })
+                      }
+                      title={`Ask question ${i + 1} once per order or once per ticket`}
+                      className="w-40"
+                    >
+                      <option value="order">Once per order</option>
+                      <option value="ticket">Once per ticket</option>
+                    </NativeSelect>
+                  )}
                   <div className="ml-auto flex items-center gap-1">
                     <Button
                       type="button"

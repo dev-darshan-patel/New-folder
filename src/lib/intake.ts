@@ -271,13 +271,49 @@ export function validateAnswersForStorage(
   questionsJson: string | null | undefined,
   submitted: { label: string; value: string }[] | undefined,
 ): { ok: true; json: string | null } | { ok: false; error: string } {
-  const questions = parseQuestions(questionsJson);
-  // Cap the submitted list before doing any work with it — it's client-supplied.
-  const capped = (submitted ?? []).slice(0, 100).map((a) => ({
+  // ONLY order-scoped questions. A required per-ticket question is answered
+  // once per ticket, not once per order — validating it here would make every
+  // order fail for a missing answer that was never supposed to be at this level.
+  const questions = parseQuestions(questionsJson).filter((q) => q.scope === "order");
+  const result = validateAnswers(questions, capSubmitted(submitted));
+  if (!result.ok) return result;
+  return { ok: true, json: result.answers.length > 0 ? JSON.stringify(result.answers) : null };
+}
+
+// Cap a client-supplied answer list before doing any work with it.
+function capSubmitted(
+  submitted: { label: string; value: string }[] | undefined,
+): { label: string; value: string }[] {
+  return (submitted ?? []).slice(0, 100).map((a) => ({
     label: String(a?.label ?? "").slice(0, MAX_LABEL),
     value: String(a?.value ?? ""),
   }));
-  const result = validateAnswers(questions, capped);
-  if (!result.ok) return result;
-  return { ok: true, json: result.answers.length > 0 ? JSON.stringify(result.answers) : null };
+}
+
+// Phase 5b: validate the per-ticket answers for an order of `qty` tickets,
+// returning one JSON string (or null) per ticket, positionally aligned with
+// the tickets that will be created.
+//
+// `scope: "ticket"` questions are only meaningful on a ticketed event type —
+// on any other event type they simply don't render and aren't collected, so
+// this returns all-nulls and nothing is required of the buyer.
+export function validateTicketAnswersForStorage(
+  questionsJson: string | null | undefined,
+  perTicket: { label: string; value: string }[][] | undefined,
+  qty: number,
+): { ok: true; json: (string | null)[] } | { ok: false; error: string } {
+  const questions = parseQuestions(questionsJson).filter((q) => q.scope === "ticket");
+  if (questions.length === 0) return { ok: true, json: Array(qty).fill(null) };
+
+  const out: (string | null)[] = [];
+  for (let i = 0; i < qty; i++) {
+    const result = validateAnswers(questions, capSubmitted(perTicket?.[i]));
+    if (!result.ok) {
+      // Name the ticket, since "shirt size is required" is unhelpful when
+      // you're buying four of them and only one is missing.
+      return { ok: false, error: `Ticket ${i + 1} — ${result.error}` };
+    }
+    out.push(result.answers.length > 0 ? JSON.stringify(result.answers) : null);
+  }
+  return { ok: true, json: out };
 }

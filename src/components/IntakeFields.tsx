@@ -16,33 +16,45 @@ import { NativeSelect } from "@/components/ui/native-select";
 
 // Field name for question i. Index-based rather than label-based so a label
 // containing odd characters can't produce a malformed form field name.
-function fieldName(index: number): string {
-  return `q-${index}`;
+//
+// `prefix` keeps per-ticket copies of the same question apart: Phase 5b
+// renders the ticket-scoped questions once per ticket inside the SAME form,
+// so without it every copy would share one field name and collapse into a
+// single answer.
+function fieldName(index: number, prefix = ""): string {
+  return `${prefix}q-${index}`;
 }
 
 export function readAnswers(
   fd: FormData,
   questions: IntakeQuestion[],
+  prefix = "",
 ): { label: string; value: string }[] {
   return questions.map((q, i) => {
     if (q.type === "multiselect") {
       // Several checkboxes share one name; getAll collects every ticked box.
       // Joined here into the same display-ready string the server validates
       // and stores.
-      const picked = fd.getAll(fieldName(i)).map((v) => String(v));
+      const picked = fd.getAll(fieldName(i, prefix)).map((v) => String(v));
       return { label: q.label, value: picked.join(MULTI_SEPARATOR) };
     }
-    return { label: q.label, value: String(fd.get(fieldName(i)) ?? "") };
+    return { label: q.label, value: String(fd.get(fieldName(i, prefix)) ?? "") };
   });
 }
 
-export default function IntakeFields({ questions }: { questions: IntakeQuestion[] }) {
+export default function IntakeFields({
+  questions,
+  prefix = "",
+}: {
+  questions: IntakeQuestion[];
+  prefix?: string;
+}) {
   if (questions.length === 0) return null;
 
   return (
     <>
       {questions.map((q, i) => {
-        const name = fieldName(i);
+        const name = fieldName(i, prefix);
         const labelText = q.required ? `${q.label} *` : `${q.label} (optional)`;
 
         // Choice groups and the standalone checkbox need a visible label
@@ -50,7 +62,7 @@ export default function IntakeFields({ questions }: { questions: IntakeQuestion[
         // placeholder, which is how this form looked before typed fields.
         if (q.type === "multiselect" || q.type === "radio") {
           return (
-            <fieldset key={i} className="rounded-lg border border-border p-3">
+            <fieldset key={name} className="rounded-lg border border-border p-3">
               <legend className="px-1 text-sm font-medium text-slate-700">{labelText}</legend>
               <div className="mt-1 space-y-1.5">
                 {q.options.map((opt) => (
@@ -75,7 +87,7 @@ export default function IntakeFields({ questions }: { questions: IntakeQuestion[
 
         if (q.type === "checkbox") {
           return (
-            <label key={i} className="flex items-center gap-2 text-sm text-slate-700">
+            <label key={name} className="flex items-center gap-2 text-sm text-slate-700">
               <input
                 type="checkbox"
                 name={name}
@@ -90,7 +102,7 @@ export default function IntakeFields({ questions }: { questions: IntakeQuestion[
 
         if (q.type === "select") {
           return (
-            <label key={i} className="block text-sm">
+            <label key={name} className="block text-sm">
               <span className="mb-1 block font-medium text-slate-700">{labelText}</span>
               <NativeSelect name={name} required={q.required} defaultValue="">
                 <option value="" disabled={q.required}>
@@ -108,13 +120,13 @@ export default function IntakeFields({ questions }: { questions: IntakeQuestion[
 
         if (q.type === "textarea") {
           return (
-            <Textarea key={i} name={name} rows={3} required={q.required} placeholder={labelText} />
+            <Textarea key={name} name={name} rows={3} required={q.required} placeholder={labelText} />
           );
         }
 
         if (q.type === "date") {
           return (
-            <label key={i} className="block text-sm">
+            <label key={name} className="block text-sm">
               <span className="mb-1 block font-medium text-slate-700">{labelText}</span>
               {/* A date input has no usable placeholder, so the label has to
                   carry the question — otherwise it's a bare box. */}
@@ -127,7 +139,7 @@ export default function IntakeFields({ questions }: { questions: IntakeQuestion[
           q.type === "email" ? "email" : q.type === "phone" ? "tel" : q.type === "number" ? "number" : "text";
         return (
           <Input
-            key={i}
+            key={name}
             type={inputType}
             name={name}
             required={q.required}

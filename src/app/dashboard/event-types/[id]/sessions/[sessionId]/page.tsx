@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { parseAnswers } from "@/lib/intake";
 import { Card, CardContent } from "@/components/ui/card";
 
 // Owner view: who's booked into this session, with seats-taken vs capacity.
@@ -37,6 +38,7 @@ export default async function SessionRosterPage({
               attendeeName: true,
               status: true,
               checkedInAt: true,
+              answers: true,
               tier: { select: { name: true } },
             },
             orderBy: { serial: "asc" },
@@ -139,6 +141,12 @@ export default async function SessionRosterPage({
                         #{t.serial}
                         {t.tier ? ` ${t.tier.name}` : ""}
                         {t.attendeeName ? ` · ${t.attendeeName}` : ""}
+                        {/* Per-ticket answers (Phase 5b) inline on the badge —
+                            this is the race-kit desk view: shirt size has to be
+                            readable next to the name, not a click away. */}
+                        {parseAnswers(t.answers)
+                          .map((a) => ` · ${a.value}`)
+                          .join("")}
                         {t.status === "CHECKED_IN" && " ✓"}
                       </li>
                     ))}

@@ -108,9 +108,21 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ pro
       return NextResponse.json({ received: true, sessionGone: true });
     }
     const serialHigh = Number(rows[0].ticketsIssued);
-    const attendeeNames: string[] = booking.ticketAttendeeNames
-      ? JSON.parse(booking.ticketAttendeeNames)
-      : [];
+    // Both stashes were written by createGroupBookingAction and are already
+    // validated + positionally aligned with the tickets; a malformed value
+    // here would mean our own earlier write was corrupt, so fall back to
+    // empty rather than failing a payment that already succeeded.
+    const safeParse = <T,>(json: string | null, fallback: T): T => {
+      if (!json) return fallback;
+      try {
+        return JSON.parse(json) as T;
+      } catch {
+        logger.error({ bookingId: booking.id }, "Corrupt ticket stash JSON on paid booking");
+        return fallback;
+      }
+    };
+    const attendeeNames = safeParse<string[]>(booking.ticketAttendeeNames, []);
+    const ticketAnswers = safeParse<(string | null)[]>(booking.ticketAnswers, []);
     const rowsToCreate = Array.from({ length: qty }, (_, i) => ({
       bookingId: booking.id,
       sessionId,
@@ -118,6 +130,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ pro
       code: `tkt-${crypto.randomUUID()}`,
       serial: serialHigh - qty + 1 + i,
       attendeeName: attendeeNames[i] || null,
+      answers: ticketAnswers[i] ?? null,
     }));
     await prisma.ticket.createMany({ data: rowsToCreate });
     ticketCodes = rowsToCreate.map((r) => r.code);

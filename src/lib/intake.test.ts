@@ -4,6 +4,8 @@ import {
   serializeQuestions,
   validateAnswer,
   validateAnswers,
+  validateAnswersForStorage,
+  validateTicketAnswersForStorage,
   type IntakeQuestion,
 } from "@/lib/intake";
 
@@ -185,5 +187,66 @@ describe("validateAnswers", () => {
       { label: "isAdmin", value: "true" },
     ]);
     expect(r).toEqual({ ok: true, answers: [{ label: "Name", value: "Meera" }] });
+  });
+});
+
+// Phase 5b: an order-level answer and a per-ticket answer are collected at
+// different times from different inputs. Mixing up which questions belong to
+// which level is the easiest way to break this feature, so both directions
+// are pinned here.
+describe("scope separation", () => {
+  const mixed = serializeQuestions([
+    q({ label: "Company", required: true, scope: "order" }),
+    q({ label: "Shirt size", type: "select", options: ["S", "M"], required: true, scope: "ticket" }),
+  ]);
+
+  it("order-level validation ignores a required per-ticket question", () => {
+    // The whole trap: without the scope filter this fails with "Please answer:
+    // Shirt size" on every single order, because that answer is never
+    // submitted at the order level.
+    const r = validateAnswersForStorage(mixed, [{ label: "Company", value: "Acme" }]);
+    expect(r).toEqual({ ok: true, json: JSON.stringify([{ label: "Company", value: "Acme" }]) });
+  });
+
+  it("per-ticket validation ignores order-scoped questions", () => {
+    const r = validateTicketAnswersForStorage(mixed, [[{ label: "Shirt size", value: "M" }]], 1);
+    expect(r).toEqual({ ok: true, json: [JSON.stringify([{ label: "Shirt size", value: "M" }])] });
+  });
+
+  it("returns one entry per ticket, positionally aligned", () => {
+    const r = validateTicketAnswersForStorage(
+      mixed,
+      [[{ label: "Shirt size", value: "S" }], [{ label: "Shirt size", value: "M" }]],
+      2,
+    );
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.json).toHaveLength(2);
+      expect(r.json[0]).toContain("S");
+      expect(r.json[1]).toContain("M");
+    }
+  });
+
+  it("names the offending ticket when one of several is incomplete", () => {
+    const r = validateTicketAnswersForStorage(
+      mixed,
+      [[{ label: "Shirt size", value: "S" }], []],
+      2,
+    );
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toContain("Ticket 2");
+  });
+
+  it("still enforces the option list per ticket", () => {
+    const r = validateTicketAnswersForStorage(mixed, [[{ label: "Shirt size", value: "XXL" }]], 1);
+    expect(r.ok).toBe(false);
+  });
+
+  it("requires nothing when the event type has no per-ticket questions", () => {
+    const orderOnly = serializeQuestions([q({ label: "Company", required: true })]);
+    expect(validateTicketAnswersForStorage(orderOnly, undefined, 3)).toEqual({
+      ok: true,
+      json: [null, null, null],
+    });
   });
 });

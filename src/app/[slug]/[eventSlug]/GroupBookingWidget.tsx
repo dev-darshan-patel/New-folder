@@ -99,6 +99,15 @@ export default function GroupBookingWidget({
   currency?: string | null;
   flatPriceCents?: number | null;
 }) {
+  // Phase 5b: order-level questions render once in the main form; ticket-level
+  // ones render once per ticket inside the ticket block below. Ticket scope is
+  // only meaningful when this event actually issues tickets — on anything else
+  // those questions are ignored entirely, matching the server's own filter.
+  const orderQuestions = questions.filter((q) => q.scope !== "ticket");
+  const perTicketQuestions = issuesTickets
+    ? questions.filter((q) => q.scope === "ticket")
+    : [];
+
   const [selected, setSelected] = useState<GroupSession | null>(null);
   // Ticketing: how many tickets to buy and an optional name per ticket.
   const [quantity, setQuantity] = useState(1);
@@ -289,7 +298,15 @@ export default function GroupBookingWidget({
             e.preventDefault();
             const fd = new FormData(e.currentTarget);
             setFormError(null);
-            const answers = readAnswers(fd, questions);
+            const answers = readAnswers(fd, orderQuestions);
+            // One answer set per ticket, positionally aligned with the tickets
+            // the server is about to create.
+            const ticketAnswers =
+              perTicketQuestions.length > 0
+                ? Array.from({ length: quantity }, (_, i) =>
+                    readAnswers(fd, perTicketQuestions, `t${i}-`),
+                  )
+                : undefined;
             startSubmit(async () => {
               const res = await createGroupBookingAction({
                 eventTypeId,
@@ -303,6 +320,7 @@ export default function GroupBookingWidget({
                   ? {
                       quantity,
                       attendeeNames: attendeeNames.slice(0, quantity),
+                      ...(ticketAnswers ? { ticketAnswers } : {}),
                       ...(selected.tiers.length > 0 && tierId ? { tierId } : {}),
                     }
                   : {}),
@@ -414,24 +432,45 @@ export default function GroupBookingWidget({
                           Total: {fmtMoney(unitPriceCents * quantity, currency)}
                         </p>
                       )}
-                      {quantity > 1 && (
-                        <div className="space-y-2">
+                      {/* Per-ticket details. Shown when there's more than one
+                          ticket (so each pass can be named), and ALSO for a
+                          single ticket whenever the event asks per-ticket
+                          questions — otherwise those questions would have
+                          nowhere to appear. */}
+                      {(quantity > 1 || perTicketQuestions.length > 0) && (
+                        <div className="space-y-3">
                           <p className="text-xs text-muted-foreground">
-                            Name on each ticket (optional — helps at the gate).
+                            {perTicketQuestions.length > 0
+                              ? "Details for each ticket."
+                              : "Name on each ticket (optional — helps at the gate)."}
                           </p>
                           {Array.from({ length: quantity }, (_, i) => (
-                            <Input
+                            <div
                               key={i}
-                              value={attendeeNames[i] ?? ""}
-                              onChange={(e) =>
-                                setAttendeeNames((prev) => {
-                                  const next = [...prev];
-                                  next[i] = e.target.value;
-                                  return next;
-                                })
+                              className={
+                                perTicketQuestions.length > 0
+                                  ? "space-y-2 rounded-lg border border-border bg-white p-3"
+                                  : ""
                               }
-                              placeholder={`Ticket ${i + 1} attendee (optional)`}
-                            />
+                            >
+                              {perTicketQuestions.length > 0 && (
+                                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                  Ticket {i + 1}
+                                </p>
+                              )}
+                              <Input
+                                value={attendeeNames[i] ?? ""}
+                                onChange={(e) =>
+                                  setAttendeeNames((prev) => {
+                                    const next = [...prev];
+                                    next[i] = e.target.value;
+                                    return next;
+                                  })
+                                }
+                                placeholder={`Ticket ${i + 1} attendee (optional)`}
+                              />
+                              <IntakeFields questions={perTicketQuestions} prefix={`t${i}-`} />
+                            </div>
                           ))}
                         </div>
                       )}
@@ -447,7 +486,7 @@ export default function GroupBookingWidget({
               rows={2}
               placeholder="Anything we should know? (optional)"
             />
-            <IntakeFields questions={questions} />
+            <IntakeFields questions={orderQuestions} />
             {formError && (
               <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
                 {formError}

@@ -16,7 +16,11 @@ import { renderTemplate } from "@/lib/email-templates";
 import { buildIcs } from "@/lib/ics";
 import { createMeetEvent, getGoogleBusyWindows } from "@/lib/google-calendar";
 import { createZoomMeeting } from "@/lib/zoom";
-import { validateAnswersForStorage, parseAnswers } from "@/lib/intake";
+import {
+  validateAnswersForStorage,
+  validateTicketAnswersForStorage,
+  parseAnswers,
+} from "@/lib/intake";
 import { sanitizeGuests, type Guest } from "@/lib/guests";
 import { BLOCKING_STATUSES } from "@/lib/booking-status";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
@@ -905,6 +909,9 @@ export async function createGroupBookingAction(input: {
   // non-ticketed group sessions, which always take exactly one seat.
   quantity?: number;
   attendeeNames?: string[];
+  // Phase 5b: answers to `scope: "ticket"` questions, one inner array per
+  // ticket being bought. Ignored for non-ticketed group sessions.
+  ticketAnswers?: { label: string; value: string }[][];
   // Ticket category (Phase 3a). Required when the session has any
   // TicketTier rows configured; ignored otherwise.
   tierId?: string;
@@ -951,6 +958,15 @@ export async function createGroupBookingAction(input: {
   const attendeeNames = ticketed
     ? (input.attendeeNames ?? []).slice(0, qty).map((n) => String(n ?? "").trim().slice(0, 200))
     : [];
+
+  // Phase 5b: answers to any `scope: "ticket"` questions, one set per ticket.
+  // Validated before the seat claim for the same reason as the order-level
+  // answers — a form error shouldn't burn and then release inventory.
+  const ticketAnswersResult = ticketed
+    ? validateTicketAnswersForStorage(eventType.intakeQuestions, input.ticketAnswers, qty)
+    : ({ ok: true, json: [] } as const);
+  if (!ticketAnswersResult.ok) return { ok: false, error: ticketAnswersResult.error };
+  const ticketAnswers = ticketAnswersResult.json;
 
   // Ticket categories (Phase 3a): fetch what's configured for this session
   // (empty for the common case of a ticketed event with no categories, which
@@ -1151,6 +1167,11 @@ export async function createGroupBookingAction(input: {
                 ticketAttendeeNames: attendeeNames.some((n) => n)
                   ? JSON.stringify(attendeeNames)
                   : null,
+                // Per-ticket answers wait here until the webhook creates the
+                // real Ticket rows — same reason as the names above.
+                ticketAnswers: ticketAnswers.some((a) => a)
+                  ? JSON.stringify(ticketAnswers)
+                  : null,
               }
             : {}),
         },
@@ -1170,6 +1191,7 @@ export async function createGroupBookingAction(input: {
           code: `tkt-${crypto.randomUUID()}`,
           serial: serialHigh - qty + 1 + i,
           attendeeName: attendeeNames[i] || null,
+          answers: ticketAnswers[i] ?? null,
         }));
         await tx.ticket.createMany({ data: rowsToCreate });
         ticketCodes = rowsToCreate.map((r) => r.code);
