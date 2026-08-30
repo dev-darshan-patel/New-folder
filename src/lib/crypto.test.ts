@@ -144,7 +144,7 @@ describe("decryptIfNeeded — wrong key vs plaintext", () => {
     // Real examples of values stored before encryption was switched on. None
     // are valid base64 of sufficient length, so none should warn.
     for (const plain of [
-      "sk_test_51TpAbCdEfGhIjKlMnOp",
+      "sk_test_EXAMPLEexampleEXAMPLE",
       "whsec_abc123",
       "smtp-password!",
       "short",
