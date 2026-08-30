@@ -36,14 +36,11 @@ export default function LoginForm({ showEmailDivider }: { showEmailDivider: bool
         <OAuthError />
       </Suspense>
 
-      {showEmailDivider && (
-        <div className="mt-6 flex items-center gap-3 text-xs text-slate-400">
-          <div className="h-px flex-1 bg-slate-200" />
-          or with email
-          <div className="h-px flex-1 bg-slate-200" />
-        </div>
-      )}
-
+      {/* No divider here: OAuthSection already renders "or with email" directly
+          under the provider buttons, and signup relies on that one. Rendering a
+          second one here put the sign-in error sandwiched between two identical
+          dividers. `showEmailDivider` now only says whether that section is
+          above us, which is still what decides the spacing below. */}
       <form action={formAction} className={showEmailDivider ? "mt-6 space-y-4" : "mt-8 space-y-4"}>
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>

@@ -37,6 +37,30 @@ export async function GET(
   };
 
   if (!code || !state || !expectedState || state !== expectedState) {
+    // This used to return silently, which made "Something went wrong signing
+    // in" impossible to diagnose from the logs — it is the single most likely
+    // cause of that message and left no trace at all. Log WHICH precondition
+    // failed; they have completely different fixes.
+    //
+    //   missingCode      – the provider redirected back without a code
+    //                      (user cancelled, or consent failed)
+    //   missingCookie    – the state cookie never came back. Usually the flow
+    //                      took over 10 minutes (maxAge), the user started on
+    //                      one host and returned on another (www vs apex, or a
+    //                      preview URL), or cookies are blocked.
+    //   stateMismatch    – a stale tab: a second sign-in overwrote the cookie,
+    //                      so the older tab's state no longer matches.
+    logger.warn(
+      {
+        provider,
+        missingCode: !code,
+        missingState: !state,
+        missingCookie: !expectedState,
+        stateMismatch: Boolean(state && expectedState && state !== expectedState),
+        host: req.nextUrl.host,
+      },
+      "OAuth callback rejected before token exchange",
+    );
     return fail("oauth_failed");
   }
 
