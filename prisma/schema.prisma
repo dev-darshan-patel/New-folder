@@ -884,6 +884,18 @@ model PlatformSettings {
   s3PublicUrlBase          String?
   s3ForcePathStyle         Boolean @default(false)
 
+  // Legal pages (/terms, /privacy). Stored rather than hardcoded because every
+  // deployment needs DIFFERENT text — different company, jurisdiction and
+  // data practices — and a policy shipped in the repo is a policy someone
+  // publishes unread. Null = the page reports itself unpublished rather than
+  // showing a placeholder that looks like a real agreement.
+  termsContent   String?
+  privacyContent String?
+  // Stamped when an admin saves each one, so the page can show "last updated"
+  // — which people genuinely rely on to spot changes to an agreement.
+  termsUpdatedAt   DateTime?
+  privacyUpdatedAt DateTime?
+
   // Error alerting. When an address is set, the platform emails it the FIRST
   // time a given error fingerprint is seen — not on every occurrence, which is
   // how alerting turns into noise everyone ignores. Blank = capture errors for

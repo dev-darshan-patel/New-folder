@@ -42,6 +42,7 @@ const navGroups: { title: string; items: { href: string; label: string; superAdm
       { href: "/admin/settings/platform", label: "Platform config", superAdminOnly: true },
       { href: "/admin/settings/plans", label: "Plans", superAdminOnly: true },
       { href: "/admin/settings/flags", label: "Feature flags", superAdminOnly: true },
+      { href: "/admin/settings/legal", label: "Legal pages", superAdminOnly: true },
     ],
   },
   {

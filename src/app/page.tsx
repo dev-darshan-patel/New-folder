@@ -77,7 +77,15 @@ export default async function Home() {
       </main>
 
       <footer className="border-t border-slate-100 py-6 text-center text-sm text-slate-400">
-        © {new Date().getFullYear()} {PRODUCT_NAME}. A scheduling platform for small business.
+        <p>© {new Date().getFullYear()} {PRODUCT_NAME}. A scheduling platform for small business.</p>
+        <p className="mt-2 flex justify-center gap-4">
+          <Link href="/terms" className="hover:text-slate-600">
+            Terms
+          </Link>
+          <Link href="/privacy" className="hover:text-slate-600">
+            Privacy
+          </Link>
+        </p>
       </footer>
     </div>
   );
