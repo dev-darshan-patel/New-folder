@@ -46,7 +46,10 @@ const navGroups: { title: string; items: { href: string; label: string; superAdm
   },
   {
     title: "Compliance",
-    items: [{ href: "/admin/audit", label: "Audit log" }],
+    items: [
+      { href: "/admin/audit", label: "Audit log" },
+      { href: "/admin/errors", label: "Errors" },
+    ],
   },
 ];
 

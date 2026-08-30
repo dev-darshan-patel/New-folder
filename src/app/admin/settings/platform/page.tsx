@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { getPlatformSettings } from "@/lib/settings";
 import { updatePlatformConfigAction } from "./actions";
@@ -69,6 +70,23 @@ export default async function AdminPlatformConfigPage() {
               />
               <span className="mt-1 block text-xs text-slate-400">
                 Shown on maintenance and signup-disabled screens.
+              </span>
+            </div>
+            <div className="space-y-2">
+              <Label>Error alert email</Label>
+              <Input
+                name="alertEmail"
+                type="email"
+                defaultValue={settings.alertEmail ?? ""}
+                placeholder="alerts@example.com"
+              />
+              <span className="mt-1 block text-xs text-slate-400">
+                Emailed the first time a new server error appears (and if a resolved one comes
+                back) — not on every occurrence. Leave blank to record errors at{" "}
+                <Link href="/admin/errors" className="underline">
+                  /admin/errors
+                </Link>{" "}
+                without emailing anyone.
               </span>
             </div>
           </CardContent>

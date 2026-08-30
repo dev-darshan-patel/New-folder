@@ -3,6 +3,7 @@ import { sendDueReminders } from "@/lib/reminders";
 import { cleanupExpiredRateLimits } from "@/lib/rate-limit";
 import { expireStalePaymentHolds } from "@/lib/payments/holds";
 import { releaseDuePayouts } from "@/lib/payments/release";
+import { pruneOldErrors } from "@/lib/error-tracking";
 import logger from "@/lib/logger";
 
 // Trigger reminder emails for upcoming bookings. Point a scheduler (Vercel Cron,
@@ -25,11 +26,21 @@ async function handle(req: NextRequest) {
   const rateLimitCleaned = await cleanupExpiredRateLimits();
   const holdsExpired = await expireStalePaymentHolds();
   const payouts = await releaseDuePayouts();
+  // Keep the captured-error table cheap to retain forever rather than adding
+  // another schedule for it.
+  const errorsPruned = await pruneOldErrors();
   logger.info(
-    { ...result, rateLimitCleaned, holdsExpired, payouts },
+    { ...result, rateLimitCleaned, holdsExpired, payouts, errorsPruned },
     "Cron: reminders run complete",
   );
-  return NextResponse.json({ ok: true, ...result, rateLimitCleaned, holdsExpired, payouts });
+  return NextResponse.json({
+    ok: true,
+    ...result,
+    rateLimitCleaned,
+    holdsExpired,
+    payouts,
+    errorsPruned,
+  });
 }
 
 export async function GET(req: NextRequest) {

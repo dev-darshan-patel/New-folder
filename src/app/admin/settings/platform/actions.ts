@@ -15,6 +15,10 @@ export async function updatePlatformConfigAction(formData: FormData) {
     String(formData.get("maintenanceMessage") ?? "").trim().slice(0, 500) || null;
   const supportEmail =
     String(formData.get("supportEmail") ?? "").trim().slice(0, 200) || null;
+  // Where new-error alerts go. Blank = capture errors at /admin/errors but
+  // never email anyone.
+  const alertEmail =
+    String(formData.get("alertEmail") ?? "").trim().slice(0, 200) || null;
 
   const before = await prisma.platformSettings.findUnique({ where: { id: SETTINGS_ID } });
 
@@ -26,12 +30,14 @@ export async function updatePlatformConfigAction(formData: FormData) {
       signupsEnabled,
       maintenanceMessage,
       supportEmail,
+      alertEmail,
     },
     update: {
       maintenanceMode,
       signupsEnabled,
       maintenanceMessage,
       supportEmail,
+      alertEmail,
     },
   });
 

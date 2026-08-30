@@ -884,7 +884,45 @@ model PlatformSettings {
   s3PublicUrlBase          String?
   s3ForcePathStyle         Boolean @default(false)
 
+  // Error alerting. When an address is set, the platform emails it the FIRST
+  // time a given error fingerprint is seen — not on every occurrence, which is
+  // how alerting turns into noise everyone ignores. Blank = capture errors for
+  // /admin/errors but never email.
+  alertEmail String?
+
   updatedAt DateTime @updatedAt
+}
+
+// A durable, deduplicated record of server errors (see src/lib/error-tracking.ts).
+//
+// Errors already reached pino via instrumentation's onRequestError, but those
+// logs are ephemeral on serverless and unread on a VPS — in practice nobody
+// ever found out something had broken. This is the smallest thing that fixes
+// that without taking on a third-party observability dependency, and it
+// matches how the rest of the platform stores its own operational data.
+model ErrorEvent {
+  id          String   @id @default(cuid())
+  // Stable hash of (message + route). One row per distinct problem with a
+  // count, rather than one row per occurrence — an error in a hot path would
+  // otherwise write thousands of rows and bury everything else.
+  fingerprint String   @unique
+  message     String
+  // Truncated before storage; a full stack can be enormous and this table is
+  // meant to stay cheap to keep forever.
+  stack       String?
+  routePath   String?
+  method      String?
+  // Where Next says it came from (render vs route handler vs action).
+  routeType   String?
+  count       Int      @default(1)
+  firstSeenAt DateTime @default(now())
+  lastSeenAt  DateTime @default(now())
+  // Set when an admin marks it handled. A recurrence after that clears it
+  // again, so "resolved" can't hide a problem that came back.
+  resolvedAt  DateTime?
+
+  @@index([lastSeenAt])
+  @@index([resolvedAt])
 }
 
 // Toggleable product capabilities. Keys are stable identifiers checked in code.

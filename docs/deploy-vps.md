@@ -277,6 +277,46 @@ sudo ufw allow OpenSSH && sudo ufw allow 'Nginx Full' && sudo ufw enable
    emails to the journal, so no verification or booking emails reach anyone.
    This is the most common "why is nothing working" cause.
 4. Then payment credentials, plans, and storage as needed.
+5. Set an **error alert email** under `/admin/settings/platform` (see below).
+
+## 11. Monitoring
+
+Two things, because "the server is up" and "the app is working" are different
+questions and you want to be told about both.
+
+### Uptime
+
+`GET /api/health` returns `200` when the app can reach the database, `503`
+when it can't. It deliberately checks Postgres rather than just answering —
+a process that responds while its database is unreachable serves errors on
+every real page, and a health check that stays green through that actively
+suppresses the alert you needed. It's public and returns nothing sensitive,
+so point any external monitor at it:
+
+```
+https://yourdomain.com/api/health
+```
+
+Free options: UptimeRobot, Better Stack, Healthchecks.io. Any of them will
+email/SMS you when it starts failing. `HEAD` works too if your monitor
+prefers it. **Monitor from OUTSIDE the server** — a check running on the same
+box can't tell you the box is down.
+
+### Errors
+
+Server errors are captured to the database and listed at `/admin/errors`,
+grouped by cause with an occurrence count, rather than only going to the
+journal where nobody reads them. Set **Error alert email** in
+`/admin/settings/platform` and you'll be emailed the first time a new error
+appears — and again if one you marked resolved comes back. It deliberately
+does not email on every occurrence; that's how alerting becomes noise people
+filter away.
+
+This needs working email (section 4). Without it, errors are still recorded
+at `/admin/errors`, but nobody gets told.
+
+Old errors are pruned automatically by the same cron as section 8, so the
+table stays cheap to keep.
 
 ## Updating
 
