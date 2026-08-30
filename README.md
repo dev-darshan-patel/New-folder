@@ -78,6 +78,10 @@ build, also type-checks) are the two checks worth running.
 - **[docs/deploy-vps.md](docs/deploy-vps.md)** — self-hosting on an Ubuntu/Debian
   server (systemd, nginx/Caddy, system cron).
 - **[docs/reminders-cron.md](docs/reminders-cron.md)** — the reminder cron setup.
+- **[docs/backup-restore.md](docs/backup-restore.md)** — what to back up (including
+  the encryption key a DB dump alone won't save you without), and how to verify a restore.
+- **[docs/email-deliverability.md](docs/email-deliverability.md)** — SPF/DKIM/DMARC
+  so booking emails reach the inbox rather than spam.
 - **[REBRANDING.md](REBRANDING.md)** — white-labeling the product name/logo for a client.
 - **[CLAUDE.md](CLAUDE.md)** — architecture notes and conventions.
 

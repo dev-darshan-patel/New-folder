@@ -278,6 +278,12 @@ sudo ufw allow OpenSSH && sudo ufw allow 'Nginx Full' && sudo ufw enable
    This is the most common "why is nothing working" cause.
 4. Then payment credentials, plans, and storage as needed.
 5. Set an **error alert email** under `/admin/settings/platform` (see below).
+6. Publish **Terms** and **Privacy** under `/admin/settings/legal` — until you do,
+   `/terms` and `/privacy` say so plainly.
+7. Set up **[backups](backup-restore.md)** and
+   **[email authentication](email-deliverability.md)**. Both are launch
+   blockers rather than later polish: unauthenticated mail lands in spam, and a
+   backup you have not restored is not a backup.
 
 ## 11. Monitoring
 
@@ -344,6 +350,8 @@ instances behind the proxy — out of scope here.
 | `PrismaClientInitializationError` about the query engine | `node_modules` copied from another OS. Delete it and `npm ci` on the server (§3). |
 | 500 on every page | `DATABASE_URL` wrong or Postgres unreachable. `journalctl -u bookify -n 50`. |
 | No emails arrive | Email provider not configured at `/admin/settings/email` — check the journal, the message body is logged there instead. |
+| Emails send but land in spam | SPF/DKIM/DMARC not set up — see [email-deliverability.md](email-deliverability.md). |
+| Emails only reach your own address | Amazon SES is still sandboxed; request production access. |
 | Reminders never send | Cron not set up, or `CRON_SECRET` mismatch. Run the curl by hand: 200 = fine, 401 = wrong secret. |
 | Booking links point at the wrong host | `NEXT_PUBLIC_APP_URL` is wrong. Fix it, then `npm run build` **and** restart — it's baked in at build time. |
 | Upload fails with a storage error | Local disk: systemd `ReadWritePaths` missing `public/uploads` (§6). S3: test it at `/admin/settings/storage`. |
