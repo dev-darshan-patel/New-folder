@@ -232,6 +232,15 @@ node --env-file=.env scripts/encrypt-plaintext-secrets.mjs           # dry run
 node --env-file=.env scripts/encrypt-plaintext-secrets.mjs --apply   # write
 ```
 
+**Before running this, make sure every environment sharing the database uses
+the same `ENCRYPTION_KEY`.** A plaintext secret is readable by all of them;
+encrypting it makes it readable by one. If your deployed app has a different
+key from your laptop, encrypting a shared secret from your laptop breaks OAuth
+sign-in, Stripe or calendar sync in production the moment it runs — the
+credential decrypts to garbage there. The script now refuses to `--apply` when
+it detects data encrypted under a key it does not have, since that is direct
+evidence of exactly this situation.
+
 It is dry-run by default and idempotent. Every write is verified by reading the
 value back and decrypting it; on any mismatch the original is restored and the
 run stops. Values encrypted under a *different* key are reported and left

@@ -136,6 +136,68 @@ const SETTINGS_FIELDS = [
   "gmailSmtpPass",
 ];
 
+// PRE-FLIGHT. If anything here is encrypted with a key this environment does
+// not have, then ANOTHER ENVIRONMENT WRITES TO THIS DATABASE WITH A DIFFERENT
+// ENCRYPTION_KEY — and that makes this migration actively dangerous. A
+// plaintext secret is readable by every environment; encrypting it makes it
+// readable by exactly one. Everything that reads it elsewhere — OAuth sign-in,
+// Stripe, calendar sync — breaks the moment this runs.
+//
+// Not hypothetical. Running this from a dev machine took Google sign-in down
+// on the deployed site, because the two shared a database but not a key. The
+// evidence was already in the dry-run output and was dismissed as an unrelated
+// pre-existing condition. It now stops the run instead.
+async function detectForeignKeyData() {
+  const candidates = [];
+  const row = await prisma.platformSettings.findUnique({ where: { id: "singleton" } });
+  if (row) {
+    for (const f of SETTINGS_FIELDS) {
+      if (f in row && row[f]) candidates.push([`PlatformSettings.${f}`, row[f]]);
+    }
+  }
+  for (const c of await prisma.calendarConnection.findMany()) {
+    candidates.push([`${c.provider}.accessToken`, c.accessToken]);
+    candidates.push([`${c.provider}.refreshToken`, c.refreshToken]);
+  }
+  for (const u of await prisma.user.findMany({
+    where: { totpSecret: { not: null } },
+    select: { email: true, totpSecret: true },
+  })) {
+    candidates.push([`totpSecret ${u.email}`, u.totpSecret]);
+  }
+
+  const foreign = [];
+  for (const [label, value] of candidates) {
+    if (!value || !looksLikeCiphertext(value)) continue;
+    try {
+      decrypt(value);
+    } catch {
+      foreign.push(label);
+    }
+  }
+  return foreign;
+}
+
+const foreign = await detectForeignKeyData();
+if (foreign.length > 0 && APPLY && !process.argv.includes("--i-understand-the-risk")) {
+  console.error("REFUSING TO RUN.");
+  console.error("");
+  console.error(`${foreign.length} value(s) in this database are encrypted with a key this`);
+  console.error("environment does not have, for example:");
+  for (const f of foreign.slice(0, 3)) console.error(`  - ${f}`);
+  console.error("");
+  console.error("That means another environment writes here with a DIFFERENT ENCRYPTION_KEY.");
+  console.error("Encrypting a plaintext secret would make it readable by THIS environment");
+  console.error("only, breaking OAuth sign-in, Stripe or calendar sync wherever else it is");
+  console.error("read.");
+  console.error("");
+  console.error("Align ENCRYPTION_KEY across every environment sharing this database first.");
+  console.error("Re-run with --i-understand-the-risk only if you are certain nothing else");
+  console.error("reads these values.");
+  await prisma.$disconnect();
+  process.exit(2);
+}
+
 console.log(APPLY ? "APPLYING changes\n" : "DRY RUN — nothing will be written (pass --apply to write)\n");
 
 try {
