@@ -1,5 +1,6 @@
 import "server-only";
 import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
+import logger from "@/lib/logger";
 
 // AES-256-GCM column encryption for secrets stored in the DB (TOTP secrets,
 // OAuth refresh tokens, Stripe keys). The encryption key is held ONLY in an
@@ -72,6 +73,23 @@ export function encryptIfConfigured(plaintext: string): string {
   return encrypt(plaintext);
 }
 
+// Does this value have the shape of something encrypt() produced? Valid
+// base64 that decodes to at least one byte of ciphertext after the 12-byte IV
+// and 16-byte auth tag.
+//
+// Used to tell two very different situations apart: a plaintext value written
+// before encryption was enabled (fine, return it) versus a value that really
+// is ciphertext but won't decrypt (almost always a changed or lost
+// ENCRYPTION_KEY — never fine).
+function looksLikeCiphertext(value: string): boolean {
+  if (!/^[A-Za-z0-9+/]+={0,2}$/.test(value)) return false;
+  try {
+    return Buffer.from(value, "base64").length >= IV_BYTES + TAG_BYTES + 1;
+  } catch {
+    return false;
+  }
+}
+
 // Decrypt if the value looks encrypted (base64 with correct prefix length),
 // otherwise return as-is. Handles the transition period where some rows are
 // encrypted and some aren't.
@@ -93,7 +111,26 @@ export function decryptIfNeeded(value: string): string {
   try {
     return decrypt(value);
   } catch {
-    // Value isn't encrypted (pre-migration plaintext) — return as-is.
+    // A decrypt failure has two completely different causes, and treating them
+    // the same is how a lost key stays invisible for months:
+    //
+    //  - the value was never encrypted (pre-migration plaintext) — expected,
+    //    return it unchanged; this is the documented gradual-adoption path.
+    //  - the value IS ciphertext but this key can't open it — the key has been
+    //    changed or lost, and the data is unrecoverable with it. Silently
+    //    returning the ciphertext makes 2FA and calendar sync fail in ways
+    //    that look like unrelated bugs: TOTP compares against a garbage
+    //    "secret" and simply never matches, with nothing logged anywhere.
+    //
+    // Found by an actual restore drill, which is the only reason it surfaced:
+    // existing TOTP secrets and Google refresh tokens would not decrypt with
+    // the configured key, and nothing in the app had ever said so.
+    if (looksLikeCiphertext(value)) {
+      logger.error(
+        { valueLength: value.length },
+        "Decryption failed on a value that looks encrypted — ENCRYPTION_KEY does not match the key this data was written with. The affected record (2FA secret, OAuth token, or stored credential) is unreadable and the feature using it will fail silently.",
+      );
+    }
     return value;
   }
 }

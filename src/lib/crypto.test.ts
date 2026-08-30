@@ -108,3 +108,50 @@ describe("decryptIfNeeded", () => {
     expect(decryptIfNeeded("plain-value")).toBe("plain-value");
   });
 });
+
+// A restore drill found real data that would not decrypt with the configured
+// ENCRYPTION_KEY — TOTP secrets and Google refresh tokens written under a
+// previous key. decryptIfNeeded swallowed every failure identically, so the
+// app had no way to tell "this was never encrypted" from "the key is wrong",
+// and 2FA simply stopped matching with nothing logged. These pin the
+// distinction.
+describe("decryptIfNeeded — wrong key vs plaintext", () => {
+  const OTHER_KEY = "b".repeat(64);
+
+  it("logs an error when a real ciphertext cannot be decrypted", async () => {
+    vi.stubEnv("ENCRYPTION_KEY", KEY);
+    const ciphertext = encrypt("JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP");
+
+    // Same data, different key — exactly the drill's situation.
+    vi.stubEnv("ENCRYPTION_KEY", OTHER_KEY);
+    const logger = (await import("@/lib/logger")).default;
+    const spy = vi.spyOn(logger, "error").mockImplementation(() => logger);
+
+    const result = decryptIfNeeded(ciphertext);
+
+    // Still returns the value (callers must not crash), but no longer silently.
+    expect(result).toBe(ciphertext);
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(String(spy.mock.calls[0][1])).toMatch(/ENCRYPTION_KEY does not match/);
+    spy.mockRestore();
+  });
+
+  it("stays silent for genuine pre-migration plaintext", async () => {
+    vi.stubEnv("ENCRYPTION_KEY", KEY);
+    const logger = (await import("@/lib/logger")).default;
+    const spy = vi.spyOn(logger, "error").mockImplementation(() => logger);
+
+    // Real examples of values stored before encryption was switched on. None
+    // are valid base64 of sufficient length, so none should warn.
+    for (const plain of [
+      "sk_test_51TpAbCdEfGhIjKlMnOp",
+      "whsec_abc123",
+      "smtp-password!",
+      "short",
+    ]) {
+      expect(decryptIfNeeded(plain)).toBe(plain);
+    }
+    expect(spy).not.toHaveBeenCalled();
+    spy.mockRestore();
+  });
+});

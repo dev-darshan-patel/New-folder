@@ -35,6 +35,20 @@ with the old one. Back the key up **separately from the database**, in a
 password manager or secrets vault. Storing it in the same place as the dump
 defeats the point of encrypting at rest.
 
+## Before you start
+
+`pg_dump`, `pg_restore` and `psql` are **not** installed with the app. Install
+the Postgres client tools on whatever machine runs the backup (`postgresql-client`
+on Debian/Ubuntu), and check the version:
+
+```bash
+pg_dump --version
+```
+
+The client major version must be **>= the server's**. `pg_dump` refuses to dump
+a newer server than itself, and that failure happens at backup time — i.e. you
+find out when you have no backup.
+
 ## Postgres
 
 ### Managed (Neon, Vercel Postgres, RDS)
@@ -94,6 +108,19 @@ find "$BACKUP_DIR" -name 'uploads-*.tar.gz' -mtime +14 -delete
 ```
 
 Make it executable (`chmod +x`) and owned by the app user.
+
+### Check the dump is readable
+
+A dump that exits 0 can still be truncated by a full disk. This reads the
+archive's own table of contents without needing a server, and takes a second:
+
+```bash
+pg_restore --list bookify-2026-08-30-0300.dump | grep -c 'TABLE DATA'
+```
+
+Expect a count in line with your schema (25 tables at time of writing). Zero,
+or an error, means the dump is not usable — find out now rather than during a
+restore. Worth adding to the backup script so a bad dump fails loudly.
 
 **Get the dumps off the machine.** A backup on the same disk as the database
 does not survive the failure most likely to destroy it. Sync to object storage
@@ -159,17 +186,73 @@ The whole point. Put it in a calendar.
 1. Take the most recent nightly dump.
 2. Restore it into a scratch database, as above.
 3. Start the app against it and check:
-   - you can log in
    - `/api/health` returns `200`
+   - you can log in
    - a tenant's bookings and tickets are present
    - a ticket page renders its QR
-   - **a tenant with 2FA can still sign in** — this is the check that proves
-     your `ENCRYPTION_KEY` backup is the right one. Everything else can look
-     perfect with the wrong key.
-4. Drop the scratch database.
+4. **Check the encrypted columns actually decrypt** — see below. Everything
+   above can look perfect with the wrong `ENCRYPTION_KEY`.
+5. Drop the scratch database.
 
-If step 3 fails, you have found it on a Tuesday afternoon rather than during an
-outage.
+If any step fails, you have found it on a Tuesday afternoon rather than during
+an outage.
+
+### The encryption check
+
+This is the step that matters most, and the one that is easy to fake. "Log in
+as a 2FA user" sounds like the right test but usually is not runnable — you
+need that user's password *and* their current TOTP code. Check the data
+directly instead.
+
+Save as `scripts/check-encryption.mjs` and run it against any database
+(including production — it only reads):
+
+```js
+import { createDecipheriv } from "node:crypto";
+import { PrismaClient } from "@prisma/client";
+
+const key = Buffer.from(process.env.ENCRYPTION_KEY, "hex");
+const dec = (b64) => {
+  const d = Buffer.from(b64, "base64");
+  const x = createDecipheriv("aes-256-gcm", key, d.subarray(0, 12));
+  x.setAuthTag(d.subarray(12, 28));
+  return x.update(d.subarray(28)) + x.final("utf8");
+};
+
+const prisma = new PrismaClient();
+let bad = 0;
+const check = (label, value) => {
+  if (!value) return;
+  try { dec(value); } catch { bad++; console.log("UNREADABLE:", label); }
+};
+
+for (const u of await prisma.user.findMany({ where: { totpSecret: { not: null } } })) {
+  check(`totpSecret ${u.email}`, u.totpSecret);
+}
+for (const c of await prisma.calendarConnection.findMany()) {
+  check(`${c.provider} accessToken`, c.accessToken);
+  check(`${c.provider} refreshToken`, c.refreshToken);
+}
+console.log(bad === 0 ? "OK — all encrypted values decrypt" : `${bad} unreadable value(s)`);
+await prisma.$disconnect();
+process.exit(bad === 0 ? 0 : 1);
+```
+
+```bash
+node --env-file=.env scripts/check-encryption.mjs
+```
+
+Anything reported `UNREADABLE` was encrypted with a **different key** than the
+one you have. That data is gone: a new key cannot decrypt it. The affected
+users must re-enrol 2FA and reconnect their calendars.
+
+Since values written *before* encryption was switched on are stored as
+plaintext and are read back fine, a mixed database is normal — the script only
+flags values that are genuinely ciphertext it cannot open.
+
+Run this **now**, not only at drill time. It takes seconds and it is the
+difference between finding a key mismatch today and finding it when someone
+cannot sign in.
 
 ## What is not covered
 
