@@ -50,6 +50,7 @@ const prisma = new PrismaClient();
 let unreadable = 0;
 let plaintext = 0;
 let ok = 0;
+let selfHealing = 0;
 
 function check(label, value) {
   if (!value) return;
@@ -72,10 +73,42 @@ const users = await prisma.user.findMany({
 });
 for (const u of users) check(`totpSecret  ${u.email}`, u.totpSecret);
 
+// Calendar tokens need a nuance, or this check cries wolf and gets ignored.
+// An ACCESS token is short-lived and re-fetched automatically whenever it has
+// expired (see getValidAccessToken); if the REFRESH token is readable, an
+// unreadable access token repairs itself on next use and is not a fault worth
+// alarming on. Only an unreadable refresh token means the user must actually
+// reconnect.
 const connections = await prisma.calendarConnection.findMany();
 for (const c of connections) {
-  check(`${c.provider} accessToken  (user ${c.userId})`, c.accessToken);
+  const refreshReadable = (() => {
+    if (!c.refreshToken) return false;
+    if (!looksLikeCiphertext(c.refreshToken)) return true; // plaintext, usable
+    try {
+      decrypt(c.refreshToken);
+      return true;
+    } catch {
+      return false;
+    }
+  })();
+
   check(`${c.provider} refreshToken (user ${c.userId})`, c.refreshToken);
+
+  if (c.accessToken && looksLikeCiphertext(c.accessToken)) {
+    try {
+      decrypt(c.accessToken);
+      ok++;
+    } catch {
+      if (refreshReadable) {
+        selfHealing++;
+      } else {
+        unreadable++;
+        console.log(`  UNREADABLE  ${c.provider} accessToken (user ${c.userId})`);
+      }
+    }
+  } else if (c.accessToken) {
+    plaintext++;
+  }
 }
 
 const settings = await prisma.platformSettings.findUnique({ where: { id: "singleton" } });
@@ -103,6 +136,9 @@ await prisma.$disconnect();
 console.log("");
 console.log(`  decrypted OK        ${ok}`);
 console.log(`  stored as plaintext ${plaintext}  (written before encryption was enabled — readable, but not protected at rest)`);
+if (selfHealing > 0) {
+  console.log(`  self-healing        ${selfHealing}  (expired access token; its refresh token is readable, so it re-encrypts on next use)`);
+}
 console.log(`  UNREADABLE          ${unreadable}`);
 
 if (unreadable > 0) {

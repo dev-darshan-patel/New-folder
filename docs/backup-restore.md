@@ -204,51 +204,32 @@ as a 2FA user" sounds like the right test but usually is not runnable — you
 need that user's password *and* their current TOTP code. Check the data
 directly instead.
 
-Save as `scripts/check-encryption.mjs` and run it against any database
-(including production — it only reads):
-
-```js
-import { createDecipheriv } from "node:crypto";
-import { PrismaClient } from "@prisma/client";
-
-const key = Buffer.from(process.env.ENCRYPTION_KEY, "hex");
-const dec = (b64) => {
-  const d = Buffer.from(b64, "base64");
-  const x = createDecipheriv("aes-256-gcm", key, d.subarray(0, 12));
-  x.setAuthTag(d.subarray(12, 28));
-  return x.update(d.subarray(28)) + x.final("utf8");
-};
-
-const prisma = new PrismaClient();
-let bad = 0;
-const check = (label, value) => {
-  if (!value) return;
-  try { dec(value); } catch { bad++; console.log("UNREADABLE:", label); }
-};
-
-for (const u of await prisma.user.findMany({ where: { totpSecret: { not: null } } })) {
-  check(`totpSecret ${u.email}`, u.totpSecret);
-}
-for (const c of await prisma.calendarConnection.findMany()) {
-  check(`${c.provider} accessToken`, c.accessToken);
-  check(`${c.provider} refreshToken`, c.refreshToken);
-}
-console.log(bad === 0 ? "OK — all encrypted values decrypt" : `${bad} unreadable value(s)`);
-await prisma.$disconnect();
-process.exit(bad === 0 ? 0 : 1);
-```
+`scripts/check-encryption.mjs` ships with the app. It is read-only and safe to
+run against production:
 
 ```bash
 node --env-file=.env scripts/check-encryption.mjs
 ```
 
+It exits `0` when everything readable, `1` when something is not — so it works
+as a cron check or a CI step, not just a manual one.
+
 Anything reported `UNREADABLE` was encrypted with a **different key** than the
 one you have. That data is gone: a new key cannot decrypt it. The affected
 users must re-enrol 2FA and reconnect their calendars.
 
-Since values written *before* encryption was switched on are stored as
-plaintext and are read back fine, a mixed database is normal — the script only
-flags values that are genuinely ciphertext it cannot open.
+Two results are **not** failures and the script reports them separately:
+
+- **stored as plaintext** — written before encryption was switched on. Readable
+  and working, just not protected at rest. A mixed database is normal.
+- **self-healing** — an expired calendar *access* token that cannot be
+  decrypted, whose *refresh* token is readable. Access tokens are short-lived
+  and re-fetched automatically, so this repairs itself on next use and
+  re-encrypts under the current key. Only an unreadable **refresh** token means
+  the user must actually reconnect.
+
+That distinction matters: a check that reports a permanent false alarm is a
+check people stop reading, which defeats the point of having it.
 
 Run this **now**, not only at drill time. It takes seconds and it is the
 difference between finding a key mismatch today and finding it when someone
