@@ -218,6 +218,26 @@ Anything reported `UNREADABLE` was encrypted with a **different key** than the
 one you have. That data is gone: a new key cannot decrypt it. The affected
 users must re-enrol 2FA and reconnect their calendars.
 
+### Secrets still stored in plaintext
+
+Anything written before `ENCRYPTION_KEY` was set is stored in the clear. It
+works — `decryptIfNeeded` passes it through — but it is not protected at rest,
+which defeats the point of encrypting the column. `scripts/check-encryption.mjs`
+counts these as "stored as plaintext".
+
+To encrypt them under the current key:
+
+```bash
+node --env-file=.env scripts/encrypt-plaintext-secrets.mjs           # dry run
+node --env-file=.env scripts/encrypt-plaintext-secrets.mjs --apply   # write
+```
+
+It is dry-run by default and idempotent. Every write is verified by reading the
+value back and decrypting it; on any mismatch the original is restored and the
+run stops. Values encrypted under a *different* key are reported and left
+untouched — overwriting those would destroy the only chance of recovering them
+if the old key ever turns up.
+
 Two results are **not** failures and the script reports them separately:
 
 - **stored as plaintext** — written before encryption was switched on. Readable
